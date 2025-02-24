@@ -17,7 +17,7 @@ dropout_p = 0.15
 
 # Training parameters
 epochs = 50 
-batch_size = 256 # CHANGE batch size from 256 to 32
+batch_size = 256
 learning_rate = 1e-4
 eps = 1e-4
 nStep = 15
@@ -194,8 +194,8 @@ def validation(model, device, optimizer, test_loader):
     print('\nTest set ({:d} samples): Average loss: {:.4f}\n'.format(len(all_y), test_loss))
 
 
-use_cuda = False                  
-device = torch.device("cpu")   
+use_cuda = torch.cuda.is_available()                  
+device = torch.device("cuda" if use_cuda else "cpu")   
 
 # Data loading parameters
 params = {'batch_size': batch_size, 'shuffle': True, 'num_workers': 4, 'pin_memory': True} if use_cuda else {}
@@ -241,7 +241,7 @@ train_list, test_list, train_label, test_label = train_test_split(all_x_list, al
 train_set, valid_set = Dataset_LeTac(train_list, train_label, np.arange(1, 10, 1).tolist(), transform=transform), \
                        Dataset_LeTac(test_list, test_label, np.arange(1, 10, 1).tolist(), transform=transform)
 
-train_loader = data.DataLoader(train_set, **params) # CHANGE: add drop_last = True
+train_loader = data.DataLoader(train_set, **params)
 valid_loader = data.DataLoader(valid_set, **params)
 
 # Create model
@@ -258,4 +258,12 @@ for epoch in range(epochs):
     validation([cnn_encoder, MPC_layer], device, optimizer, valid_loader)
     train([cnn_encoder, MPC_layer], device, train_loader, optimizer, epoch)
     
-    
+# Save the model after training
+torch.save({
+    'cnn_encoder_state_dict': cnn_encoder.state_dict(),
+    'mpc_layer_state_dict': MPC_layer.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+    'epoch': epoch,
+}, './trained_model.pth')
+
+print("Model saved to 'trained_model.pth'")
