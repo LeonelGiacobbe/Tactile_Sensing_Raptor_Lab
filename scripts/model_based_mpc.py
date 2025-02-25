@@ -37,11 +37,11 @@ def zeros_hstack_help_inverse(vec, n, size_row, size_col):
     return combo
 
 def getCS_(C, S_):
-    C_ = sparse.block_diag([sparse.kron(sparse.eye(N), C)])
+    C_ = sparse.block_diag([sparse.kron(sparse.eye(15), C)]) # CHANGE => N to 15
     return C_ * S_
 
 def getCT_(C, T_):
-    C_ = sparse.block_diag([sparse.kron(sparse.eye(N), C)])
+    C_ = sparse.block_diag([sparse.kron(sparse.eye(15), C)]) # CHANGE => N to 15
     return C_ * T_
 
 def b_CT_x0(b_, CT_, x0):
@@ -52,7 +52,7 @@ class ModelBasedMPCNode(Node):
         super().__init__('model_based_mpc_node')
         
         self.gripper_posi_ = 0
-        self.gripper_ini_flag_ = False
+        self.gripper_ini_flag_ = True
         self.dis_sum_ = 0
         self.contact_area_ = 0
 
@@ -61,10 +61,15 @@ class ModelBasedMPCNode(Node):
         
         # self.gripper_state_sub = self.create_subscription(
         #     Status, '/wsg/status', self.gripper_state_cb, 10)
+
+        # Receives tactile image from gelsight
+        # self.dis_sum_sub = self.create_subscription(
+        #     Float32, '/tactile_state/marker_dis_sum', self.dis_sum_cb, 10)
         self.dis_sum_sub = self.create_subscription(
-            Float32, '/tactile_state/marker_dis_sum', self.dis_sum_cb, 10)
-        self.contact_area_sub = self.create_subscription(
-            Float32, '/tactile_state/contact_area', self.contact_area_cb, 10)
+            Float32, '/gsmini_rawimg_0', self.dis_sum_cb, 10)
+        # Contact area sub is never used?
+        # self.contact_area_sub = self.create_subscription(
+        #     Float32, '/tactile_state/contact_area', self.contact_area_cb, 10)
 
         self.old_attr = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
@@ -229,6 +234,8 @@ class ModelBasedMPCNode(Node):
                     x_state = Ad.dot(x_state) + Bd.dot(ctrl)
                     self.gripper_cmd.position = x_state[2]
 
+                # Maybe write to action topic instead of using the gripper publisher
+                # ros2 action send_goal /robotiq_gripper_controller/gripper_cmd control_msgs/action/GripperCommand "{command:{position: x_state[2], max_effort: 100.0}}"
                 self.gripper_posi_pub.publish(self.gripper_cmd)
                 self.rate.sleep()
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_attr)
@@ -244,3 +251,8 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+
+# Next steps
+# Figure out how to get current position of end effector
+# Confirm that expected type matches actual in suscription to gelsight image
