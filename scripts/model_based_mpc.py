@@ -210,7 +210,7 @@ class ModelBasedMPCNode(Node):
 
             while rclpy.ok():
                 if x_state[2] == 0.:
-                    # state initialization
+                    # state initialization. Need way to get current position of gripper
                     x_state = np.array([self.contact_area_, -self.dis_sum_, self.gripper_cmd.position, x_state[3]])
                 else:
                     # tactile state update
@@ -253,6 +253,9 @@ if __name__ == '__main__':
     main()
 
 
+# Things to change
+# get current position of gripper (opening) with robotiq_85_left_knuckle_joint from /joint_states (should be second element in position array)
+
 # Next steps
-# Figure out how to get current position of end effector
+# Figure out how to get current position of end effector (joint_states could be a possibility)
 # Confirm that expected type matches actual in suscription to gelsight image
