@@ -10,6 +10,9 @@ from control_msgs.action import GripperCommand
 from sensor_msgs.msg import JointState
 import osqp
 
+global dis_sum_ # assume this is marker displacement
+global contact_area_ # assume this is raw image
+
 def vstack_help(vec, n):
     combo = vec.reshape(vec.size, 1)
     single = vec.reshape(vec.size, 1)
@@ -57,15 +60,22 @@ class ModelBasedMPCNode(Node):
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
 
         # Receives tactile image from gelsight
-        self.dis_sum_sub = self.create_subscription(
-            Float32, '/gsmini_rawimg_0', self.dis_sum_cb, 10)
+        self.contact_area = self.create_subscription(
+            Float32, '/gsmini_rawimg_0', self.contact_area_cb, 10)
+
+        # Receives marker displacements from gelsigh
+        #self.dis_sum_ = self.create_subscription( Who knows where)
+
+        # Subscribe to the JointState topic to get gripper position
+        self.joint_state_sub = self.create_subscription(
+            JointState, '/joint_states', self.joint_state_cb, 10)
 
         self.old_attr = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
 
         # Parameters initialization
         self.frequency = 60
-        self.init_posi = 70
+        self.init_posi = 0.0
         self.N = 15  # horizon
         self.q_c = 36
         self.q_v = 1
@@ -89,6 +99,18 @@ class ModelBasedMPCNode(Node):
     def dis_sum_cb(self, msg):
         self.dis_sum_ = msg.data
 
+    def contact_area_cb(self, msg):
+        self.contact_area_ = msg.data
+    def joint_state_cb(self, msg):
+        # Extract gripper position from JointState message
+        try:
+            # Assuming the gripper's position is the second element in the position array
+            gripper_position = msg.position[1]  # Index 1 corresponds to 'robotiq_85_left_knuckle_joint'
+            self.gripper_posi_ = gripper_position
+            self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+        except IndexError:
+            self.get_logger().error("Error: Gripper joint position not found in JointState message.")
+
     def run(self):
         try:
             while not self.gripper_ini_flag_:
@@ -97,7 +119,7 @@ class ModelBasedMPCNode(Node):
             while (sys.stdin.read(1) != 'l'):
                 self.get_logger().info('Wait for starting! Press l to start')
                 time.sleep(0.1)
-            
+
             # state and control Initialization
             x_state = np.array([0., 0., 0., 0.])
             u0 = np.array([[0.]])
@@ -194,7 +216,7 @@ class ModelBasedMPCNode(Node):
             while rclpy.ok():
                 if x_state[2] == 0.:
                     # state initialization. Need way to get current position of gripper
-                    x_state = np.array([self.contact_area_, -self.dis_sum_, self.gripper_cmd.command.position, x_state[3]])
+                    x_state = np.array([self.contact_area_, -self.dis_sum_, self.gripper_posi_, x_state[3]])
                 else:
                     # tactile state update
                     # contact area, dis sum, p, v
@@ -215,18 +237,20 @@ class ModelBasedMPCNode(Node):
                 if ctrl[0] is not None:
                     # p, v update
                     x_state = Ad.dot(x_state) + Bd.dot(ctrl)
-                    self.gripper_cmd.command.position = x_state[2]
+                    print("x_state_2 ", x_state[2])
+                    self.gripper_cmd.command.position = abs(x_state[2])
 
                 # Send goal to the action server
                 self._send_goal(self.gripper_cmd)
                 self.rate.sleep()
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_attr)
+
         except KeyboardInterrupt:
             self.get_logger().info('Interrupted!')
 
     def _send_goal(self, goal):
         self.get_logger().info('Sending goal...')
         self._action_client.wait_for_server()
+        print("Goal: ", goal)
         self._send_goal_future = self._action_client.send_goal_async(goal)
         self._send_goal_future.add_done_callback(self._goal_response_callback)
 
@@ -252,3 +276,6 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+# Figure out where to get marker displacements from (think contact area is raw image, dis_sum is displacement (sum?))
+# Ensure position of grippers gets to program whole and correct
