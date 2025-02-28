@@ -4,13 +4,10 @@ import time
 import sys, tty, termios
 import rclpy
 from rclpy.node import Node
-# from wsg_50_common.msg import Cmd
-# from wsg_50_common.msg import Status
 from std_msgs.msg import Float32
-
 from rclpy.action import ActionClient
-from control_msgs.msg import GripperCommand
-
+from control_msgs.action import GripperCommand
+from sensor_msgs.msg import JointState
 import osqp
 
 def vstack_help(vec, n):
@@ -37,11 +34,11 @@ def zeros_hstack_help_inverse(vec, n, size_row, size_col):
     return combo
 
 def getCS_(C, S_):
-    C_ = sparse.block_diag([sparse.kron(sparse.eye(15), C)]) # CHANGE => N to 15
+    C_ = sparse.block_diag([sparse.kron(sparse.eye(15), C)])  # CHANGE => N to 15
     return C_ * S_
 
 def getCT_(C, T_):
-    C_ = sparse.block_diag([sparse.kron(sparse.eye(15), C)]) # CHANGE => N to 15
+    C_ = sparse.block_diag([sparse.kron(sparse.eye(15), C)])  # CHANGE => N to 15
     return C_ * T_
 
 def b_CT_x0(b_, CT_, x0):
@@ -56,20 +53,12 @@ class ModelBasedMPCNode(Node):
         self.dis_sum_ = 0
         self.contact_area_ = 0
 
-        # replace with goal position from kortex_bringup: ros2 action send_goal /robotiq_gripper_controller/gripper_cmd control_msgs/action/GripperCommand "{command:{position: 0.0, max_effort: 100.0}}"
-        self.gripper_posi_pub = self.create_publisher(GripperCommand, '/position', 1)
-        
-        # self.gripper_state_sub = self.create_subscription(
-        #     Status, '/wsg/status', self.gripper_state_cb, 10)
+        # Replace publisher with ActionClient
+        self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
 
         # Receives tactile image from gelsight
-        # self.dis_sum_sub = self.create_subscription(
-        #     Float32, '/tactile_state/marker_dis_sum', self.dis_sum_cb, 10)
         self.dis_sum_sub = self.create_subscription(
             Float32, '/gsmini_rawimg_0', self.dis_sum_cb, 10)
-        # Contact area sub is never used?
-        # self.contact_area_sub = self.create_subscription(
-        #     Float32, '/tactile_state/contact_area', self.contact_area_cb, 10)
 
         self.old_attr = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
@@ -90,21 +79,15 @@ class ModelBasedMPCNode(Node):
         self.dim = 4
 
         self.del_t = 1 / self.frequency
-        self.gripper_cmd = GripperCommand()
-        self.gripper_cmd.position = float(self.init_posi)
+        self.gripper_cmd = GripperCommand.Goal()
+        self.gripper_cmd.command.position = float(self.init_posi)
+        self.gripper_cmd.command.max_effort = 100.0  # Set max effort
         self.rate = self.create_rate(self.frequency)
 
         self.run()
 
-    def contact_area_cb(self, msg):
-        self.contact_area_ = msg.data
-
     def dis_sum_cb(self, msg):
         self.dis_sum_ = msg.data
-
-    def gripper_state_cb(self, data):
-        self.gripper_posi_ = data.width
-        self.gripper_ini_flag_ = True
 
     def run(self):
         try:
@@ -211,7 +194,7 @@ class ModelBasedMPCNode(Node):
             while rclpy.ok():
                 if x_state[2] == 0.:
                     # state initialization. Need way to get current position of gripper
-                    x_state = np.array([self.contact_area_, -self.dis_sum_, self.gripper_cmd.position, x_state[3]])
+                    x_state = np.array([self.contact_area_, -self.dis_sum_, self.gripper_cmd.command.position, x_state[3]])
                 else:
                     # tactile state update
                     # contact area, dis sum, p, v
@@ -232,15 +215,33 @@ class ModelBasedMPCNode(Node):
                 if ctrl[0] is not None:
                     # p, v update
                     x_state = Ad.dot(x_state) + Bd.dot(ctrl)
-                    self.gripper_cmd.position = x_state[2]
+                    self.gripper_cmd.command.position = x_state[2]
 
-                # Maybe write to action topic instead of using the gripper publisher
-                # ros2 action send_goal /robotiq_gripper_controller/gripper_cmd control_msgs/action/GripperCommand "{command:{position: x_state[2], max_effort: 100.0}}"
-                self.gripper_posi_pub.publish(self.gripper_cmd)
+                # Send goal to the action server
+                self._send_goal(self.gripper_cmd)
                 self.rate.sleep()
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.old_attr)
         except KeyboardInterrupt:
             self.get_logger().info('Interrupted!')
+
+    def _send_goal(self, goal):
+        self.get_logger().info('Sending goal...')
+        self._action_client.wait_for_server()
+        self._send_goal_future = self._action_client.send_goal_async(goal)
+        self._send_goal_future.add_done_callback(self._goal_response_callback)
+
+    def _goal_response_callback(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().info('Goal rejected :(')
+            return
+        self.get_logger().info('Goal accepted :)')
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future.add_done_callback(self._get_result_callback)
+
+    def _get_result_callback(self, future):
+        result = future.result().result
+        self.get_logger().info(f'Result: {result}')
 
 def main(args=None):
     rclpy.init(args=args)
@@ -251,11 +252,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-
-# Things to change
-# get current position of gripper (opening) with robotiq_85_left_knuckle_joint from /joint_states (should be second element in position array)
-
-# Next steps
-# Figure out how to get current position of end effector (joint_states could be a possibility)
-# Confirm that expected type matches actual in suscription to gelsight image
