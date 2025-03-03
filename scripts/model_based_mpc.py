@@ -9,9 +9,10 @@ from rclpy.action import ActionClient
 from control_msgs.action import GripperCommand
 from sensor_msgs.msg import JointState
 import osqp
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 
-global dis_sum_ # assume this is marker displacement
-global contact_area_ # assume this is raw image
+global dis_sum_ # sum of marker displacements
+global contact_area_ # raw image
 
 def vstack_help(vec, n):
     combo = vec.reshape(vec.size, 1)
@@ -51,7 +52,7 @@ class ModelBasedMPCNode(Node):
     def __init__(self):
         super().__init__('model_based_mpc_node')
         
-        self.gripper_posi_ = 0
+        self.gripper_posi_ = 0.0
         self.gripper_ini_flag_ = True
         self.dis_sum_ = 0
         self.contact_area_ = 0
@@ -59,16 +60,22 @@ class ModelBasedMPCNode(Node):
         # Replace publisher with ActionClient
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
 
-        # Receives tactile image from gelsight
+        # Receives tactile image from gelsight (why in format float32?)
         self.contact_area = self.create_subscription(
             Float32, '/gsmini_rawimg_0', self.contact_area_cb, 10)
 
-        # Receives marker displacements from gelsigh
-        #self.dis_sum_ = self.create_subscription( Who knows where)
-
         # Subscribe to the JointState topic to get gripper position
+        qos_profile = QoSProfile(
+            depth=10,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL  # Change to TRANSIENT_LOCAL
+        )
         self.joint_state_sub = self.create_subscription(
-            JointState, '/joint_states', self.joint_state_cb, 10)
+            JointState,
+            '/joint_states',
+            self.joint_state_cb,
+            qos_profile
+        )
 
         self.old_attr = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
@@ -94,23 +101,26 @@ class ModelBasedMPCNode(Node):
         self.gripper_cmd.command.max_effort = 100.0  # Set max effort
         self.rate = self.create_rate(self.frequency)
 
-        self.run()
+        # Timer to call the run method periodically
+        self.timer = self.create_timer(1.0 / self.frequency, self.run)
+
+    def joint_state_cb(self, msg: JointState):
+        self.get_logger().info(f"Received JointState message with joints: {msg.name}")
+        if 'robotiq_85_left_knuckle_joint' in msg.name:
+            index = msg.name.index('robotiq_85_left_knuckle_joint')
+            gripper_position = msg.position[index]
+            self.gripper_posi_ = gripper_position
+            self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+            self.gripper_ini_flag_ = True
+        else:
+            self.get_logger().warn("Gripper joint not found in JointState message")
 
     def dis_sum_cb(self, msg):
         self.dis_sum_ = msg.data
 
     def contact_area_cb(self, msg):
         self.contact_area_ = msg.data
-    def joint_state_cb(self, msg):
-        # Extract gripper position from JointState message
-        try:
-            # Assuming the gripper's position is the second element in the position array
-            gripper_position = msg.position[1]  # Index 1 corresponds to 'robotiq_85_left_knuckle_joint'
-            self.gripper_posi_ = gripper_position
-            self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
-        except IndexError:
-            self.get_logger().error("Error: Gripper joint position not found in JointState message.")
-
+    
     def run(self):
         try:
             while not self.gripper_ini_flag_:
@@ -216,11 +226,13 @@ class ModelBasedMPCNode(Node):
             while rclpy.ok():
                 if x_state[2] == 0.:
                     # state initialization. Need way to get current position of gripper
-                    x_state = np.array([self.contact_area_, -self.dis_sum_, self.gripper_posi_, x_state[3]])
+                    print("Gripper position before movement 1: ", self.gripper_posi_)
+                    x_state = np.array([self.contact_area_, 0, self.gripper_posi_, x_state[3]]) # change -self.dis_sum_ to 0
                 else:
                     # tactile state update
                     # contact area, dis sum, p, v
-                    x_state = np.array([self.contact_area_, -self.dis_sum_, x_state[2], x_state[3]])
+                    print("Gripper position before movement 2: ", self.gripper_posi_)
+                    x_state = np.array([self.contact_area_, 0, x_state[2], x_state[3]]) # change -self.dis_sum_ to 0
 
                 # constraints update
                 max_con_b_update = b_CT_x0(max_con_b_, C_con_T_, x_state.reshape(self.dim, 1))
@@ -277,5 +289,5 @@ def main(args=None):
 if __name__ == '__main__':
     main()
 
-# Figure out where to get marker displacements from (think contact area is raw image, dis_sum is displacement (sum?))
-# Ensure position of grippers gets to program whole and correct
+# gripper position is not being received properly
+# Only runs node once?
