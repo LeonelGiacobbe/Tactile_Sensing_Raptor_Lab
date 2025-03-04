@@ -53,7 +53,7 @@ class ModelBasedMPCNode(Node):
         super().__init__('model_based_mpc_node')
         
         self.gripper_posi_ = 0.0
-        self.gripper_ini_flag_ = True
+        self.gripper_ini_flag_ = False
         self.dis_sum_ = 0
         self.contact_area_ = 0
 
@@ -105,6 +105,8 @@ class ModelBasedMPCNode(Node):
         self.timer = self.create_timer(1.0 / self.frequency, self.run)
 
     def joint_state_cb(self, msg: JointState):
+        self.gripper_ini_flag_ = True
+        
         self.get_logger().info(f"Received JointState message with joints: {msg.name}")
         if 'robotiq_85_left_knuckle_joint' in msg.name:
             index = msg.name.index('robotiq_85_left_knuckle_joint')
@@ -254,7 +256,8 @@ class ModelBasedMPCNode(Node):
 
                 # Send goal to the action server
                 self._send_goal(self.gripper_cmd)
-                self.rate.sleep()
+                #self.rate.sleep()
+            print("RCLPY not OK. Exiting... ")
 
         except KeyboardInterrupt:
             self.get_logger().info('Interrupted!')
@@ -289,5 +292,5 @@ def main(args=None):
 if __name__ == '__main__':
     main()
 
-# gripper position is not being received properly
-# Only runs node once?
+# Position is received sometimes, not always
+# x_state values are for wsg 50 gripper, need to adjust to robotiq
