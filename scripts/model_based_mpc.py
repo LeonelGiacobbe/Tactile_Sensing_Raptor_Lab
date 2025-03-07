@@ -7,9 +7,10 @@ from rclpy.node import Node
 from std_msgs.msg import Float32
 from rclpy.action import ActionClient
 from control_msgs.action import GripperCommand
-from sensor_msgs.msg import JointState
+from sensor_msgs.msg import JointState, Image
 import osqp
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
+from rclpy.executors import MultiThreadedExecutor
 
 global dis_sum_ # sum of marker displacements
 global contact_area_ # raw image
@@ -61,14 +62,14 @@ class ModelBasedMPCNode(Node):
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
 
         # Receives tactile image from gelsight (why in format float32?)
-        self.contact_area = self.create_subscription(
+        self.contact_area_sub = self.create_subscription(
             Float32, '/gsmini_rawimg_0', self.contact_area_cb, 10)
 
         # Subscribe to the JointState topic to get gripper position
         qos_profile = QoSProfile(
-            depth=10,
-            reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL  # Change to TRANSIENT_LOCAL
+            depth=1000,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
         )
         self.joint_state_sub = self.create_subscription(
             JointState,
@@ -83,6 +84,10 @@ class ModelBasedMPCNode(Node):
         # Parameters initialization
         self.frequency = 60
         self.init_posi = 0.0
+        self.lower_pos_lim = 0.0 # for wsg grippers, original values
+        self.upper_pos_lim = 110. # for wsg grippers, original values
+        self.new_min = 0.0
+        self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
         self.N = 15  # horizon
         self.q_c = 36
         self.q_v = 1
@@ -113,15 +118,16 @@ class ModelBasedMPCNode(Node):
             gripper_position = msg.position[index]
             self.gripper_posi_ = gripper_position
             self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
-            self.gripper_ini_flag_ = True
         else:
             self.get_logger().warn("Gripper joint not found in JointState message")
 
     def dis_sum_cb(self, msg):
         self.dis_sum_ = msg.data
-
+        
     def contact_area_cb(self, msg):
         self.contact_area_ = msg.data
+        self.get_logger().info(f"Current contact area: {self.contact_area_:.4f}")
+        
     
     def run(self):
         try:
@@ -251,12 +257,13 @@ class ModelBasedMPCNode(Node):
                 if ctrl[0] is not None:
                     # p, v update
                     x_state = Ad.dot(x_state) + Bd.dot(ctrl)
-                    print("x_state_2 ", x_state[2])
-                    self.gripper_cmd.command.position = abs(x_state[2])
+                    normalized_x_state = self.new_min + ((x_state[2] - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min)
+                    print("x_state_2 ", abs(normalized_x_state))
+                    self.gripper_cmd.command.position = abs(normalized_x_state)
 
                 # Send goal to the action server
                 self._send_goal(self.gripper_cmd)
-                #self.rate.sleep()
+                self.rate.sleep()
             print("RCLPY not OK. Exiting... ")
 
         except KeyboardInterrupt:
@@ -285,12 +292,18 @@ class ModelBasedMPCNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = ModelBasedMPCNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    executor = MultiThreadedExecutor(num_threads=2)
+    executor.add_node(node)
+    executor.spin()
+    # rclpy.spin(node)
+    # node.destroy_node()
+    # rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
 
 # Position is received sometimes, not always
-# x_state values are for wsg 50 gripper, need to adjust to robotiq
+# position of gripper not always updating
+# gripper not converging. Maybe because of above?
+# rate.sleep may block forever if using single threaded executor
+
