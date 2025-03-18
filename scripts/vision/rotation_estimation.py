@@ -70,10 +70,10 @@ def getOrientation(pts, img):
     
     return angle
  
-# Load the image
+# Load the images from Kinova arm
 video_capture = cv2.VideoCapture("rtsp://192.168.1.10/color")
 
-# angle sand center storing lists
+# angle and center storing lists
 angles = []
 centers = []
 
@@ -121,4 +121,6 @@ for i, c in enumerate(contours):
 # cv2.destroyAllWindows()
     
     
-# Want to get the center pixel location of object, as well as the rotation of each object
+# To find major / minor axis
+# use fitEllipse from opencv. Returns center of ellipse, major and minor axis length, and rotation
+# so to find the points to grab, draw a line of len(minor axis) starting at point "center" and rotate it by "rotation"

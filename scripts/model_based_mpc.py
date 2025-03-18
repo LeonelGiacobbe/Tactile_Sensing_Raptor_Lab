@@ -109,7 +109,9 @@ class ModelBasedMPCNode(Node):
         # Timer to call the run method periodically
         self.timer = self.create_timer(1.0 / self.frequency, self.run)
 
-    def joint_state_cb(self, msg: JointState):
+    # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed
+    def joint_state_cb(self, msg: JointState): 
+        # Flag to allow run method to go out of inf loop
         self.gripper_ini_flag_ = True
         
         self.get_logger().info(f"Received JointState message with joints: {msg.name}")
@@ -121,9 +123,11 @@ class ModelBasedMPCNode(Node):
         else:
             self.get_logger().warn("Gripper joint not found in JointState message")
 
+    # Not currently used (original author said it can be set to zero?) but here just in case
     def dis_sum_cb(self, msg):
         self.dis_sum_ = msg.data
         
+    # Gets data from gelsight sensor. Need to figure out if this is the correct data format
     def contact_area_cb(self, msg):
         self.contact_area_ = msg.data
         self.get_logger().info(f"Current contact area: {self.contact_area_:.4f}")
@@ -131,9 +135,11 @@ class ModelBasedMPCNode(Node):
     
     def run(self):
         try:
+            # Wait until gripper posi callback is called once
             while not self.gripper_ini_flag_:
                 self.get_logger().info('Wait for initializing the gripper.')
 
+            # Wait for user to press 'l'
             while (sys.stdin.read(1) != 'l'):
                 self.get_logger().info('Wait for starting! Press l to start')
                 time.sleep(0.1)
@@ -233,7 +239,7 @@ class ModelBasedMPCNode(Node):
 
             while rclpy.ok():
                 if x_state[2] == 0.:
-                    # state initialization. Need way to get current position of gripper
+                    # state initialization
                     print("Gripper position before movement 1: ", self.gripper_posi_)
                     x_state = np.array([self.contact_area_, 0, self.gripper_posi_, x_state[3]]) # change -self.dis_sum_ to 0
                 else:
@@ -295,9 +301,6 @@ def main(args=None):
     executor = MultiThreadedExecutor(num_threads=2)
     executor.add_node(node)
     executor.spin()
-    # rclpy.spin(node)
-    # node.destroy_node()
-    # rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
@@ -305,5 +308,5 @@ if __name__ == '__main__':
 # Position is received sometimes, not always
 # position of gripper not always updating
 # gripper not converging. Maybe because of above?
-# rate.sleep may block forever if using single threaded executor
+# maybe run functions is not always executing because of freq rate being to high, calling again before function ends?
 
