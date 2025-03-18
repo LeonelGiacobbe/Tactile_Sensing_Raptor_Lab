@@ -2,6 +2,7 @@ import cv2
 from math import atan2, cos, sin, sqrt, pi
 import numpy as np
  
+pixel_to_cm_factor = 0.0064597418580056515
 def drawAxis(img, p_, q_, color, scale):
     p = list(p_)
     q = list(q_)
@@ -118,7 +119,8 @@ for i, c in enumerate(contours):
     # filter by size
     if area < 1000 or 50000 < area:
         continue
-    print("Min ellipse: ", minEllipse[i])
+    minor_axis_length = minEllipse[i][1][0] # used to calculate the desired gripper opening
+    print("Minor axis length: ", minor_axis_length)
     # Draw each contour only for visualisation purposes
     cv2.drawContours(frame, contours, i, (0, 0, 255), 2)
     if c.shape[0] > 5:
