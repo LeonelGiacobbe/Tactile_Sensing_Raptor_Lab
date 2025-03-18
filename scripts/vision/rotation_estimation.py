@@ -61,32 +61,37 @@ def getOrientation(pts, img):
     drawAxis(img, cntr, p1, (255, 255, 0), 1)
     drawAxis(img, cntr, p2, (0, 0, 255), 5)
     
-    angle = atan2(eigenvectors[0,1], eigenvectors[0,0]) # orientation in radians
+    rad_angle = atan2(eigenvectors[0,1], eigenvectors[0,0]) # orientation in radians
+
+    deg_angle = np.rad2deg(rad_angle)
     
     # # Label with the rotation angle
     # label = "  Rotation Angle: " + str(-int(np.rad2deg(angle)) - 90) + " degrees"
     # textbox = cv2.rectangle(img, (cntr[0], cntr[1]-25), (cntr[0] + 250, cntr[1] + 10), (255,255,255), -1)
     # cv2.putText(img, label, (cntr[0], cntr[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
     
-    return angle
+    return deg_angle
  
 # Load the images from Kinova arm
-video_capture = cv2.VideoCapture("rtsp://192.168.1.10/color")
+#video_capture = cv2.VideoCapture("rtsp://192.168.1.10/color")
 
 # angle and center storing lists
 angles = []
 centers = []
 
-if not video_capture.isOpened():
-    print("Error: Could not open video stream.")
-    return
+# if not video_capture.isOpened():
+#     print("Error: Could not open video stream.")
+#     exit()
 
 # Was the image there?
-ret, frame = video_capture.read()
+# ret, frame = video_capture.read()
 
-if not ret:
-    print("Could not get frame from camera")
-    return
+
+# if not ret:
+#     print("Could not get frame from camera")
+#     exit()
+
+frame = cv2.imread("input_img.jpg")
 
 # Convert image to grayscale
 grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -100,27 +105,36 @@ _, bw = cv2.threshold(denoiseGray, 50, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 # Find all the contours in the thresholded image
 contours, _ = cv2.findContours(bw, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
 
+minEllipse = [None]*len(contours)
+
+color = (255, 255, 255)
+
 for i, c in enumerate(contours):
 
     # Calculate the area of each contour
     area = cv2.contourArea(c)
-    
+    if c.shape[0] > 5:
+        minEllipse[i] = cv2.fitEllipse(c)
     # filter by size
     if area < 1000 or 50000 < area:
         continue
-    
+    print("Min ellipse: ", minEllipse[i])
     # Draw each contour only for visualisation purposes
-    # cv2.drawContours(frame, contours, i, (0, 0, 255), 2)
+    cv2.drawContours(frame, contours, i, (0, 0, 255), 2)
+    if c.shape[0] > 5:
+        cv2.ellipse(frame, minEllipse[i], color, 2)
     
     # Find the orientation of each shape
     angles.append(getOrientation(c, frame))
-    centers.append(getCenter(contours))
+    print("Angle: ", getOrientation(c, frame))
+    centers.append(getCenter(c))
 
-# cv2.imshow('Output Image', frame)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+cv2.imshow('Output Image', frame)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
     
     
 # To find major / minor axis
 # use fitEllipse from opencv. Returns center of ellipse, major and minor axis length, and rotation
-# so to find the points to grab, draw a line of len(minor axis) starting at point "center" and rotate it by "rotation"
+# fitEllipse returns coords of center, then width and height (minor and major axis), and rotation angle of ellipse
+# so to find the points to grab, use len of minor axis, at point "center" and rotate gripper by angle amount (see above)
