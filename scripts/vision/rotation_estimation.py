@@ -73,6 +73,15 @@ def getOrientation(pts, img):
     
     return deg_angle
  
+def findGripperWidth(minor_axis_length):
+    # Returns a value between 0 and 0.8, representing the ideal gripper width 
+    # To grasp and object based on its minor axis length
+    if minor_axis_length > 2100: # exceeds max width of robotiq gripper, use return for negative value
+        return -1.0
+    width = minor_axis_length * pixel_to_cm_factor
+    width = ((width - min_old) / (max_old - min_old)) * (max_new - min_new) + min_new
+
+    return minor_axis_length * pixel_to_cm_factor
 # Load the images from Kinova arm
 #video_capture = cv2.VideoCapture("rtsp://192.168.1.10/color")
 
@@ -92,10 +101,17 @@ centers = []
 #     print("Could not get frame from camera")
 #     exit()
 
-frame = cv2.imread("input_img.jpg")
+# Generate region of interest to reduce errors from edges of image
+roi_x = 100   # Starting x coordinate
+roi_y = 0    # Starting y coordinate
+roi_width = 1200  # Width of the ROI
+roi_height = 500  # Height of the ROI
 
+frame = cv2.imread("input_img.jpg")
+# Crop the image using the defined ROI
+roi_frame = frame[roi_y:roi_y + roi_height, roi_x:roi_x + roi_width]
 # Convert image to grayscale
-grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+grayFrame = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
 
 # Denoise the image
 denoiseGray = cv2.fastNlMeansDenoising(grayFrame, None, h=30, templateWindowSize=7, searchWindowSize=21)
