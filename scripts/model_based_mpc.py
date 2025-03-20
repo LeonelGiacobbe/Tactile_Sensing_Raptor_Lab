@@ -135,8 +135,9 @@ class ModelBasedMPCNode(Node):
         try: 
             self.contact_area_ini_flag = True
             cv_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-            self.contact_area = cv_image.astype(np.float32) / 255.0
-            self.get_logger().info(f"Received current contact area")
+            self.contact_area_ = cv_image.astype(np.float32) / 255.0
+            self.contact_area_ = np.mean(self.contact_area_)
+            self.get_logger().info(f"Received current contact area {self.contact_area_}")
         except Exception as e:
             self.get_logger().error(f"Failed to process image: {e}")
         
