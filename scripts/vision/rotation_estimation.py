@@ -79,27 +79,31 @@ def findGripperWidth(minor_axis_length):
     if minor_axis_length > 2100: # exceeds max width of robotiq gripper, use return for negative value
         return -1.0
     width = minor_axis_length * pixel_to_cm_factor
+    min_old = 0
+    min_new = 0
+    max_old = 2100
+    max_new = 0.7
     width = ((width - min_old) / (max_old - min_old)) * (max_new - min_new) + min_new
 
     return minor_axis_length * pixel_to_cm_factor
 # Load the images from Kinova arm
-#video_capture = cv2.VideoCapture("rtsp://192.168.1.10/color")
+video_capture = cv2.VideoCapture("rtsp://192.168.1.10/color")
 
 # angle and center storing lists
 angles = []
 centers = []
 
-# if not video_capture.isOpened():
-#     print("Error: Could not open video stream.")
-#     exit()
+if not video_capture.isOpened():
+    print("Error: Could not open video stream.")
+    exit()
 
-# Was the image there?
-# ret, frame = video_capture.read()
+#Was the image there?
+ret, frame = video_capture.read()
 
 
-# if not ret:
-#     print("Could not get frame from camera")
-#     exit()
+if not ret:
+    print("Could not get frame from camera")
+    exit()
 
 # Generate region of interest to reduce errors from edges of image
 roi_x = 100   # Starting x coordinate
@@ -107,20 +111,18 @@ roi_y = 0    # Starting y coordinate
 roi_width = 1200  # Width of the ROI
 roi_height = 500  # Height of the ROI
 
-frame = cv2.imread("input_img.jpg")
 # Crop the image using the defined ROI
 roi_frame = frame[roi_y:roi_y + roi_height, roi_x:roi_x + roi_width]
 # Convert image to grayscale
-grayFrame = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
-
+gray_frame = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
 # Denoise the image
-denoiseGray = cv2.fastNlMeansDenoising(grayFrame, None, h=30, templateWindowSize=7, searchWindowSize=21)
+denoised_gray = cv2.fastNlMeansDenoising(gray_frame, None, h=30, templateWindowSize=7, searchWindowSize=21)
 
 # Convert image to binary
-_, bw = cv2.threshold(denoiseGray, 50, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+_, binary_image = cv2.threshold(denoised_gray, 150, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
 # Find all the contours in the thresholded image
-contours, _ = cv2.findContours(bw, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+contours, _ = cv2.findContours(binary_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 minEllipse = [None]*len(contours)
 
@@ -133,21 +135,22 @@ for i, c in enumerate(contours):
     if c.shape[0] > 5:
         minEllipse[i] = cv2.fitEllipse(c)
     # filter by size
-    if area < 1000 or 50000 < area:
+    if area < 100 or area > 5000:
         continue
-    minor_axis_length = minEllipse[i][1][0] # used to calculate the desired gripper opening
-    print("Minor axis length: ", minor_axis_length)
-    # Draw each contour only for visualisation purposes
-    cv2.drawContours(frame, contours, i, (0, 0, 255), 2)
-    if c.shape[0] > 5:
-        cv2.ellipse(frame, minEllipse[i], color, 2)
-    
-    # Find the orientation of each shape
-    angles.append(getOrientation(c, frame))
-    print("Angle: ", getOrientation(c, frame))
-    centers.append(getCenter(c))
+    else:
+        minor_axis_length = minEllipse[i][1][0] # used to calculate the desired gripper opening
+        print("Minor axis length: ", minor_axis_length)
+        # Draw each contour only for visualisation purposes
+        cv2.drawContours(roi_frame, contours, i, (0, 0, 255), 2)
+        if c.shape[0] > 5:
+            cv2.ellipse(roi_frame, minEllipse[i], color, 2)
+        
+        # Find the orientation of each shape
+        angles.append(getOrientation(c, roi_frame))
+        print("Angle: ", getOrientation(c, roi_frame))
+        centers.append(getCenter(c))
 
-cv2.imshow('Output Image', frame)
+cv2.imshow('Output Image', roi_frame)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
     

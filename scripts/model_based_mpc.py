@@ -11,7 +11,7 @@ from sensor_msgs.msg import JointState, Image
 import osqp
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from rclpy.executors import MultiThreadedExecutor
-
+from cv_bridge import CvBridge
 global dis_sum_ # sum of marker displacements
 global contact_area_ # raw image
 
@@ -55,15 +55,18 @@ class ModelBasedMPCNode(Node):
         
         self.gripper_posi_ = 0.0
         self.gripper_ini_flag_ = False
+        self.contact_area_ini_flag = False
         self.dis_sum_ = 0
         self.contact_area_ = 0
 
         # Replace publisher with ActionClient
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
 
-        # Receives tactile image from gelsight (why in format float32?)
+        # Receives tactile image from gelsight (why in format float32?) encoding is 8UC3
         self.contact_area_sub = self.create_subscription(
-            Float32, '/gsmini_rawimg_0', self.contact_area_cb, 10)
+            Image, '/gsmini_rawimg_0', self.contact_area_cb, 10)
+        
+        self.cv_bridge = CvBridge()
 
         # Subscribe to the JointState topic to get gripper position
         qos_profile = QoSProfile(
@@ -82,10 +85,10 @@ class ModelBasedMPCNode(Node):
         tty.setcbreak(sys.stdin.fileno())
 
         # Parameters initialization
-        self.frequency = 60
+        self.frequency = 10
         self.init_posi = 0.0
         self.lower_pos_lim = 0.0 # for wsg grippers, original values
-        self.upper_pos_lim = 110. # for wsg grippers, original values
+        self.upper_pos_lim = 110 # for wsg grippers, original values
         self.new_min = 0.0
         self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
         self.N = 15  # horizon
@@ -97,7 +100,7 @@ class ModelBasedMPCNode(Node):
         self.c_ref = 1000
         self.k_c = 36000
         self.acc_max = 30
-        self.vel_max = 10
+        self.vel_max = 50
         self.dim = 4
 
         self.del_t = 1 / self.frequency
@@ -129,8 +132,13 @@ class ModelBasedMPCNode(Node):
         
     # Gets data from gelsight sensor. Need to figure out if this is the correct data format
     def contact_area_cb(self, msg):
-        self.contact_area_ = msg.data
-        self.get_logger().info(f"Current contact area: {self.contact_area_:.4f}")
+        try: 
+            self.contact_area_ini_flag = True
+            cv_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+            self.contact_area = cv_image.astype(np.float32) / 255.0
+            self.get_logger().info(f"Received current contact area")
+        except Exception as e:
+            self.get_logger().error(f"Failed to process image: {e}")
         
     
     def run(self):
@@ -138,6 +146,9 @@ class ModelBasedMPCNode(Node):
             # Wait until gripper posi callback is called once
             while not self.gripper_ini_flag_:
                 self.get_logger().info('Wait for initializing the gripper.')
+
+            while not self.contact_area_ini_flag:
+                self.get_logger().info('Wait for initializing the contact area sub.')
 
             # Wait for user to press 'l'
             while (sys.stdin.read(1) != 'l'):
