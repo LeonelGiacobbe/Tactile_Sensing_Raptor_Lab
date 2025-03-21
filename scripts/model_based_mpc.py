@@ -63,13 +63,18 @@ class ModelBasedMPCNode(Node):
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
 
         # Receives tactile image from gelsight (why in format float32?) encoding is 8UC3
+        gs_qos_profile = QoSProfile(
+            depth=10,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
+        )
         self.contact_area_sub = self.create_subscription(
-            Image, '/gsmini_rawimg_0', self.contact_area_cb, 10)
+            Image, '/gsmini_rawimg_0', self.contact_area_cb, gs_qos_profile)
         
         self.cv_bridge = CvBridge()
 
         # Subscribe to the JointState topic to get gripper position
-        qos_profile = QoSProfile(
+        posi_qos_profile = QoSProfile(
             depth=1000,
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
@@ -78,7 +83,7 @@ class ModelBasedMPCNode(Node):
             JointState,
             '/joint_states',
             self.joint_state_cb,
-            qos_profile
+            posi_qos_profile,
         )
 
         self.old_attr = termios.tcgetattr(sys.stdin)
@@ -100,7 +105,7 @@ class ModelBasedMPCNode(Node):
         self.c_ref = 1000
         self.k_c = 36000
         self.acc_max = 30
-        self.vel_max = 50
+        self.vel_max = 10
         self.dim = 4
 
         self.del_t = 1 / self.frequency
@@ -136,7 +141,7 @@ class ModelBasedMPCNode(Node):
             self.contact_area_ini_flag = True
             cv_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
             self.contact_area_ = cv_image.astype(np.float32) / 255.0
-            self.contact_area_ = np.mean(self.contact_area_)
+            self.contact_area_ = self.contact_area_.flatten()
             self.get_logger().info(f"Received current contact area {self.contact_area_}")
         except Exception as e:
             self.get_logger().error(f"Failed to process image: {e}")
@@ -147,9 +152,11 @@ class ModelBasedMPCNode(Node):
             # Wait until gripper posi callback is called once
             while not self.gripper_ini_flag_:
                 self.get_logger().info('Wait for initializing the gripper.')
+                time.sleep(0.1)
 
             while not self.contact_area_ini_flag:
                 self.get_logger().info('Wait for initializing the contact area sub.')
+                time.sleep(0.1)
 
             # Wait for user to press 'l'
             while (sys.stdin.read(1) != 'l'):
@@ -277,7 +284,8 @@ class ModelBasedMPCNode(Node):
                     x_state = Ad.dot(x_state) + Bd.dot(ctrl)
                     normalized_x_state = self.new_min + ((x_state[2] - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min)
                     print("x_state_2 ", abs(normalized_x_state))
-                    self.gripper_cmd.command.position = abs(normalized_x_state)
+                    print("Current tactile value: ", self.contact_area_)
+                    self.gripper_cmd.command.position = self.gripper_posi_ + abs(normalized_x_state)
 
                 # Send goal to the action server
                 self._send_goal(self.gripper_cmd)
@@ -317,8 +325,6 @@ def main(args=None):
 if __name__ == '__main__':
     main()
 
-# Position is received sometimes, not always
-# position of gripper not always updating
-# gripper not converging. Maybe because of above?
-# maybe run functions is not always executing because of freq rate being to high, calling again before function ends?
-
+# Subscriber in original code is float32 because of tactile toolbox's channelfloat32, letting you combine multiple sensors
+# They extract the data field, which should be of type
+# Channel float32 is associated with pointcloud?

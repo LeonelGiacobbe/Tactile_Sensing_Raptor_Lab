@@ -1,0 +1,18 @@
+LeTac-MPC 
+
+    tactile state is from https://github.com/ubi-agni/tactile_toolbox/
+    float32 comes from above, .data seems to be channelfloat32[], trying conversion
+
+    Fix unstable callback issue 
+
+    Maybe the run function takes too long 
+
+-Gather tactile sensing imaging 
+
+ 
+
+Orientation estimation and grasping 
+
+    Add offset to detected centers 
+
+    Find filter size for contours 
