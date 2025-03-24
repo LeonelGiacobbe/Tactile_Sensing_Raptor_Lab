@@ -93,7 +93,7 @@ class PCDPublisher(Node):
         # Read more here:
         # http://wiki.ros.org/rospy/Overview/Publishers%20and%20Subscribers
         self.pcd_publisher = self.create_publisher(PointCloud2, 'pcd', 10)
-        self.depth_publisher = self.create_publisher(Image, 'depth_image', 10)
+        self.depth_publisher = self.create_publisher(Image, 'gs_depth', 10)
         self.bridge = CvBridge();
         timer_period = 1 / 25.0
         self.timer = self.create_timer(timer_period, self.timer_callback)

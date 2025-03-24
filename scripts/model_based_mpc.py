@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 from scipy import sparse
 import time
 import sys, tty, termios
@@ -69,7 +70,7 @@ class ModelBasedMPCNode(Node):
             durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
         )
         self.contact_area_sub = self.create_subscription(
-            Image, '/gsmini_rawimg_0', self.contact_area_cb, gs_qos_profile)
+            Image, '/gs_depth', self.contact_area_cb, gs_qos_profile)
         
         self.cv_bridge = CvBridge()
 
@@ -139,10 +140,23 @@ class ModelBasedMPCNode(Node):
     def contact_area_cb(self, msg):
         try: 
             self.contact_area_ini_flag = True
-            cv_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-            self.contact_area_ = cv_image.astype(np.float32) / 255.0
-            self.contact_area_ = self.contact_area_.flatten()
-            self.get_logger().info(f"Received current contact area {self.contact_area_}")
+            depth_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="32FC1")
+
+            # Normalize to avoid errors in thresholding
+            depth_normalized = cv2.normalize(depth_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+            
+            # Convert image to binary
+            _, binary_image = cv2.threshold(depth_normalized, 240, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+            white_pixels = np.count_nonzero(binary_image)
+    
+            # Total pixels in the image
+            total_pixels = binary_image.size
+            self.get_logger().info(f"Received image with encoding: {msg.encoding}")
+            
+            # Calculate percentage (scaled to [0, 1])
+            self.contact_area_ = white_pixels / total_pixels
+
+            print("Current contact area value: ", self.contact_area_)
         except Exception as e:
             self.get_logger().error(f"Failed to process image: {e}")
         
@@ -324,7 +338,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-# Subscriber in original code is float32 because of tactile toolbox's channelfloat32, letting you combine multiple sensors
-# They extract the data field, which should be of type
-# Channel float32 is associated with pointcloud?
