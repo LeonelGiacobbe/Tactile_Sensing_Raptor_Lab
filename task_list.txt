@@ -1,9 +1,7 @@
 LeTac-MPC 
 
     tactile state is from https://github.com/ubi-agni/tactile_toolbox/
-    float32 comes from above, .data seems to be channelfloat32[], trying conversion
-
-    Fix unstable callback issue 
+    contact area is percentage of image that is thresholded?
 
     Maybe the run function takes too long 
 
