@@ -27,7 +27,7 @@ class PCDPublisher(Node):
         # Set flags
         SAVE_VIDEO_FLAG = False
         GPU = False
-        MASK_MARKERS_FLAG = True
+        MASK_MARKERS_FLAG = False
         self.USE_ROI = False
         PUBLISH_ROS_PC = True
 
@@ -109,6 +109,7 @@ class PCDPublisher(Node):
 
         # Compute the depth map (dm is a 2D numpy array)
         dm = self.nn.get_depthmap(f1, False)
+        dm = np.maximum(dm, 0.0)
         
         # --- Publish Depth Image ---
         # Convert dm to a ROS Image message

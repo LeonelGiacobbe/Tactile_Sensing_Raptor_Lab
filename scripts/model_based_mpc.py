@@ -142,11 +142,16 @@ class ModelBasedMPCNode(Node):
             self.contact_area_ini_flag = True
             depth_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="32FC1")
 
+            # Replace non-sensical values
+            depth_image = np.nan_to_num(depth_image, nan=0.0, posinf=0.0, neginf=0.0)
             # Normalize to avoid errors in thresholding
-            depth_normalized = cv2.normalize(depth_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+            depth_normalized = cv2.normalize(depth_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32FC1)
             
+            # Blur to remove noise, mainly when nothing is in contact with the sensor
+            blurred_image = cv2.GaussianBlur(depth_normalized, (3, 3), 0)
+
             # Convert image to binary
-            _, binary_image = cv2.threshold(depth_normalized, 240, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+            _, binary_image = cv2.threshold(blurred_image, 205, 255, cv2.THRESH_BINARY)
             white_pixels = np.count_nonzero(binary_image)
     
             # Total pixels in the image

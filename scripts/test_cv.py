@@ -10,6 +10,7 @@ class DepthViewer(Node):
     def __init__(self):
         super().__init__('depth_viewer')
         self.bridge = CvBridge()
+        self.curr_max = 0.0
         
         # Subscribe to depth topic
         self.sub = self.create_subscription(
@@ -33,12 +34,14 @@ class DepthViewer(Node):
             
             # Normalize to [0, 255] and convert to uint8
             depth_normalized = cv2.normalize(
-                depth_img, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F
+                depth_img, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32FC1
             )
+
+            blurred_image = cv2.GaussianBlur(depth_normalized, (3, 3), 0)
             # Apply binary threshold (adjust 127 as needed)
             _, binary_img = cv2.threshold(
-                depth_normalized, 
-                215,  # Threshold value
+                blurred_image, 
+                205,  # Threshold value
                 255,  # White value
                 cv2.THRESH_BINARY
             )
@@ -51,6 +54,9 @@ class DepthViewer(Node):
             self.contact_area_ = white_pixels / total_pixels
             self.get_logger().info(f"Percentage of white pixels: {self.contact_area_}")
 
+            if (self.contact_area_ > self.curr_max):
+                self.curr_max = self.contact_area_
+            self.get_logger().info(f"Current max contact area: {self.curr_max}")
 
             # Display images
             cv2.imshow("Normalized Depth", depth_normalized)
@@ -70,3 +76,5 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+# max curr with gaussian 5x5 = 8%
