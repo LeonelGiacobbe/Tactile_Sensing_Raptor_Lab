@@ -1,16 +1,19 @@
 LeTac-MPC 
 
-    tactile state is from https://github.com/ubi-agni/tactile_toolbox/
-    contact area is percentage of image that is thresholded?
+    - Find ways to reduce noise from published depth image
+        - Issue only seems to happen when nothing is touching the sensor
 
-    Maybe the run function takes too long 
-
--Gather tactile sensing imaging 
+    - Gather tactile sensing imaging 
 
  
 
 Orientation estimation and grasping 
 
-    Add offset to detected centers 
+    - Add offset to detected centers 
 
-    Find filter size for contours 
+    - Find filter size for contours 
+
+    - See how much new tarp reduces reflectivity
+
+    - See if there's improvement in translating to HSV color space 
+        - https://stackoverflow.com/questions/57125006/improve-optimize-accuracy-of-finding-contours-with-opencv
