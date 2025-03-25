@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 from scipy import sparse
 import time
 import sys, tty, termios
@@ -11,10 +12,9 @@ from sensor_msgs.msg import JointState, Image
 import osqp
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.callback_groups import ReentrantCallbackGroup
-
-global dis_sum_  # sum of marker displacements
-global contact_area_  # raw image
+from cv_bridge import CvBridge
+global dis_sum_ # sum of marker displacements
+global contact_area_ # raw image
 
 def vstack_help(vec, n):
     combo = vec.reshape(vec.size, 1)
@@ -56,55 +56,54 @@ class ModelBasedMPCNode(Node):
         
         self.gripper_posi_ = 0.0
         self.gripper_ini_flag_ = False
+        self.contact_area_ini_flag = False
         self.dis_sum_ = 0
-        self.contact_area_ = 0.0  # Initialize as float
+        self.contact_area_ = 0
 
         # Replace publisher with ActionClient
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
 
-        # Subscribe to the JointState topic to get gripper position
-        qos_gripper_posi = QoSProfile(
-            depth=60,
+        # Receives tactile image from gelsight (why in format float32?) encoding is 8UC3
+        gs_qos_profile = QoSProfile(
+            depth=10,
             reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL
+            durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
         )
+        self.contact_area_sub = self.create_subscription(
+            Image, '/gs_depth', self.contact_area_cb, gs_qos_profile)
+        
+        self.cv_bridge = CvBridge()
 
-        qos_gelsight = QoSProfile(
-            depth=20,
-            reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.VOLATILE
+        # Subscribe to the JointState topic to get gripper position
+        posi_qos_profile = QoSProfile(
+            depth=1000,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
         )
         self.joint_state_sub = self.create_subscription(
             JointState,
             '/joint_states',
             self.joint_state_cb,
-            qos_gripper_posi
-        )
-
-        # Receives tactile image from GelSight
-        self.contact_area_sub = self.create_subscription(
-            Image, '/gsmini_rawimg_0', 
-            self.contact_area_cb, 
-            qos_gelsight
+            posi_qos_profile,
         )
 
         self.old_attr = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
 
         # Parameters initialization
-        self.frequency = 60
+        self.frequency = 10
         self.init_posi = 0.0
-        self.lower_pos_lim = 0.0  # for wsg grippers, original values
-        self.upper_pos_lim = 110.0  # for wsg grippers, original values
+        self.lower_pos_lim = 0.0 # for wsg grippers, original values
+        self.upper_pos_lim = 110 # for wsg grippers, original values
         self.new_min = 0.0
-        self.new_max = 0.7  # robotiq gripper can do up to 0.8 but that causes mounts to collide
+        self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
         self.N = 15  # horizon
         self.q_c = 36
         self.q_v = 1
         self.q_d = 2
         self.q_a = 2
         self.p = 5
-        self.c_ref = 1000
+        self.c_ref = 0.15
         self.k_c = 36000
         self.acc_max = 30
         self.vel_max = 10
@@ -117,47 +116,68 @@ class ModelBasedMPCNode(Node):
         self.rate = self.create_rate(self.frequency)
 
         # Timer to call the run method periodically
-        self.group = ReentrantCallbackGroup()
-        self.timer = self.create_timer(1.0 / self.frequency, callback=self.run)
+        self.timer = self.create_timer(1.0 / self.frequency, self.run)
 
-    def joint_state_cb(self, msg: JointState):
+    # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed
+    def joint_state_cb(self, msg: JointState): 
+        # Flag to allow run method to go out of inf loop
         self.gripper_ini_flag_ = True
         
         self.get_logger().info(f"Received JointState message with joints: {msg.name}")
-        index = msg.name.index('robotiq_85_left_knuckle_joint')
-        gripper_position = msg.position[index]
-        self.gripper_posi_ = gripper_position
-        self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+        if 'robotiq_85_left_knuckle_joint' in msg.name:
+            index = msg.name.index('robotiq_85_left_knuckle_joint')
+            gripper_position = msg.position[index]
+            self.gripper_posi_ = gripper_position
+            self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+        else:
+            self.get_logger().warn("Gripper joint not found in JointState message")
 
+    # Not currently used (original author said it can be set to zero?) but here just in case
     def dis_sum_cb(self, msg):
         self.dis_sum_ = msg.data
         
-    def contact_area_cb(self, msg: Image):
-        # Extract the raw data from the Image message
-        if msg.encoding == '32FC1':
-            # If the image is in 32-bit floating-point format
-            self.contact_area_ = np.frombuffer(msg.data, dtype=np.float32)[0]  # Take the first value
-        elif msg.encoding == 'mono8' or msg.encoding == '8UC1':
-            # If the image is in 8-bit unsigned integer format
-            self.contact_area_ = float(np.frombuffer(msg.data, dtype=np.uint8)[0])  # Take the first value and convert to float
-        else:
-            # Handle other encodings if necessary
-            self.get_logger().warn(f"Unsupported image encoding: {msg.encoding}")
-            return
+    # Gets data from gelsight sensor. Need to figure out if this is the correct data format
+    def contact_area_cb(self, msg):
+        try: 
+            self.contact_area_ini_flag = True
+            depth_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="32FC1")
 
-        # Log the contact area
-        self.get_logger().info(f"Current contact area: {self.contact_area_:.4f}")
+            # Replace non-sensical values
+            depth_image = np.nan_to_num(depth_image, nan=0.0, posinf=0.0, neginf=0.0)
+            # Normalize to avoid errors in thresholding
+            depth_normalized = cv2.normalize(depth_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32FC1)
+            
+            # Blur to remove noise, mainly when nothing is in contact with the sensor
+            blurred_image = cv2.GaussianBlur(depth_normalized, (3, 3), 0)
+
+            # Convert image to binary
+            _, binary_image = cv2.threshold(blurred_image, 205, 255, cv2.THRESH_BINARY)
+            white_pixels = np.count_nonzero(binary_image)
+    
+            # Total pixels in the image
+            total_pixels = binary_image.size
+            self.get_logger().info(f"Received image with encoding: {msg.encoding}")
+            
+            # Calculate percentage (scaled to [0, 1])
+            self.contact_area_ = white_pixels / total_pixels
+
+            print("Current contact area value: ", self.contact_area_)
+        except Exception as e:
+            self.get_logger().error(f"Failed to process image: {e}")
         
     
     def run(self):
         try:
+            # Wait until gripper posi callback is called once
             while not self.gripper_ini_flag_:
-                self.get_logger().info('Waiting for initial gripper position...')
-                time.sleep(0.1)
-            while self.contact_area_ == 0:
-                self.get_logger().info('Waiting for initial contact area...')
+                self.get_logger().info('Wait for initializing the gripper.')
                 time.sleep(0.1)
 
+            while not self.contact_area_ini_flag:
+                self.get_logger().info('Wait for initializing the contact area sub.')
+                time.sleep(0.1)
+
+            # Wait for user to press 'l'
             while (sys.stdin.read(1) != 'l'):
                 self.get_logger().info('Wait for starting! Press l to start')
                 time.sleep(0.1)
@@ -257,14 +277,14 @@ class ModelBasedMPCNode(Node):
 
             while rclpy.ok():
                 if x_state[2] == 0.:
-                    # state initialization. Need way to get current position of gripper
+                    # state initialization
                     print("Gripper position before movement 1: ", self.gripper_posi_)
-                    x_state = np.array([self.contact_area_, 0, self.gripper_posi_, x_state[3]])  # change -self.dis_sum_ to 0
+                    x_state = np.array([self.contact_area_, 0, self.gripper_posi_, x_state[3]]) # change -self.dis_sum_ to 0
                 else:
                     # tactile state update
                     # contact area, dis sum, p, v
                     print("Gripper position before movement 2: ", self.gripper_posi_)
-                    x_state = np.array([self.contact_area_, 0, x_state[2], x_state[3]])  # change -self.dis_sum_ to 0
+                    x_state = np.array([self.contact_area_, 0, x_state[2], x_state[3]]) # change -self.dis_sum_ to 0
 
                 # constraints update
                 max_con_b_update = b_CT_x0(max_con_b_, C_con_T_, x_state.reshape(self.dim, 1))
@@ -283,7 +303,8 @@ class ModelBasedMPCNode(Node):
                     x_state = Ad.dot(x_state) + Bd.dot(ctrl)
                     normalized_x_state = self.new_min + ((x_state[2] - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min)
                     print("x_state_2 ", abs(normalized_x_state))
-                    self.gripper_cmd.command.position = abs(normalized_x_state)
+                    print("Current tactile value: ", self.contact_area_)
+                    self.gripper_cmd.command.position = self.gripper_posi_ + abs(normalized_x_state)
 
                 # Send goal to the action server
                 self._send_goal(self.gripper_cmd)
