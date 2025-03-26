@@ -101,13 +101,13 @@ def process_image(frame):
     hsv_image = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2HSV)
 
     # Define the lower and upper bounds for the HSV values
-    lower_bound = np.array([0, 0, 160])
+    lower_bound = np.array([0, 0, 120])
     upper_bound = np.array([255, 255, 255])
     mask = cv2.inRange(hsv_image, lower_bound, upper_bound)
     result = cv2.bitwise_and(roi_frame, roi_frame, mask=mask)
 
     # Morphological operations to clean the mask
-    kernel = np.ones((3,3), np.uint8)
+    kernel = np.ones((5,5), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
     # Convert image to binary
@@ -164,13 +164,14 @@ def test_detection():
 
     roi_frame, binary_image = process_image(frame)
     
-    centers, angles, minor_axis_lengths =  find_ellipses(roi_frame, binary_image)
+    centers, angles, minor_axis_lengths =  find_ellipses(roi_frame, binary_image) 
 
     gripper_widths = []
 
     for length in minor_axis_lengths:
         gripper_widths.append(find_gripper_width(length))
 
+    print(gripper_widths)
     while True:
         cv2.imshow('Output Image', roi_frame)
         key = cv2.waitKey(1) & 0xFF
