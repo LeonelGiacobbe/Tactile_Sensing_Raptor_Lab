@@ -33,7 +33,7 @@ if useCamera:
     # Wait longer to prevent freeze for videos.
     waitTime = 330
 else:
-    img = cv2.imread("finger_pressed.png")
+    img = cv2.imread("rotation_test.png")
     output = img
     waitTime = 33
 

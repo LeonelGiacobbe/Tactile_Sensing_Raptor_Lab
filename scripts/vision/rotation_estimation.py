@@ -109,17 +109,28 @@ if not ret:
 roi_x = 100   # Starting x coordinate
 roi_y = 0    # Starting y coordinate
 roi_width = 1200  # Width of the ROI
-roi_height = 500  # Height of the ROI
+roi_height = 450  # Height of the ROI
 
 # Crop the image using the defined ROI
 roi_frame = frame[roi_y:roi_y + roi_height, roi_x:roi_x + roi_width]
 # Convert image to grayscale
-gray_frame = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
-# Denoise the image
-denoised_gray = cv2.fastNlMeansDenoising(gray_frame, None, h=30, templateWindowSize=7, searchWindowSize=21)
+# gray_frame = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2GRAY)
+# # Denoise the image
+# denoised_gray = cv2.fastNlMeansDenoising(gray_frame, None, h=30, templateWindowSize=7, searchWindowSize=21)
+roi_frame = cv2.convertScaleAbs(roi_frame, alpha=0.75, beta=-20)
+# hsv transformation
+hsv_image = cv2.cvtColor(roi_frame, cv2.COLOR_BGR2HSV)
 
+# Define the lower and upper bounds for the HSV values
+lower_bound = np.array([0, 0, 160])
+upper_bound = np.array([255, 255, 255])
+mask = cv2.inRange(hsv_image, lower_bound, upper_bound)
+result = cv2.bitwise_and(roi_frame, roi_frame, mask=mask)
+# Morphological operations to clean the mask
+kernel = np.ones((3,3), np.uint8)
+mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 # Convert image to binary
-_, binary_image = cv2.threshold(denoised_gray, 150, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+_, binary_image = cv2.threshold(mask, 200, 255, cv2.THRESH_BINARY)
 
 # Find all the contours in the thresholded image
 contours, _ = cv2.findContours(binary_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -135,7 +146,7 @@ for i, c in enumerate(contours):
     if c.shape[0] > 5:
         minEllipse[i] = cv2.fitEllipse(c)
     # filter by size
-    if area < 100 or area > 5000:
+    if area < 500:
         continue
     else:
         minor_axis_length = minEllipse[i][1][0] # used to calculate the desired gripper opening
@@ -150,8 +161,11 @@ for i, c in enumerate(contours):
         print("Angle: ", getOrientation(c, roi_frame))
         centers.append(getCenter(c))
 
-cv2.imshow('Output Image', roi_frame)
-cv2.waitKey(0)
+while True:
+    cv2.imshow('Output Image', roi_frame)
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q') or cv2.getWindowProperty('Output Image', cv2.WND_PROP_VISIBLE) < 1:
+        break
 cv2.destroyAllWindows()
     
     
