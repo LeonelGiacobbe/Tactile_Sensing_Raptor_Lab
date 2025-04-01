@@ -47,10 +47,6 @@ class PCDPublisher(Node):
 
         self.dev.connect()
 
-        width = self.dev.imgw  # Pixels (likely 240)
-        height = self.dev.imgh  # Pixels (likely 320)
-        total_pixels = width * height
-        print("Total pixels: ", total_pixels)
         ''' Load neural network '''
         model_file_path = path
         net_path = os.path.join(model_file_path, net_file_path)
@@ -128,14 +124,14 @@ class PCDPublisher(Node):
         # --- Publish Depth Image ---
         # Convert dm to a ROS Image message
         depth_img_msg = self.bridge.cv2_to_imgmsg(
-            dm.astype(np.float32),  # Ensure float32 type
+            dm.astype(np.float32),
             encoding="32FC1"        # Single-channel float32
         )
         depth_img_msg.header.stamp = self.get_clock().now().to_msg()
-        depth_img_msg.header.frame_id = 'map'  # Match your point cloud frame
+        depth_img_msg.header.frame_id = 'map' 
         self.depth_publisher.publish(depth_img_msg)
 
-        # --- Publish Point Cloud (existing code) ---
+        # --- Publish Point Cloud ---
         dm_ros = copy.deepcopy(dm) * self.mpp
         self.points[:, 2] = np.ndarray.flatten(dm_ros)
         self.pcd = point_cloud(self.points, 'map')
@@ -148,7 +144,7 @@ class PCDPublisher(Node):
         self.contact_publisher.publish(msg)
 
     def _calculate_contact_area(self, depth_map):
-            """Identical to your current processing but returns single float"""
+            """Returns amount of white pixels"""
             normalized = cv2.normalize(depth_map, None, 0, 255, cv2.NORM_MINMAX)
             blurred_image = cv2.GaussianBlur(normalized, (3, 3), 0)
             _, binary_image = cv2.threshold(blurred_image, 205, 255, cv2.THRESH_BINARY)

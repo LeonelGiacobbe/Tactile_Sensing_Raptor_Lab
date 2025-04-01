@@ -241,7 +241,7 @@ class ModelBasedMPCNode(Node):
             u_ = np.vstack([u_max, max_con_b_update])
             l_ = np.vstack([u_max * -1, min_con_b_update])
 
-            # select matrix for cost function
+            # select matrix cost function
             L = sparse.eye(self.dim)
             L_ = sparse.block_diag([sparse.kron(sparse.eye(self.N), L)], format='csc')
 
@@ -267,12 +267,6 @@ class ModelBasedMPCNode(Node):
                     with self.contact_area_lock:
                         x_state = np.array([self.contact_area_, 0, x_state[2], x_state[3]]) # change -self.dis_sum_ to 0
 
-                current_error = self.c_ref - self.contact_area_
-                print(f"\nContact Area Tracking:")
-                print(f"  Reference (c_ref): {self.c_ref:.4f}")
-                print(f"  Current Value:     {self.contact_area_:.4f}") 
-                print(f"  Error:             {current_error:.4f}")
-                print(f"  Error Percentage:  {abs(current_error)/self.c_ref*100:.1f}%")
                 # constraints update
                 max_con_b_update = b_CT_x0(max_con_b_, C_con_T_, x_state.reshape(self.dim, 1))
                 min_con_b_update = b_CT_x0(min_con_b_, C_con_T_, x_state.reshape(self.dim, 1))
