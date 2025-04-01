@@ -9,6 +9,8 @@ from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2, PointField, Image
 from cv_bridge import CvBridge
 import std_msgs.msg
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
+from std_msgs.msg import Float32
 
 
 def get_diff_img(img1, img2):
@@ -93,7 +95,14 @@ class PCDPublisher(Node):
         # Read more here:
         # http://wiki.ros.org/rospy/Overview/Publishers%20and%20Subscribers
         self.pcd_publisher = self.create_publisher(PointCloud2, 'pcd', 10)
-        self.depth_publisher = self.create_publisher(Image, 'gs_depth', 10)
+        qos_profile = QoSProfile(
+            depth=5,  # Last 5 messages kept
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE,
+            history=HistoryPolicy.KEEP_LAST
+        )
+        self.depth_publisher = self.create_publisher(Image, 'gs_depth', qos_profile)
+        self.contact_publisher = self.create_publisher(Float32, "/gs_contact_area", 10)
         self.bridge = CvBridge();
         timer_period = 1 / 25.0
         self.timer = self.create_timer(timer_period, self.timer_callback)
@@ -127,6 +136,21 @@ class PCDPublisher(Node):
         self.pcd = point_cloud(self.points, 'map')
         self.pcd_publisher.publish(self.pcd)
 
+        # --- Process the contact area percentage ---
+        contact_area = self._calculate_contact_area(dm)
+        msg = Float32()
+        msg.data = float(contact_area)
+        self.contact_publisher.publish(msg)
+
+    def _calculate_contact_area(self, depth_map):
+            """Identical to your current processing but returns single float"""
+            normalized = cv2.normalize(depth_map, None, 0, 255, cv2.NORM_MINMAX)
+            blurred_image = cv2.GaussianBlur(normalized, (3, 3), 0)
+            _, binary_image = cv2.threshold(blurred_image, 205, 255, cv2.THRESH_BINARY)
+            white_pixels = np.count_nonzero(binary_image)
+            total_pixels = binary_image.size
+            
+            return white_pixels / total_pixels
 
 def point_cloud(points, parent_frame):
     """ Creates a point cloud message.

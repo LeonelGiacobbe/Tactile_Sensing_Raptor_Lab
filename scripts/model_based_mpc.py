@@ -10,9 +10,12 @@ from rclpy.action import ActionClient
 from control_msgs.action import GripperCommand
 from sensor_msgs.msg import JointState, Image
 import osqp
-from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
 from rclpy.executors import MultiThreadedExecutor
 from cv_bridge import CvBridge
+from rclpy.wait_for_message import wait_for_message
+from concurrent.futures import ThreadPoolExecutor
+import threading
 global dis_sum_ # sum of marker displacements
 global contact_area_ # raw image
 
@@ -59,18 +62,22 @@ class ModelBasedMPCNode(Node):
         self.contact_area_ini_flag = False
         self.dis_sum_ = 0
         self.contact_area_ = 0
+        self.processing_executor = ThreadPoolExecutor(max_workers=1)
+        self.contact_area_lock = threading.Lock()
 
         # Replace publisher with ActionClient
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
 
         # Receives tactile image from gelsight (why in format float32?) encoding is 8UC3
         gs_qos_profile = QoSProfile(
-            depth=10,
+            depth=5,  # Last 5 messages kept
             reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
+            durability=DurabilityPolicy.VOLATILE,
+            history=HistoryPolicy.KEEP_LAST
         )
+        
         self.contact_area_sub = self.create_subscription(
-            Image, '/gs_depth', self.contact_area_cb, gs_qos_profile)
+            Float32, '/gs_contact_area', self.contact_area_cb, gs_qos_profile)
         
         self.cv_bridge = CvBridge()
 
@@ -91,20 +98,20 @@ class ModelBasedMPCNode(Node):
         tty.setcbreak(sys.stdin.fileno())
 
         # Parameters initialization
-        self.frequency = 30
+        self.frequency = 15
         self.init_posi = 0.0
         self.lower_pos_lim = 0.0 # for wsg grippers, original values
         self.upper_pos_lim = 110 # for wsg grippers, original values
         self.new_min = 0.0
         self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
-        self.N = 10  # horizon
+        self.N = 15  # horizon
         self.q_c = 36
         self.q_v = 5
         self.q_d = 2
         self.q_a = 5
         self.p = 5
         self.c_ref = 0.1
-        self.k_c = 5000
+        self.k_c = 10000
         self.acc_max = 30
         self.vel_max = 10
         self.dim = 4
@@ -136,51 +143,18 @@ class ModelBasedMPCNode(Node):
     def dis_sum_cb(self, msg):
         self.dis_sum_ = msg.data
         
-    # Gets data from gelsight sensor. Need to figure out if this is the correct data format
+    # Offloaded calculation to show3d publisher
     def contact_area_cb(self, msg):
-        try: 
-            self.contact_area_ini_flag = True
-            depth_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding="32FC1")
-
-            # Replace non-sensical values
-            depth_image = np.nan_to_num(depth_image, nan=0.0, posinf=0.0, neginf=0.0)
-            # Normalize to avoid errors in thresholding
-            depth_normalized = cv2.normalize(depth_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32FC1)
-            
-            # Blur to remove noise, mainly when nothing is in contact with the sensor
-            blurred_image = cv2.GaussianBlur(depth_normalized, (3, 3), 0)
-
-            # Convert image to binary
-            _, binary_image = cv2.threshold(blurred_image, 205, 255, cv2.THRESH_BINARY)
-            white_pixels = np.count_nonzero(binary_image)
-    
-            # Total pixels in the image
-            total_pixels = binary_image.size
-            self.get_logger().info(f"Received image with encoding: {msg.encoding}")
-            
-            # Calculate percentage (scaled to [0, 1])
-            self.contact_area_ = white_pixels / total_pixels
-
-            print("Current contact area value: ", self.contact_area_)
-        except Exception as e:
-            self.get_logger().error(f"Failed to process image: {e}")
-        
+        self.contact_area_ = msg.data
+        self.get_logger().info(f"Received contact area msg with value {msg.data}")
+        self.contact_area_ini_flag = True
     
     def run(self):
         try:
             # Wait until gripper posi callback is called once
-            while not self.gripper_ini_flag_:
-                self.get_logger().info('Wait for initializing the gripper.')
-                time.sleep(0.1)
+            wait_for_message(JointState, self, '/joint_states', time_to_wait=10.0)
 
-            while not self.contact_area_ini_flag:
-                self.get_logger().info('Wait for initializing the contact area sub.')
-                time.sleep(0.1)
-
-            # Wait for user to press 'l'
-            while (sys.stdin.read(1) != 'l'):
-                self.get_logger().info('Wait for starting! Press l to start')
-                time.sleep(0.1)
+            wait_for_message(Float32, self, '/gs_contact_area', time_to_wait=10.0)
 
             # state and control Initialization
             x_state = np.array([0., 0., 0., 0.])
@@ -279,12 +253,14 @@ class ModelBasedMPCNode(Node):
                 if x_state[2] == 0.:
                     # state initialization
                     print("Gripper position before movement 1: ", self.gripper_posi_)
-                    x_state = np.array([self.contact_area_, 0, self.gripper_posi_, x_state[3]]) # change -self.dis_sum_ to 0
+                    with self.contact_area_lock:
+                        x_state = np.array([self.contact_area_, 0, self.gripper_posi_, x_state[3]]) # change -self.dis_sum_ to 0
                 else:
                     # tactile state update
                     # contact area, dis sum, p, v
                     print("Gripper position before movement 2: ", self.gripper_posi_)
-                    x_state = np.array([self.contact_area_, 0, x_state[2], x_state[3]]) # change -self.dis_sum_ to 0
+                    with self.contact_area_lock:
+                        x_state = np.array([self.contact_area_, 0, x_state[2], x_state[3]]) # change -self.dis_sum_ to 0
 
                 # constraints update
                 max_con_b_update = b_CT_x0(max_con_b_, C_con_T_, x_state.reshape(self.dim, 1))
@@ -337,7 +313,7 @@ class ModelBasedMPCNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = ModelBasedMPCNode()
-    executor = MultiThreadedExecutor(num_threads=2)
+    executor = MultiThreadedExecutor(num_threads=4)
     executor.add_node(node)
     executor.spin()
 
