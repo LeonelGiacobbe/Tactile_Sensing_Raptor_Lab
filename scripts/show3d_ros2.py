@@ -102,7 +102,7 @@ class PCDPublisher(Node):
             history=HistoryPolicy.KEEP_LAST
         )
         self.depth_publisher = self.create_publisher(Image, 'gs_depth', qos_profile)
-        self.contact_publisher = self.create_publisher(Float32, "/gs_contact_area", 10)
+        self.contact_publisher = self.create_publisher(Float32, "/gs_contact_area", qos_profile)
         self.bridge = CvBridge();
         timer_period = 1 / 25.0
         self.timer = self.create_timer(timer_period, self.timer_callback)
@@ -147,7 +147,7 @@ class PCDPublisher(Node):
             """Returns amount of white pixels"""
             normalized = cv2.normalize(depth_map, None, 0, 255, cv2.NORM_MINMAX)
             blurred_image = cv2.GaussianBlur(normalized, (3, 3), 0)
-            _, binary_image = cv2.threshold(blurred_image, 205, 255, cv2.THRESH_BINARY)
+            _, binary_image = cv2.threshold(blurred_image, 220, 255, cv2.THRESH_BINARY)
             white_pixels = np.count_nonzero(binary_image)
             total_pixels = binary_image.size
             
