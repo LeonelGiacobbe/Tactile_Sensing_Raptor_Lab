@@ -11,6 +11,7 @@ from control_msgs.action import GripperCommand
 from sensor_msgs.msg import JointState, Image
 import osqp
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from cv_bridge import CvBridge
 from rclpy.wait_for_message import wait_for_message
@@ -67,7 +68,7 @@ class ModelBasedMPCNode(Node):
 
         # Replace publisher with ActionClient
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
-
+        self.contact_group = ReentrantCallbackGroup()
         # Receives tactile image from gelsight (why in format float32?) encoding is 8UC3
         gs_qos_profile = QoSProfile(
             depth=5,  # Last 5 messages kept
@@ -77,7 +78,11 @@ class ModelBasedMPCNode(Node):
         )
         
         self.contact_area_sub = self.create_subscription(
-            Float32, '/gs_contact_area', self.contact_area_cb, gs_qos_profile)
+            Float32, 
+            '/gs_contact_area', 
+            self.contact_area_cb, gs_qos_profile, 
+            callback_group=self.contact_group
+        )
         
         self.cv_bridge = CvBridge()
 
@@ -291,9 +296,9 @@ class ModelBasedMPCNode(Node):
             self.get_logger().info('Interrupted!')
 
     def _send_goal(self, goal):
-        self.get_logger().info('Sending goal...')
+        # self.get_logger().info('Sending goal...')
         self._action_client.wait_for_server()
-        print("Goal: ", goal)
+        # print("Goal: ", goal)
         self._send_goal_future = self._action_client.send_goal_async(goal)
         self._send_goal_future.add_done_callback(self._goal_response_callback)
 
@@ -313,7 +318,7 @@ class ModelBasedMPCNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = ModelBasedMPCNode()
-    executor = MultiThreadedExecutor(num_threads=4)
+    executor = MultiThreadedExecutor(num_threads=6)
     executor.add_node(node)
     executor.spin()
 
