@@ -91,20 +91,20 @@ class ModelBasedMPCNode(Node):
         tty.setcbreak(sys.stdin.fileno())
 
         # Parameters initialization
-        self.frequency = 10
+        self.frequency = 30
         self.init_posi = 0.0
         self.lower_pos_lim = 0.0 # for wsg grippers, original values
         self.upper_pos_lim = 110 # for wsg grippers, original values
         self.new_min = 0.0
         self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
-        self.N = 15  # horizon
+        self.N = 10  # horizon
         self.q_c = 36
-        self.q_v = 1
+        self.q_v = 5
         self.q_d = 2
-        self.q_a = 2
+        self.q_a = 5
         self.p = 5
-        self.c_ref = 0.15
-        self.k_c = 36000
+        self.c_ref = 0.1
+        self.k_c = 5000
         self.acc_max = 30
         self.vel_max = 10
         self.dim = 4
