@@ -47,6 +47,10 @@ class PCDPublisher(Node):
 
         self.dev.connect()
 
+        width = self.dev.imgw  # Pixels (likely 240)
+        height = self.dev.imgh  # Pixels (likely 320)
+        total_pixels = width * height
+        print("Total pixels: ", total_pixels)
         ''' Load neural network '''
         model_file_path = path
         net_path = os.path.join(model_file_path, net_file_path)
@@ -115,7 +119,8 @@ class PCDPublisher(Node):
         if self.USE_ROI:
             roi = self.roi
             f1 = f1[int(roi[1]):int(roi[1] + roi[3]), int(roi[0]):int(roi[0] + roi[2])]
-
+            roi_pixels = f1.shape[0] * f1.shape[1]  # height * width
+            print(f"ROI contains {roi_pixels} pixels")  # Optional: print or log this
         # Compute the depth map (dm is a 2D numpy array)
         dm = self.nn.get_depthmap(f1, False)
         dm = np.maximum(dm, 0.0)
@@ -150,7 +155,7 @@ class PCDPublisher(Node):
             white_pixels = np.count_nonzero(binary_image)
             total_pixels = binary_image.size
             
-            return white_pixels / total_pixels
+            return white_pixels 
 
 def point_cloud(points, parent_frame):
     """ Creates a point cloud message.

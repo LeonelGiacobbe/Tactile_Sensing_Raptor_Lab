@@ -103,23 +103,23 @@ class ModelBasedMPCNode(Node):
         tty.setcbreak(sys.stdin.fileno())
 
         # Parameters initialization
-        self.frequency = 15
+        self.frequency = 60
         self.init_posi = 0.0
         self.lower_pos_lim = 0.0 # for wsg grippers, original values
         self.upper_pos_lim = 110 # for wsg grippers, original values
         self.new_min = 0.0
         self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
-        self.N = 15  # horizon
-        self.q_c = 36
-        self.q_v = 5
-        self.q_d = 2
-        self.q_a = 5
-        self.p = 5
-        self.c_ref = 0.1
-        self.k_c = 10000
-        self.acc_max = 30
-        self.vel_max = 10
-        self.dim = 4
+        self.N = 15  # horizon steps. Higher = more stable but more computation
+        self.q_c = 36 # weight for contact tracking error. Higher = more aggressive maintenance
+        self.q_v = 1 # velocity weight. Higher = smoother but slower movement
+        self.q_d = 2 # displacement sum weight
+        self.q_a = 2 # acceleration control weight. Higher = smoother but less responsive
+        self.p = 5 # termainal cost weight
+        self.c_ref = 6200 # amount of white pixels to ideally reach
+        self.k_c = 100000 # stiffness coefficient. Higher = faster response to contact changes
+        self.acc_max = 30 # max allowed acc
+        self.vel_max = 100 # max allowed vel
+        self.dim = 4 # state vector dimension
 
         self.del_t = 1 / self.frequency
         self.gripper_cmd = GripperCommand.Goal()
@@ -267,6 +267,12 @@ class ModelBasedMPCNode(Node):
                     with self.contact_area_lock:
                         x_state = np.array([self.contact_area_, 0, x_state[2], x_state[3]]) # change -self.dis_sum_ to 0
 
+                current_error = self.c_ref - self.contact_area_
+                print(f"\nContact Area Tracking:")
+                print(f"  Reference (c_ref): {self.c_ref:.4f}")
+                print(f"  Current Value:     {self.contact_area_:.4f}") 
+                print(f"  Error:             {current_error:.4f}")
+                print(f"  Error Percentage:  {abs(current_error)/self.c_ref*100:.1f}%")
                 # constraints update
                 max_con_b_update = b_CT_x0(max_con_b_, C_con_T_, x_state.reshape(self.dim, 1))
                 min_con_b_update = b_CT_x0(min_con_b_, C_con_T_, x_state.reshape(self.dim, 1))
@@ -279,6 +285,9 @@ class ModelBasedMPCNode(Node):
                 res = prob.solve()
                 ctrl = res.x[0:1].copy()
 
+                self.gripper_cmd = GripperCommand.Goal()
+                self.gripper_cmd.command.max_effort = 100.0
+
                 if ctrl[0] is not None:
                     # p, v update
                     x_state = Ad.dot(x_state) + Bd.dot(ctrl)
@@ -286,7 +295,7 @@ class ModelBasedMPCNode(Node):
                     print("x_state_2 ", abs(normalized_x_state))
                     print("Current tactile value: ", self.contact_area_)
                     self.gripper_cmd.command.position = self.gripper_posi_ + abs(normalized_x_state)
-
+                    self._action_client.send_goal_async(self.gripper_cmd)
                 # Send goal to the action server
                 self._send_goal(self.gripper_cmd)
                 self.rate.sleep()
