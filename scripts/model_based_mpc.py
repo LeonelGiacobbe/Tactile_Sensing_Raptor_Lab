@@ -13,8 +13,6 @@ import osqp
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from rclpy.executors import MultiThreadedExecutor
 from cv_bridge import CvBridge
-global dis_sum_ # sum of marker displacements
-global contact_area_ # raw image
 
 def vstack_help(vec, n):
     combo = vec.reshape(vec.size, 1)
