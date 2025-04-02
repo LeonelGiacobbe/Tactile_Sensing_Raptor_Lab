@@ -14,11 +14,6 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPo
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from cv_bridge import CvBridge
-from rclpy.wait_for_message import wait_for_message
-from concurrent.futures import ThreadPoolExecutor
-import threading
-global dis_sum_ # sum of marker displacements
-global contact_area_ # raw image
 
 def vstack_help(vec, n):
     combo = vec.reshape(vec.size, 1)
