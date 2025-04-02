@@ -116,7 +116,7 @@ class ModelBasedMPCNode(Node):
         self.q_a = 2 # acceleration control weight. Higher = smoother but less responsive
         self.p = 5 # termainal cost weight
         self.c_ref = 6200 # amount of white pixels to ideally reach
-        self.k_c = 100000 # stiffness coefficient. Higher = faster response to contact changes
+        self.k_c = 50000 # stiffness coefficient. Higher = faster response to contact changes
         self.acc_max = 30 # max allowed acc
         self.vel_max = 100 # max allowed vel
         self.dim = 4 # state vector dimension

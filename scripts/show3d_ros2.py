@@ -146,7 +146,7 @@ class PCDPublisher(Node):
     def _calculate_contact_area(self, depth_map):
             """Returns amount of white pixels"""
             normalized = cv2.normalize(depth_map, None, 0, 255, cv2.NORM_MINMAX)
-            blurred_image = cv2.GaussianBlur(normalized, (3, 3), 0)
+            blurred_image = cv2.GaussianBlur(normalized, (5, 5), 0)
             _, binary_image = cv2.threshold(blurred_image, 220, 255, cv2.THRESH_BINARY)
             white_pixels = np.count_nonzero(binary_image)
             total_pixels = binary_image.size
