@@ -13,7 +13,6 @@ import osqp
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-from cv_bridge import CvBridge
 from rclpy.wait_for_message import wait_for_message
 from concurrent.futures import ThreadPoolExecutor
 import threading
@@ -42,11 +41,11 @@ def zeros_hstack_help_inverse(vec, n, size_row, size_col):
     return combo
 
 def getCS_(C, S_):
-    C_ = sparse.block_diag([sparse.kron(sparse.eye(10), C)])  # CHANGE => N to 15
+    C_ = sparse.block_diag([sparse.kron(sparse.eye(10), C)])
     return C_ * S_
 
 def getCT_(C, T_):
-    C_ = sparse.block_diag([sparse.kron(sparse.eye(10), C)])  # CHANGE => N to 15
+    C_ = sparse.block_diag([sparse.kron(sparse.eye(10), C)])  
     return C_ * T_
 
 def b_CT_x0(b_, CT_, x0):
@@ -67,14 +66,14 @@ class ModelBasedMPCNode(Node):
         # Replace publisher with ActionClient
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
         self.contact_group = ReentrantCallbackGroup()
-        # Receives tactile image from gelsight (why in format float32?) encoding is 8UC3
         gs_qos_profile = QoSProfile(
             depth=5,  # Last 5 messages kept
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
             history=HistoryPolicy.KEEP_LAST
         )
-        
+
+        # Receives white pixel count from tactile sensor
         self.contact_area_sub = self.create_subscription(
             Float32, 
             '/gs_contact_area', 
@@ -82,8 +81,6 @@ class ModelBasedMPCNode(Node):
             callback_group=self.contact_group
         )
         
-        self.cv_bridge = CvBridge()
-
         # Subscribe to the JointState topic to get gripper position
         posi_qos_profile = QoSProfile(
             depth=1000,
