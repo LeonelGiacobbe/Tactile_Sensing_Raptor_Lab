@@ -1,0 +1,30 @@
+[0.508s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing': PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][✘!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;32m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build --no-deps symlink_data
+[0.736s] running develop
+[0.894s] running egg_info
+[0.894s] creating tactile_sensing.egg-info
+[0.906s] writing tactile_sensing.egg-info/PKG-INFO
+[0.906s] writing dependency_links to tactile_sensing.egg-info/dependency_links.txt
+[0.906s] writing entry points to tactile_sensing.egg-info/entry_points.txt
+[0.906s] writing requirements to tactile_sensing.egg-info/requires.txt
+[0.907s] writing top-level names to tactile_sensing.egg-info/top_level.txt
+[0.907s] writing manifest file 'tactile_sensing.egg-info/SOURCES.txt'
+[0.930s] reading manifest file 'tactile_sensing.egg-info/SOURCES.txt'
+[0.931s] writing manifest file 'tactile_sensing.egg-info/SOURCES.txt'
+[0.943s] running build_ext
+[0.943s] Creating /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/python3.10/site-packages/tactile-sensing.egg-link (link to .)
+[0.944s] Installing model_based_mpc script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/tactile_sensing
+[0.944s] Installing show3d_ros2 script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/tactile_sensing
+[0.944s] 
+[0.944s] Installed /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing
+[0.945s] running symlink_data
+[0.945s] creating /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/ament_index/resource_index/packages
+[0.945s] symbolically linking /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/resource/tactile_sensing -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/ament_index/resource_index/packages
+[0.945s] creating /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/tactile_sensing
+[0.945s] symbolically linking /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/package.xml -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/tactile_sensing
+[0.945s] creating /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/tactile_sensing/launch
+[0.945s] symbolically linking /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/launch/mpc_controller.launch.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/tactile_sensing/launch
+[0.972s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing' returned '0': PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][✘!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;32m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build --no-deps symlink_data

@@ -1,0 +1,3 @@
+[console_scripts]
+model_based_mpc = tactile_sensing.model_based_mpc:main
+show3d_ros2 = tactile_sensing.show3d_ros2:main

@@ -97,8 +97,12 @@ class ModelBasedMPCNode(Node):
             posi_qos_profile,
         )
 
-        self.old_attr = termios.tcgetattr(sys.stdin)
-        tty.setcbreak(sys.stdin.fileno())
+        if sys.stdin.isatty():
+            self.old_attr = termios.tcgetattr(sys.stdin)
+            tty.setcbreak(sys.stdin.fileno())
+        else:
+            self.old_attr = None
+        
 
         # Parameters initialization
         self.frequency = 60
