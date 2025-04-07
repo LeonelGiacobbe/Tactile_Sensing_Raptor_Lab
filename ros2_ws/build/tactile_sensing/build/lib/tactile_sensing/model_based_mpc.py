@@ -5,7 +5,7 @@ import time
 import sys, tty, termios
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, UInt16
 from rclpy.action import ActionClient
 from control_msgs.action import GripperCommand
 from sensor_msgs.msg import JointState, Image
@@ -75,7 +75,7 @@ class ModelBasedMPCNode(Node):
 
         # Receives white pixel count from tactile sensor
         self.contact_area_sub = self.create_subscription(
-            Float32, 
+            UInt16, 
             '/gs_contact_area', 
             self.contact_area_cb, gs_qos_profile, 
             callback_group=self.contact_group
@@ -113,7 +113,7 @@ class ModelBasedMPCNode(Node):
         self.q_d = 2 # displacement sum weight
         self.q_a = 2 # acceleration control weight. Higher = smoother but less responsive
         self.p = 5 # termainal cost weight
-        self.c_ref = 6200 # amount of white pixels to ideally reach
+        self.c_ref = 3500 # amount of white pixels to ideally reach
         self.k_c = 50000 # stiffness coefficient. Higher = faster response to contact changes
         self.acc_max = 300 # max allowed acc
         self.vel_max = 500 # max allowed vel
@@ -244,7 +244,7 @@ class ModelBasedMPCNode(Node):
         try:
             # Wait until gripper posi callback is called once
             wait_for_message(JointState, self, '/joint_states', time_to_wait=10.0)
-            wait_for_message(Float32, self, '/gs_contact_area', time_to_wait=10.0)
+            wait_for_message(UInt16, self, '/gs_contact_area', time_to_wait=10.0)
 
             # Initial state
             x_state = np.array([0., 0., 0., 0.])

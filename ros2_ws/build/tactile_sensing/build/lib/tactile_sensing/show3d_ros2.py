@@ -10,7 +10,7 @@ from sensor_msgs.msg import PointCloud2, PointField, Image
 from cv_bridge import CvBridge
 import std_msgs.msg
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
-from std_msgs.msg import Float32
+from std_msgs.msg import UInt16
 
 
 def get_diff_img(img1, img2):
@@ -102,7 +102,7 @@ class PCDPublisher(Node):
             history=HistoryPolicy.KEEP_LAST
         )
         self.depth_publisher = self.create_publisher(Image, 'gs_depth', qos_profile)
-        self.contact_publisher = self.create_publisher(Float32, "/gs_contact_area", qos_profile)
+        self.contact_publisher = self.create_publisher(UInt16, "/gs_contact_area", qos_profile)
         self.bridge = CvBridge();
         timer_period = 1 / 25.0
         self.timer = self.create_timer(timer_period, self.timer_callback)
@@ -124,8 +124,8 @@ class PCDPublisher(Node):
         # --- Publish Depth Image ---
         # Convert dm to a ROS Image message
         depth_img_msg = self.bridge.cv2_to_imgmsg(
-            dm.astype(np.float32),
-            encoding="32FC1"        # Single-channel float32
+            dm.astype(np.uint16),
+            encoding="passthrough"        #  Unsigned int 16
         )
         depth_img_msg.header.stamp = self.get_clock().now().to_msg()
         depth_img_msg.header.frame_id = 'map' 
@@ -139,15 +139,15 @@ class PCDPublisher(Node):
 
         # --- Process the contact area percentage ---
         contact_area = self._calculate_contact_area(dm)
-        msg = Float32()
-        msg.data = float(contact_area)
+        msg = UInt16()
+        msg.data = contact_area
         self.contact_publisher.publish(msg)
 
     def _calculate_contact_area(self, depth_map):
             """Returns amount of white pixels"""
             normalized = cv2.normalize(depth_map, None, 0, 255, cv2.NORM_MINMAX)
             blurred_image = cv2.GaussianBlur(normalized, (5, 5), 0)
-            _, binary_image = cv2.threshold(blurred_image, 220, 255, cv2.THRESH_BINARY)
+            _, binary_image = cv2.threshold(blurred_image, 210, 255, cv2.THRESH_BINARY)
             white_pixels = np.count_nonzero(binary_image)
             total_pixels = binary_image.size
             

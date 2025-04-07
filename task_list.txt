@@ -1,7 +1,7 @@
 LeTac-MPC 
 
     - Find ways to reduce noise from published depth image
-        - Issue only seems to happen when nothing is touching the sensor
+        - ROI the image, as most noise is near edges
 
     - Gather tactile sensing imaging 
 
