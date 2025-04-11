@@ -18,6 +18,16 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 
 def vstack_help(vec, n):
+    """
+    Repeats a given vector vertically `n` times to create a stacked array.
+
+    Parameters:
+    vec (numpy.ndarray): A 1D numpy array to be vertically stacked.
+    n (int): The number of times to repeat the vector vertically.
+
+    Returns:
+    numpy.ndarray: A 2D numpy array where the input vector is stacked vertically `n` times.
+    """
     combo = vec.reshape(vec.size, 1)
     single = vec.reshape(vec.size, 1)
     for i in range(n - 1):
@@ -25,6 +35,19 @@ def vstack_help(vec, n):
     return combo
 
 def zeros_hstack_help(vec, n, size_row, size_col):
+    """
+    Horizontally stacks a given sparse matrix with n-1 additional zero matrices.
+
+    Parameters:
+        vec (scipy.sparse.csc_matrix): The initial sparse matrix to be horizontally stacked.
+        n (int): The total number of matrices to be horizontally stacked, including `vec`.
+        size_row (int): The number of rows in the zero matrices to be added.
+        size_col (int): The number of columns in the zero matrices to be added.
+
+    Returns:
+        scipy.sparse.csc_matrix: A sparse matrix resulting from the horizontal stacking of `vec` 
+        and `n-1` zero matrices.
+    """
     combo = vec
     single = sparse.csc_matrix((size_row, size_col), dtype=np.int8)
     for i in range(n - 1):
@@ -32,6 +55,20 @@ def zeros_hstack_help(vec, n, size_row, size_col):
     return combo
 
 def zeros_hstack_help_inverse(vec, n, size_row, size_col):
+    """
+    Constructs a sparse matrix by horizontally stacking a given sparse vector `vec` 
+    with `n-1` zero matrices of specified dimensions.
+
+    Parameters:
+        vec (scipy.sparse.csc_matrix): The sparse vector to be appended at the end of the stacked matrices.
+        n (int): The total number of matrices to be horizontally stacked, including `vec`.
+        size_row (int): The number of rows in each zero matrix.
+        size_col (int): The number of columns in each zero matrix.
+
+    Returns:
+        scipy.sparse.csc_matrix: A sparse matrix resulting from horizontally stacking 
+        `n-1` zero matrices with the given `vec` at the end.
+    """
     end = vec
     single = sparse.csc_matrix((size_row, size_col), dtype=np.int8)
     combo = single
