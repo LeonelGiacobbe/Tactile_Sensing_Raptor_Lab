@@ -27,6 +27,8 @@ class PCDPublisher(Node):
         super().__init__('pcd_publisher_node')
 
         # Set flags
+        self.CLAHE_CLIP_LIMIT = 2.0  # For lighting normalization
+        self.MEDIAN_KERNEL = 3  # For depthmap post-processing
         SAVE_VIDEO_FLAG = False
         GPU = False
         MASK_MARKERS_FLAG = False
@@ -107,51 +109,69 @@ class PCDPublisher(Node):
         timer_period = 1 / 25.0
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
+    def _normalize_lighting(self, img):
+        """Normalize lighting using CLAHE and gamma correction."""
+        # Convert to LAB color space
+        lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+        l, a, b = cv2.split(lab)
+        
+        # Apply CLAHE to L channel
+        clahe = cv2.createCLAHE(clipLimit=self.CLAHE_CLIP_LIMIT, tileGridSize=(8, 8))
+        l_norm = clahe.apply(l)
+        
+        # Merge channels and convert back to RGB
+        lab_norm = cv2.merge((l_norm, a, b))
+        img_norm = cv2.cvtColor(lab_norm, cv2.COLOR_LAB2RGB)
+        
+        # Gamma correction
+        img_norm = cv2.pow(img_norm / 255., 0.8) * 255
+        return img_norm.astype(np.uint8)
 
     def timer_callback(self):
 
          # Get the ROI image
         f1 = self.dev.get_image()
-        if self.USE_ROI:
-            roi = self.roi
-            f1 = f1[int(roi[1]):int(roi[1] + roi[3]), int(roi[0]):int(roi[0] + roi[2])]
-            roi_pixels = f1.shape[0] * f1.shape[1]  # height * width
-            print(f"ROI contains {roi_pixels} pixels")  # Optional: print or log this
+        f1 = self._normalize_lighting(f1)
+        # print("f1: ", f1)
+
+
         # Compute the depth map (dm is a 2D numpy array)
         dm = self.nn.get_depthmap(f1, False)
         dm = np.maximum(dm, 0.0)
+        dm = cv2.medianBlur(dm.astype(np.float32), self.MEDIAN_KERNEL)
         
-        # --- Publish Depth Image ---
-        # Convert dm to a ROS Image message
+        self._publish_depth(dm)
+        self._publish_pointcloud(dm)
+        self._publish_contact_area(dm)
+
+    def _publish_depth(self, dm):
+        """Publish depth map as ROS Image."""
         depth_img_msg = self.bridge.cv2_to_imgmsg(
-            dm.astype(np.uint16),
-            encoding="passthrough"        #  Unsigned int 16
-        )
+            (dm * 1000).astype(np.uint16),  # Scale for better precision
+            encoding="16UC1"
+        )   
         depth_img_msg.header.stamp = self.get_clock().now().to_msg()
-        depth_img_msg.header.frame_id = 'map' 
+        depth_img_msg.header.frame_id = 'map'
         self.depth_publisher.publish(depth_img_msg)
 
-        # --- Publish Point Cloud ---
-        dm_ros = copy.deepcopy(dm) * self.mpp
+    def _publish_pointcloud(self, dm):
+        """Publish point cloud."""
+        dm_ros = copy.deepcopy(dm) * (0.0634 / 1000.)
         self.points[:, 2] = np.ndarray.flatten(dm_ros)
         self.pcd = point_cloud(self.points, 'map')
         self.pcd_publisher.publish(self.pcd)
 
-        # --- Process the contact area percentage ---
-        contact_area = self._calculate_contact_area(dm)
+    def _publish_contact_area(self, dm):
+        """Calculate and publish contact area."""
+        print("dm: ", dm)
+        dm = np.where(dm < 1.0, 0, dm)
+        normalized = cv2.normalize(dm, None, 0, 255, cv2.NORM_MINMAX)
+        _, binary = cv2.threshold(normalized, 210, 255, cv2.THRESH_BINARY)
+        kernel = np.ones((7,7), np.uint8)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
         msg = UInt16()
-        msg.data = contact_area
+        msg.data = np.count_nonzero(binary)
         self.contact_publisher.publish(msg)
-
-    def _calculate_contact_area(self, depth_map):
-            """Returns amount of white pixels"""
-            normalized = cv2.normalize(depth_map, None, 0, 255, cv2.NORM_MINMAX)
-            blurred_image = cv2.GaussianBlur(normalized, (5, 5), 0)
-            _, binary_image = cv2.threshold(blurred_image, 210, 255, cv2.THRESH_BINARY)
-            white_pixels = np.count_nonzero(binary_image)
-            total_pixels = binary_image.size
-            
-            return white_pixels 
 
 def point_cloud(points, parent_frame):
     """ Creates a point cloud message.

@@ -101,7 +101,7 @@ class ModelBasedMPCNode(Node):
             self.old_attr = None
 
         # Parameters initialization
-        self.frequency = 60
+        self.frequency = 200
         self.init_posi = 0.0
         self.lower_pos_lim = 0.0 # for wsg grippers, original values
         self.upper_pos_lim = 110 # for wsg grippers, original values
