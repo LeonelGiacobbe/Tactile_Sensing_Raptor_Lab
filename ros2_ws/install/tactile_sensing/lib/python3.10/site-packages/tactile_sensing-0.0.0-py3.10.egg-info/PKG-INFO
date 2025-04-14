@@ -6,3 +6,5 @@ Maintainer: leo
 Maintainer-email: lgiacobbe14@gmail.com
 License: TODO: License declaration
 Requires-Dist: setuptools
+Requires-Dist: torchvision
+Requires-Dist: qpth

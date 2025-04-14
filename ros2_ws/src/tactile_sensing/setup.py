@@ -13,13 +13,11 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'model'), glob('models/*.pth')),
     ],
     install_requires=['setuptools',
-                    #   'numpy',
-                    #   'opencv-python',
-                    #   'scipy',
-                    #   'osqp',
-                    #   'gelsight'
+                    'torchvision',
+                    'qpth',
                     ],
     zip_safe=True,
     maintainer='leo',
@@ -30,6 +28,9 @@ setup(
         'console_scripts': [
             'show3d_ros2 = tactile_sensing.show3d_ros2:main',
             'model_based_mpc = tactile_sensing.model_based_mpc:main',
+            'nn_controller = tactile_sensing.nn_controller:main',
+            'show_tac_image = tactile_sensing.show_tactile_image:main',
+            'camera_publisher = tactile_sensing.camera_publisher:main',
         ],
     },
 )
