@@ -195,4 +195,5 @@ class MPClayer(nn.Module):
         output_batch = output_dia.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(self.nHidden+2))
         posi_predict = torch.bmm(output_batch, x_predict).resize(nBatch, self.nStep)
         x = posi_predict
+        print("x in mpc layer: ", x)
         return x

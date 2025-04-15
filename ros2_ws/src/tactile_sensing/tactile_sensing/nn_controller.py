@@ -20,7 +20,7 @@ from torchvision import transforms
 from PIL import Image
 from .functions import ResCNNEncoder, MPClayer
 from cv_bridge import CvBridge, CvBridgeError
-import os
+import os, time
 from ament_index_python.packages import get_package_share_directory
 
 def vstack_help(vec, n):
@@ -91,6 +91,7 @@ class ModelBasedMPCNode(Node):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.nn_encoder = ResCNNEncoder(outputDim=20).to(self.device)
         self.mpc_layer = MPClayer(nHidden=20, nStep=15).to(self.device)
+        torch.set_num_threads(4)
 
         # Load weights
         package_dir = get_package_share_directory('tactile_sensing')
@@ -152,7 +153,7 @@ class ModelBasedMPCNode(Node):
             self.old_attr = None
 
         # Parameters initialization
-        self.frequency = 200
+        self.frequency = 10
         self.init_posi = 0.0
         self.lower_pos_lim = 0.0 # for wsg grippers, original values
         self.upper_pos_lim = 110 # for wsg grippers, original values
@@ -181,12 +182,8 @@ class ModelBasedMPCNode(Node):
         self.timer = self.create_timer(1.0 / self.frequency, self.run)
 
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed
-    def joint_state_cb(self, msg: JointState):
-        self.get_logger().debug("Entered joint_state_cb")  # Debug entry
-        
-        # Flag to allow run method to go out of inf loop
-        self.gripper_ini_flag_ = True
-        
+
+    def process_joint_states(self, msg):
         try:
             self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
             
@@ -198,64 +195,57 @@ class ModelBasedMPCNode(Node):
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_ = gripper_vel
-                self.get_logger().debug(f"Current gripper vel: {gripper_vel:.4f}")  # Debug velocity
+                self.get_logger().info(f"Current gripper vel: {gripper_vel:.4f}")  # Debug velocity
             else:
                 self.get_logger().warn("Gripper joint not found in JointState message")
                 
         except Exception as e:
             self.get_logger().error(f"joint_state_cb error: {str(e)}", throttle_duration_sec=5)
 
+
+    def joint_state_cb(self, msg: JointState):
+        # self.get_logger().debug("Entered joint_state_cb")  # Debug entry
+        
+        # Flag to allow run method to go out of inf loop
+        self.gripper_ini_flag_ = True
+
+        # Offload joint processing to background thread
+        self.processing_executor.submit(self.process_joint_states, msg)
+        
+        
     # Not currently used (original author said it can be set to zero?) but here just in case
     def dis_sum_cb(self, msg):
-        self.dis_sum_ = msg.data
+        self.dis_sum_ = msg.data        
         
-    # Offloaded calculation to show3d publisher
     def contact_area_cb(self, msg):
-        self.get_logger().debug("Entered contact_area_cb")
-        
+        # Offload image processing to background thread
         try:
-            # 1. First try BGR8 (most common case)
-            try:
-                cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-                self.get_logger().debug("Successfully converted with bgr8 encoding")
-            except CvBridgeError as bgr_error:
-                # 2. Fallback to mono8 if BGR fails
-                try:
-                    cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='mono8')
-                    self.get_logger().debug("Fell back to mono8 encoding")
-                    # Convert grayscale to "RGB" by repeating channels
-                    cv_image = cv2.cvtColor(cv_image, cv2.COLOR_GRAY2RGB)
-                except CvBridgeError as mono_error:
-                    # 3. Final fallback - try passthrough
-                    cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
-                    self.get_logger().debug("Used passthrough encoding")
-                    if len(cv_image.shape) == 2:  # If grayscale
-                        cv_image = cv2.cvtColor(cv_image, cv2.COLOR_GRAY2RGB)
+            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
 
-            self.get_logger().debug(f"Final image shape: {cv_image.shape}")
-            
             # Convert to PIL and process
             pil_image = Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
             img_tensor = self.transform(pil_image).unsqueeze(0).to(self.device)
-            
+            # self.get_logger().info(f"Final img tensor shape: {img_tensor.shape}")
             with torch.no_grad():
                 self.tactile_embedding = self.nn_encoder(img_tensor).squeeze(0)
-                self.get_logger().debug(f"Embedding shape: {self.tactile_embedding.shape}")
+                # self.get_logger().info(f"Embedding shape: {self.tactile_embedding.shape}")
                 
         except Exception as e:
             self.get_logger().error(f'Tactile processing failed: {str(e)}', throttle_duration_sec=5)
             
+        
     def run(self):
-        # Wait until gripper posi callback is called once
         wait_for_message(JointState, self, '/joint_states', time_to_wait=10.0)
         wait_for_message(UInt16, self, '/gs_contact_area', time_to_wait=10.0)
 
         try:
+            start_time = time.time()
             # Prepare inputs for MPC
             gripper_p = torch.tensor([self.gripper_posi_], 
                                    dtype=torch.float32).to(self.device)
-            gripper_v = torch.tensor([self.gripper_vel_],
+            gripper_v = torch.tensor([0.1],
                                    dtype=torch.float32).to(self.device)
+            
             
             # Run MPC (batched inference)
             with torch.no_grad():
@@ -264,15 +254,23 @@ class ModelBasedMPCNode(Node):
                     gripper_p.unsqueeze(0),
                     gripper_v.unsqueeze(0)
                 )
-                
+            stop_time = time.time()
+
+            self.get_logger().info(f"elapsed time in run method: {stop_time - start_time}")
             # Get first control action
             target_pos = pos_sequence[0, 0].item()
             
             # Send command
-            goal = GripperCommand.Goal()
-            goal.command.position = float(np.clip(target_pos, 0.0, 0.7))
-            goal.command.max_effort = 100.0
-            self._action_client.send_goal_async(goal)
+            self.goal = GripperCommand.Goal()
+            normalized_target = self.new_min + ((target_pos - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min)
+            self.goal.command.position = self.gripper_posi_ + normalized_target
+            self.goal.command.max_effort = 100.0
+            #self._action_client.send_goal_async(self.goal)
+
+            # Send goal to the action server
+            self._send_goal(self.goal)
+            self.get_logger().info(f"Sending goal: {self.goal.command.position:.4f}")
+            self.rate.sleep()
             
         except Exception as e:
             self.get_logger().error(f'Control loop failed: {str(e)}')
