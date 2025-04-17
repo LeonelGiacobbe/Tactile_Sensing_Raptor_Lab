@@ -22,6 +22,7 @@ from .functions import ResCNNEncoder, MPClayer
 from cv_bridge import CvBridge, CvBridgeError
 import os, time
 from ament_index_python.packages import get_package_share_directory
+from torch.nn import functional as F
 
 def vstack_help(vec, n):
     """
@@ -88,17 +89,19 @@ class ModelBasedMPCNode(Node):
         self.contact_area_lock = threading.Lock()
 
         # Neural network stuff
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda')
+        self.get_logger().info(f"Using {self.device} in controller node")
         self.nn_encoder = ResCNNEncoder(outputDim=20).to(self.device)
         self.mpc_layer = MPClayer(nHidden=20, nStep=15).to(self.device)
-        torch.set_num_threads(4)
+        # torch.set_num_threads(4)
+        self.stream = torch.cuda.Stream()
 
         # Load weights
         package_dir = get_package_share_directory('tactile_sensing')
         
         # Construct absolute path to model
         model_path = os.path.join(package_dir, 'models', 'letac_mpc_model.pth')
-        checkpoint = torch.load(model_path, map_location=torch.device('cpu'))
+        checkpoint = torch.load(model_path, map_location=torch.device(self.device))
         # Print all keys in the checkpoint
         print("Keys in checkpoint:", checkpoint.keys())
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
@@ -113,6 +116,12 @@ class ModelBasedMPCNode(Node):
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
         self.bridge = CvBridge()
+
+        # Setup for batching
+        self.batch_size = 64  # Tune based on latency/GPU utilization
+        self.image_buffer = []
+        self.position_buffer = []
+        self.velocity_buffer = []
 
         # Replace publisher with ActionClient
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
@@ -218,62 +227,61 @@ class ModelBasedMPCNode(Node):
         self.dis_sum_ = msg.data        
         
     def contact_area_cb(self, msg):
-        # Offload image processing to background thread
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
-
-            # Convert to PIL and process
-            pil_image = Image.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
-            img_tensor = self.transform(pil_image).unsqueeze(0).to(self.device)
-            # self.get_logger().info(f"Final img tensor shape: {img_tensor.shape}")
-            with torch.no_grad():
-                self.tactile_embedding = self.nn_encoder(img_tensor).squeeze(0)
-                # self.get_logger().info(f"Embedding shape: {self.tactile_embedding.shape}")
-                
-        except Exception as e:
-            self.get_logger().error(f'Tactile processing failed: {str(e)}', throttle_duration_sec=5)
             
+            # Convert to tensor and move to GPU immediately
+            tensor = torch.from_numpy(cv_image).permute(2, 0, 1).float().to(self.device) / 255.0
+            
+            # Prepare normalization parameters on GPU
+            mean = torch.tensor([0.485, 0.456, 0.406], device=self.device).view(3, 1, 1)
+            std = torch.tensor([0.229, 0.224, 0.225], device=self.device).view(3, 1, 1)
+            
+            # Resize and normalize on GPU
+            tensor = F.interpolate(tensor.unsqueeze(0), size=(224, 224)).squeeze(0)
+            tensor = (tensor - mean) / std
+            
+            with self.contact_area_lock:
+                if len(self.image_buffer) >= self.batch_size:
+                    self.image_buffer.pop(0)
+                self.image_buffer.append(tensor)  # Already on correct device
+        except Exception as e:
+            self.get_logger().error(f'Tactile processing failed: {str(e)}')
         
     def run(self):
-        wait_for_message(JointState, self, '/joint_states', time_to_wait=10.0)
-        wait_for_message(UInt16, self, '/gs_contact_area', time_to_wait=10.0)
+        if len(self.image_buffer) < self.batch_size:
+            return  # Not enough data to batch
 
         try:
             start_time = time.time()
-            # Prepare inputs for MPC
-            gripper_p = torch.tensor([self.gripper_posi_], 
-                                   dtype=torch.float32).to(self.device)
-            gripper_v = torch.tensor([0.1],
-                                   dtype=torch.float32).to(self.device)
-            
-            
-            # Run MPC (batched inference)
-            with torch.no_grad():
-                pos_sequence = self.mpc_layer(
-                    self.tactile_embedding.unsqueeze(0),
-                    gripper_p.unsqueeze(0),
-                    gripper_v.unsqueeze(0)
-                )
-            stop_time = time.time()
 
-            self.get_logger().info(f"elapsed time in run method: {stop_time - start_time}")
-            # Get first control action
-            target_pos = pos_sequence[0, 0].item()
-            
+            # Prepare batched tensors
+            with torch.cuda.stream(self.stream), torch.no_grad():
+                image_batch = torch.stack(self.image_buffer).to(self.device)
+                gripper_p_batch = torch.tensor([self.gripper_posi_] * self.batch_size, dtype=torch.float32).to(self.device).unsqueeze(1)
+                gripper_v_batch = torch.tensor([self.gripper_vel_] * self.batch_size, dtype=torch.float32).to(self.device).unsqueeze(1)
+
+                tactile_embeddings = self.nn_encoder(image_batch)
+                pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p_batch, gripper_v_batch)
+
+            # Take the action from the most recent image (last in batch)
+            target_pos = pos_sequences[-1, 0].item()
+
+            stop_time = time.time()
+            self.get_logger().info(f"Batched run time: {stop_time - start_time:.4f}s")
+
             # Send command
-            self.goal = GripperCommand.Goal()
             normalized_target = self.new_min + ((target_pos - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min)
+            self.goal = GripperCommand.Goal()
             self.goal.command.position = self.gripper_posi_ + normalized_target
             self.goal.command.max_effort = 100.0
-            #self._action_client.send_goal_async(self.goal)
-
-            # Send goal to the action server
             self._send_goal(self.goal)
             self.get_logger().info(f"Sending goal: {self.goal.command.position:.4f}")
             self.rate.sleep()
-            
+
         except Exception as e:
             self.get_logger().error(f'Control loop failed: {str(e)}')
+
 
     def _send_goal(self, goal):
         self._action_client.wait_for_server()
