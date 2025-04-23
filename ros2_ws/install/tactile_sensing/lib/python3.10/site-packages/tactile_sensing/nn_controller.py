@@ -93,8 +93,13 @@ class ModelBasedMPCNode(Node):
         self.get_logger().info(f"Using {self.device} in controller node")
         self.nn_encoder = ResCNNEncoder(outputDim=20).to(self.device)
         self.mpc_layer = MPClayer(nHidden=20, nStep=15).to(self.device)
-        # torch.set_num_threads(4)
         self.stream = torch.cuda.Stream()
+        self.nn_encoder.eval()
+        self.mpc_layer.eval()
+        # Warmup pass
+        dummy_input = torch.randn(1, 3, 224, 224, device=self.device)
+        _ = self.nn_encoder(dummy_input)
+        torch.cuda.synchronize()
 
         # Load weights
         package_dir = get_package_share_directory('tactile_sensing')
@@ -106,8 +111,7 @@ class ModelBasedMPCNode(Node):
         print("Keys in checkpoint:", checkpoint.keys())
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
-        self.nn_encoder.eval()
-        self.mpc_layer.eval()
+        
 
         # Image preprocessing
         self.transform = transforms.Compose([
@@ -118,7 +122,7 @@ class ModelBasedMPCNode(Node):
         self.bridge = CvBridge()
 
         # Setup for batching
-        self.batch_size = 1  # Tune based on latency/GPU utilization
+        self.batch_size = 2  # Tune based on latency/GPU utilization
         self.image_buffer = []
         self.position_buffer = []
         self.velocity_buffer = []
@@ -127,7 +131,7 @@ class ModelBasedMPCNode(Node):
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
         self.contact_group = ReentrantCallbackGroup()
         gs_qos_profile = QoSProfile(
-            depth=5,  # Last 5 messages kept
+            depth=0,  # Last 5 messages kept
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
             history=HistoryPolicy.KEEP_LAST
@@ -162,7 +166,7 @@ class ModelBasedMPCNode(Node):
             self.old_attr = None
 
         # Parameters initialization
-        self.frequency = 10
+        self.frequency = 5
         self.init_posi = 0.0
         self.lower_pos_lim = 0.0 # for wsg grippers, original values
         self.upper_pos_lim = 110 # for wsg grippers, original values
@@ -190,13 +194,9 @@ class ModelBasedMPCNode(Node):
         # Timer to call the run method periodically
         self.timer = self.create_timer(1.0 / self.frequency, self.run)
 
-        #lock for image callback
-        self.image_callback_lock = threading.Lock()
-
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed
 
     def process_joint_states(self, msg):
-        
         try:
             self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
             
@@ -204,11 +204,11 @@ class ModelBasedMPCNode(Node):
                 index = msg.name.index('robotiq_85_left_knuckle_joint')
                 gripper_position = msg.position[index]
                 self.gripper_posi_ = gripper_position
-                self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+                # self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_ = gripper_vel
-                self.get_logger().info(f"Current gripper vel: {gripper_vel:.4f}")  # Debug velocity
+                # self.get_logger().info(f"Current gripper vel: {gripper_vel:.4f}")  # Debug velocity
             else:
                 self.get_logger().warn("Gripper joint not found in JointState message")
                 
@@ -231,8 +231,6 @@ class ModelBasedMPCNode(Node):
         self.dis_sum_ = msg.data        
         
     def contact_area_cb(self, msg):
-        if not self.image_callback_lock.acquire(blocking=False):
-            return  # Skip if lock is already held (inference in progress)
         start_time = time.time()
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
@@ -256,30 +254,30 @@ class ModelBasedMPCNode(Node):
             self.get_logger().error(f'Tactile processing failed: {str(e)}')
         
         stop_time = time.time()
-        self.get_logger().info(f"Image processing run time: {stop_time - start_time:.4f}s")
+        # self.get_logger().info(f"Image processing run time: {stop_time - start_time:.4f}s")
         
     def run(self):
         if len(self.image_buffer) < self.batch_size:
             return  # Not enough data to batch
-        if not self.image_callback_lock.acquire(blocking=False):
-            return  # Don't run inference if image callback is mid-process
 
         try:
-            start_time = time.time()
-
             # Prepare batched tensors
             with torch.cuda.stream(self.stream), torch.no_grad():
                 image_batch = torch.stack(self.image_buffer).to(self.device)
+                # 0.2s runtime approx before this
                 gripper_p_batch = torch.tensor([self.gripper_posi_] * self.batch_size, dtype=torch.float32).to(self.device).unsqueeze(1)
                 gripper_v_batch = torch.tensor([self.gripper_vel_] * self.batch_size, dtype=torch.float32).to(self.device).unsqueeze(1)
+                # Not much more runtime before this
+                tactile_embeddings = self.nn_encoder(image_batch) # 0.16s spent here
 
-                tactile_embeddings = self.nn_encoder(image_batch)
-                pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p_batch, gripper_v_batch)
+                start_time = time.time()
+                pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p_batch, gripper_v_batch) # 0.6s here
+                stop_time = time.time()
 
             # Take the action from the most recent image (last in batch)
             target_pos = pos_sequences[-1, 0].item()
 
-            stop_time = time.time()
+            
             self.get_logger().info(f"Batched run time: {stop_time - start_time:.4f}s")
 
             # Send command
@@ -287,19 +285,18 @@ class ModelBasedMPCNode(Node):
             self.goal = GripperCommand.Goal()
             self.goal.command.position = self.gripper_posi_ + normalized_target
             self.goal.command.max_effort = 100.0
-            self._send_goal(self.goal)
             self.get_logger().info(f"Sending goal: {self.goal.command.position:.4f}")
-            self.rate.sleep()
-
-        finally:
-            self.image_callback_lock.release()
+            self._send_goal(self.goal)
+            # self.rate.sleep()
 
         except Exception as e:
             self.get_logger().error(f'Control loop failed: {str(e)}')
 
-
     def _send_goal(self, goal):
-        self._action_client.wait_for_server()
+        if not self._action_client.wait_for_server(timeout_sec=2.0):
+            self.get_logger().error("Action server not available after waiting")
+            return
+        self.get_logger().info("Got life check from server")
         self._send_goal_future = self._action_client.send_goal_async(goal)
         self._send_goal_future.add_done_callback(self._goal_response_callback)
 
