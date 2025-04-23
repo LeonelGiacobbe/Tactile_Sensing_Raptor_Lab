@@ -118,7 +118,7 @@ class ModelBasedMPCNode(Node):
         self.bridge = CvBridge()
 
         # Setup for batching
-        self.batch_size = 64  # Tune based on latency/GPU utilization
+        self.batch_size = 1  # Tune based on latency/GPU utilization
         self.image_buffer = []
         self.position_buffer = []
         self.velocity_buffer = []
@@ -189,6 +189,7 @@ class ModelBasedMPCNode(Node):
 
         # Timer to call the run method periodically
         self.timer = self.create_timer(1.0 / self.frequency, self.run)
+        
 
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed
 
@@ -227,6 +228,7 @@ class ModelBasedMPCNode(Node):
         self.dis_sum_ = msg.data        
         
     def contact_area_cb(self, msg):
+        start_time = time.time()
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
             
@@ -247,6 +249,9 @@ class ModelBasedMPCNode(Node):
                 self.image_buffer.append(tensor)  # Already on correct device
         except Exception as e:
             self.get_logger().error(f'Tactile processing failed: {str(e)}')
+        
+        stop_time = time.time()
+        self.get_logger().info(f"Image processing run time: {stop_time - start_time:.4f}s")
         
     def run(self):
         if len(self.image_buffer) < self.batch_size:

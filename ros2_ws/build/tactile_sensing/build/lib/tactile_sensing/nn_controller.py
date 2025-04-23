@@ -118,7 +118,7 @@ class ModelBasedMPCNode(Node):
         self.bridge = CvBridge()
 
         # Setup for batching
-        self.batch_size = 64  # Tune based on latency/GPU utilization
+        self.batch_size = 1  # Tune based on latency/GPU utilization
         self.image_buffer = []
         self.position_buffer = []
         self.velocity_buffer = []
@@ -190,9 +190,13 @@ class ModelBasedMPCNode(Node):
         # Timer to call the run method periodically
         self.timer = self.create_timer(1.0 / self.frequency, self.run)
 
+        #lock for image callback
+        self.image_callback_lock = threading.Lock()
+
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed
 
     def process_joint_states(self, msg):
+        
         try:
             self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
             
@@ -227,6 +231,9 @@ class ModelBasedMPCNode(Node):
         self.dis_sum_ = msg.data        
         
     def contact_area_cb(self, msg):
+        if not self.image_callback_lock.acquire(blocking=False):
+            return  # Skip if lock is already held (inference in progress)
+        start_time = time.time()
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
             
@@ -248,9 +255,14 @@ class ModelBasedMPCNode(Node):
         except Exception as e:
             self.get_logger().error(f'Tactile processing failed: {str(e)}')
         
+        stop_time = time.time()
+        self.get_logger().info(f"Image processing run time: {stop_time - start_time:.4f}s")
+        
     def run(self):
         if len(self.image_buffer) < self.batch_size:
             return  # Not enough data to batch
+        if not self.image_callback_lock.acquire(blocking=False):
+            return  # Don't run inference if image callback is mid-process
 
         try:
             start_time = time.time()
@@ -278,6 +290,9 @@ class ModelBasedMPCNode(Node):
             self._send_goal(self.goal)
             self.get_logger().info(f"Sending goal: {self.goal.command.position:.4f}")
             self.rate.sleep()
+
+        finally:
+            self.image_callback_lock.release()
 
         except Exception as e:
             self.get_logger().error(f'Control loop failed: {str(e)}')
