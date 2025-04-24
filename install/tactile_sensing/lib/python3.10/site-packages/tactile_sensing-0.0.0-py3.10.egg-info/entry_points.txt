@@ -1,6 +1,0 @@
-[console_scripts]
-camera_publisher = tactile_sensing.camera_publisher:main
-model_based_mpc = tactile_sensing.model_based_mpc:main
-nn_controller = tactile_sensing.nn_controller:main
-show3d_ros2 = tactile_sensing.show3d_ros2:main
-show_tac_image = tactile_sensing.show_tactile_image:main
