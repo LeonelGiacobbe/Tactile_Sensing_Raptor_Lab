@@ -209,6 +209,42 @@ def start_pos(base, base_cyclic):
         print("Timeout on action notification wait")
     return finished
 
+def home_pos(base, base_cyclic):
+    print("Starting Cartesian action movement ...")
+    action = Base_pb2.Action() # Create action object
+    action.name = "Start Position"
+    action.application_data = ""
+
+    feedback = base_cyclic.RefreshFeedback() # Provides current state of bot (pose_values, etc) at 1Khz
+    cartesian_pose = action.reach_pose.target_pose # Specify tipe of action to execute. Reach target pose.
+    cartesian_pose.x = 0.578         # (meters)
+    cartesian_pose.y = -0.04 # (meters)
+    cartesian_pose.z = 0.432   # (meters)
+    cartesian_pose.theta_x = 90.0 # (degrees)
+    cartesian_pose.theta_y = -0.0 # (degrees)
+    cartesian_pose.theta_z = 90.0 # (degrees)
+
+    e = threading.Event() # Callback to tell us status of action topic, when it starts and stops moving
+    notification_handle = base.OnNotificationActionTopic(
+        check_for_end_or_abort(e),
+        Base_pb2.NotificationOptions()
+    )
+
+    print("Executing action")
+    base.ExecuteAction(action)
+
+    
+
+    print("Waiting for movement to finish ...")
+    finished = e.wait(TIMEOUT_DURATION) # Sort of while loop to wait until the bot is done moving
+    base.Unsubscribe(notification_handle) # After executing movement, notifications will not be useful anymore.
+
+    if finished:
+        print("Cartesian movement completed")
+    else:
+        print("Timeout on action notification wait")
+    return finished
+
 def place_block(base, base_cyclic, horizontal, turn, height, hollow):
     print("Moving block to tower ...")
     action = Base_pb2.Action() # Create action object
