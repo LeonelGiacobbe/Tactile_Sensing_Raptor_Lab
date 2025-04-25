@@ -50,7 +50,7 @@ def capture_raw_image():
     return cv_image
 
 def calculate_external_force(follower_arm, delta_x, delta_y):
-    # Simulate or compute the external force applied on the object
+    # Add effort fields of both arms
     return follower_arm.calculate_force(delta_x, delta_y)
 
 def main():
