@@ -31,6 +31,7 @@ setup(
             'nn_controller = tactile_sensing.nn_controller:main',
             'show_tac_image = tactile_sensing.show_tactile_image:main',
             'camera_publisher = tactile_sensing.camera_publisher:main',
+            'multi_agent_mpc = tactile_sensing.multi_agent_mpc:main',
         ],
     },
 )

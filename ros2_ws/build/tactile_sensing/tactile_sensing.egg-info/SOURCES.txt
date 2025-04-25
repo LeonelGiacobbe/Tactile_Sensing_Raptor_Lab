@@ -9,11 +9,13 @@ setup.py
 ../../build/tactile_sensing/tactile_sensing.egg-info/top_level.txt
 ../../build/tactile_sensing/tactile_sensing.egg-info/zip-safe
 launch/mpc_controller.launch.py
+launch/multi_agent_mpc_controller.launch.py
 launch/nn_controller.launch.py
 resource/tactile_sensing
 tactile_sensing/__init__.py
 tactile_sensing/functions.py
 tactile_sensing/model_based_mpc.py
+tactile_sensing/multi_agent_mpc.py
 tactile_sensing/nn_controller.py
 tactile_sensing/show3d_ros2.py
 tactile_sensing/show_tactile_image.py
