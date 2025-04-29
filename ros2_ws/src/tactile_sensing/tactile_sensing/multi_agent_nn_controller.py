@@ -87,7 +87,7 @@ class ModelBasedMPCNode(Node):
         self.contact_area_ = 0
         self.processing_executor = ThreadPoolExecutor(max_workers=1)
         self.contact_area_lock = threading.Lock()
-        self.frequency = 25
+        self.frequency = 2
 
         # Parameters initialization
         self.init_posi = 0.0
@@ -123,7 +123,7 @@ class ModelBasedMPCNode(Node):
         if self.device.type == 'cuda':
             torch.cuda.synchronize()
 
-        # Load weights (unchanged)
+        # Load weights
         package_dir = get_package_share_directory('tactile_sensing')
         model_path = os.path.join(package_dir, 'models', 'letac_mpc_model.pth')
         checkpoint = torch.load(model_path, map_location=torch.device(self.device))
@@ -158,6 +158,7 @@ class ModelBasedMPCNode(Node):
             history=HistoryPolicy.KEEP_LAST
         )   
 
+        self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
         self.contact_group = ReentrantCallbackGroup()
         # Receives image from tactile sensor
         self.contact_area_sub = self.create_subscription(
@@ -170,7 +171,7 @@ class ModelBasedMPCNode(Node):
         
         # Subscribe to the JointState topic to get gripper position
         posi_qos_profile = QoSProfile(
-            depth=1000,
+            depth=0,
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
         )
@@ -251,20 +252,20 @@ class ModelBasedMPCNode(Node):
                 stop_time = time.time()
 
             # Take the action from the most recent image (last in batch)
-            target_pos = pos_sequences[:, -1].item()
-            self.get_logger().info(f"Target posi (not normalized): {target_pos}")
+            target_pos = pos_sequences[:, 0].item()
+            self.get_logger().info(f"Position sequence: {pos_sequences}")
 
             
             # self.get_logger().info(f"Inference run time: {stop_time - start_time:.4f}s")
             
             # Send command
-            normalized_target = self.new_min + ((target_pos - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min)
+            normalized_target = (self.new_min + ((target_pos - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min))
+            self.get_logger().info(f"Current normalized target: {normalized_target}")
             self.goal = GripperCommand.Goal()
             self.goal.command.position = self.gripper_posi_ + normalized_target
-            self.goal.command.max_effort = 100.0
+            # self.goal.command.max_effort = 100.0
             self.get_logger().info(f"Sending goal: {self.goal.command.position:.4f}")
             self._send_goal(self.goal)
-            self.get_logger().info(f"Current normalized target: {normalized_target}")
             self.get_logger().info(f"Current gripper posi: {self.gripper_posi_}")
             self.rate.sleep()
 

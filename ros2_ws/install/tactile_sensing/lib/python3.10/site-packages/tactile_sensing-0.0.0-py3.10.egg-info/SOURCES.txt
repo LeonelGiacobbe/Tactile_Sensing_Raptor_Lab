@@ -23,6 +23,7 @@ tactile_sensing/multi_agent_nn_controller.py
 tactile_sensing/nn_controller.py
 tactile_sensing/show3d_ros2.py
 tactile_sensing/show_tactile_image.py
+tactile_sensing/testing_functions.py
 test/test_copyright.py
 test/test_flake8.py
 test/test_pep257.py

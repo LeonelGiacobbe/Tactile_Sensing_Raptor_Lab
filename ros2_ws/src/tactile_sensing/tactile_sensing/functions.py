@@ -10,7 +10,7 @@ from torch.nn.parameter import Parameter
 from qpth.qp import QPFunction
 
 # Select device (CUDA if available, else CPU)
-device = torch.device("cuda")
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("In functions.py, using: ", device)
 
 # Helper function to stack zeros

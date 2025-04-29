@@ -92,16 +92,19 @@ class ModelBasedMPCNode(Node):
     def __init__(self):
         super().__init__('model_based_mpc_node')
         
-        self.gripper_posi_ = 0.0
+        self.gripper_posi_1 = 0.0
+        self.gripper_pos1_2 = 0.0
         self.gripper_ini_flag_ = False
         self.contact_area_ini_flag = False
         self.dis_sum_ = 0
-        self.contact_area_ = 0
+        self.contact_area_1 = 0
+        self.contact_area_2 = 0
         self.processing_executor = ThreadPoolExecutor(max_workers=1)
         self.contact_area_lock = threading.Lock()
 
         # Replace publisher with ActionClient
-        self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
+        self._action_client_1 = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
+        self._action_client_2 = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd') # adjust to new namespace eventually
         self.contact_group = ReentrantCallbackGroup()
         gs_qos_profile = QoSProfile(
             depth=5,  # Last 5 messages kept
@@ -111,10 +114,17 @@ class ModelBasedMPCNode(Node):
         )
 
         # Receives white pixel count from tactile sensor
-        self.contact_area_sub = self.create_subscription(
+        self.contact_area_1_sub = self.create_subscription(
             UInt16, 
             '/gs_contact_area', 
-            self.contact_area_cb, gs_qos_profile, 
+            self.contact_area_1_cb, gs_qos_profile, 
+            callback_group=self.contact_group
+        )
+
+        self.contact_area_1_sub = self.create_subscription(
+            UInt16, 
+            '/some_other_gs_topic', # or same topic on different namespace
+            self.contact_area_2_cb, gs_qos_profile, 
             callback_group=self.contact_group
         )
         
@@ -124,9 +134,16 @@ class ModelBasedMPCNode(Node):
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
         )
-        self.joint_state_sub = self.create_subscription(
+        self.joint_state_1_sub = self.create_subscription(
             JointState,
             '/joint_states',
+            self.joint_state_cb,
+            posi_qos_profile,
+        )
+
+        self.joint_state_1_sub = self.create_subscription(
+            JointState,
+            '/some_other_joint_state', # or same topic on different namespace
             self.joint_state_cb,
             posi_qos_profile,
         )
@@ -155,6 +172,8 @@ class ModelBasedMPCNode(Node):
         self.acc_max = 300 # max allowed acc
         self.vel_max = 500 # max allowed vel
         self.dim = 4 # state vector dimension
+        self.agent_count = 2
+        self.total_dim = self.agent_count * self.dim
 
         self.del_t = 1 / self.frequency
         self.gripper_cmd = GripperCommand.Goal()
@@ -254,7 +273,7 @@ class ModelBasedMPCNode(Node):
                       warm_start=True, max_iter=4000)
 
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed
-    def joint_state_cb(self, msg: JointState): 
+    def joint_state_1_cb(self, msg: JointState): 
         # Flag to allow run method to go out of inf loop
         self.gripper_ini_flag_ = True
         
@@ -262,8 +281,21 @@ class ModelBasedMPCNode(Node):
         if 'robotiq_85_left_knuckle_joint' in msg.name:
             index = msg.name.index('robotiq_85_left_knuckle_joint')
             gripper_position = msg.position[index]
-            self.gripper_posi_ = gripper_position
-            self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+            self.gripper_posi_1 = gripper_position
+            self.get_logger().info(f"Current gripper 1 position: {gripper_position:.4f}")
+        else:
+            self.get_logger().warn("Gripper joint not found in JointState message")
+
+    def joint_state_2_cb(self, msg: JointState): 
+        # Flag to allow run method to go out of inf loop
+        self.gripper_ini_flag_ = True
+        
+        self.get_logger().info(f"Received JointState message with joints: {msg.name}")
+        if 'robotiq_85_left_knuckle_joint' in msg.name:
+            index = msg.name.index('robotiq_85_left_knuckle_joint')
+            gripper_position = msg.position[index]
+            self.gripper_posi_2 = gripper_position
+            self.get_logger().info(f"Current gripper 2 position: {gripper_position:.4f}")
         else:
             self.get_logger().warn("Gripper joint not found in JointState message")
 
@@ -272,9 +304,14 @@ class ModelBasedMPCNode(Node):
         self.dis_sum_ = msg.data
         
     # Offloaded calculation to show3d publisher
-    def contact_area_cb(self, msg):
-        self.contact_area_ = msg.data
-        self.get_logger().info(f"Received contact area msg with value {msg.data}")
+    def contact_area_1_cb(self, msg):
+        self.contact_area_1 = msg.data
+        self.get_logger().info(f"Received contact area 1 msg with value {msg.data}")
+        self.contact_area_ini_flag = True
+
+    def contact_area_2_cb(self, msg):
+        self.contact_area_2 = msg.data
+        self.get_logger().info(f"Received contact area 2 msg with value {msg.data}")
         self.contact_area_ini_flag = True
     
     def run(self):
@@ -287,26 +324,32 @@ class ModelBasedMPCNode(Node):
             x_state = np.array([0., 0., 0., 0.], [0., 0., 0., 0.])
 
             while rclpy.ok():
-                if x_state[2] == 0.:
+                if x_state[0][2] == 0. or x_state[1][2] == 0.:
                     # state initialization
-                    print("Gripper velocity: ", x_state[3])
+                    print("Gripper velocity for arm 1: ", x_state[0][3])
+                    print("Gripper velocity for arm 2: ", x_state[1][3])
                     with self.contact_area_lock:
-                        x_state = np.array([self.contact_area_, 0, self.gripper_posi_, x_state[3]]) # change -self.dis_sum_ to 0
+                        # need to change line below to diff contact areas subcribers
+                        x_state[0] = np.array([self.contact_area_1, 0, self.gripper_posi_1, x_state[0][3]]) # change -self.dis_sum_ to 0
+                        x_state[1] = np.array([self.contact_area_2, 0, self.gripper_posi_2, x_state[1][3]]) # change -self.dis_sum_ to 0
                 else:
                     # tactile state update
                     # contact area, dis sum, p, v
-                    print("Gripper velocity: ", x_state[3])
+                    print("Gripper velocity for arm 1: ", x_state[0][3])
+                    print("Gripper velocity for arm 2: ", x_state[1][3])
                     with self.contact_area_lock:
-                        x_state = np.array([self.contact_area_, 0, x_state[2], x_state[3]]) # change -self.dis_sum_ to 0
+                        x_state[0] = np.array([self.contact_area_1, 0, x_state[0][2], x_state[0][3]]) # change -self.dis_sum_ to 0
+                        x_state[1] = np.array([self.contact_area_2, 0, x_state[1][2], x_state[1][3]])
 
                 # constraints update
-                max_con_b_update = b_CT_x0(self.max_con_b_, self.C_con_T_, x_state.reshape(self.dim, 1))
-                min_con_b_update = b_CT_x0(self.min_con_b_, self.C_con_T_, x_state.reshape(self.dim, 1))
+                max_con_b_update = b_CT_x0(self.max_con_b_, self.C_con_T_, x_state.reshape(self.dim, 1)) # might need to change to total_dim
+                min_con_b_update = b_CT_x0(self.min_con_b_, self.C_con_T_, x_state.reshape(self.dim, 1)) # might need to change to total_dim
                 u_ = np.vstack([self.u_max, max_con_b_update])
                 l_ = np.vstack([self.u_max * -1, min_con_b_update])
 
                 # QP update
-                q_ = 2 * (x_state.reshape(1, self.dim) * (self.T_.T) * (self.L_.T) - self.r_.T) * self.Q_ * self.L_ * self.S_
+                # changed self.dim to self.total_dim. Not sure if that's right
+                q_ = 2 * (x_state.reshape(1, self.total_dim) * (self.T_.T) * (self.L_.T) - self.r_.T) * self.Q_ * self.L_ * self.S_ 
                 self.prob.update(q=q_.T, l=l_, u=u_)
                 res = self.prob.solve()
                 ctrl = res.x[0:1].copy()
@@ -321,7 +364,7 @@ class ModelBasedMPCNode(Node):
                     print("x_state_2 ", abs(normalized_x_state))
                     print("Current tactile value: ", self.contact_area_)
                     self.gripper_cmd.command.position = self.gripper_posi_ + abs(normalized_x_state)
-                    self._action_client.send_goal_async(self.gripper_cmd)
+                    self._action_client_1.send_goal_async(self.gripper_cmd)
                 
                 # Send goal to the action server
                 self._send_goal(self.gripper_cmd)
@@ -332,8 +375,8 @@ class ModelBasedMPCNode(Node):
             self.get_logger().info('Interrupted!')
 
     def _send_goal(self, goal):
-        self._action_client.wait_for_server()
-        self._send_goal_future = self._action_client.send_goal_async(goal)
+        self._action_client_1.wait_for_server()
+        self._send_goal_future = self._action_client_1.send_goal_async(goal)
         self._send_goal_future.add_done_callback(self._goal_response_callback)
 
     def _goal_response_callback(self, future):
@@ -371,6 +414,7 @@ if __name__ == '__main__':
     - Subscribe to all joint states and tactile sensors
     - Send commands to all grippers
     - Might need to edit pcd_publisher to work with multiple sensors
+    - Check how to run nodes in different namespaces (avoid topic name collision)
 
 
 

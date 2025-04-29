@@ -10,7 +10,7 @@ from torch.nn.parameter import Parameter
 from qpth.qp import QPFunction
 
 # Select device (CUDA if available, else CPU)
-device = torch.device("cuda")
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("In functions.py, using: ", device)
 
 # Helper function to stack zeros
@@ -83,7 +83,7 @@ class MPClayer(nn.Module):
     def __init__(self, nHidden=25, eps=1e-4, nStep=20, del_t=1/10):
         super(MPClayer, self).__init__()
 
-        self.Pq = 5
+        self.Pq = 25
         self.Qv = 200
         self.Qa = 1
         self.nHidden = nHidden
