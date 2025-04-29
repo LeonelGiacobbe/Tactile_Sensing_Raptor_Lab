@@ -87,65 +87,78 @@ class ModelBasedMPCNode(Node):
         self.contact_area_ = 0
         self.processing_executor = ThreadPoolExecutor(max_workers=1)
         self.contact_area_lock = threading.Lock()
+        self.frequency = 25
+
+        # Parameters initialization
+        self.init_posi = 0.0
+        self.lower_pos_lim = 0.0 # for wsg grippers, original values
+        self.upper_pos_lim = 110 # for wsg grippers, original values
+        self.new_min = 0.0
+        self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
+        self.N = 15  # horizon steps. Higher = more stable but more computation
+        self.q_c = 36 # weight for contact tracking error. Higher = more aggressive maintenance
+        self.q_v = 1 # velocity weight. Higher = smoother but slower movement
+        self.q_d = 2 # displacement sum weight
+        self.q_a = 2 # acceleration control weight. Higher = smoother but less responsive
+        self.p = 5 # termainal cost weight
+        self.c_ref = 3500 # amount of white pixels to ideally reach
+        self.k_c = 50000 # stiffness coefficient. Higher = faster response to contact changes
+        self.acc_max = 300 # max allowed acc
+        self.vel_max = 500 # max allowed vel
+        self.dim = 4 # state vector dimension
+
 
         # Neural network stuff
-        self.device = torch.device('cuda')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.get_logger().info(f"Using {self.device} in controller node")
         self.nn_encoder = ResCNNEncoder(outputDim=20).to(self.device)
         self.mpc_layer = MPClayer(nHidden=20, nStep=15).to(self.device)
-        self.stream = torch.cuda.Stream()
+        if self.device.type == 'cuda':
+            self.stream = torch.cuda.Stream()
         self.nn_encoder.eval()
         self.mpc_layer.eval()
         # Warmup pass
         dummy_input = torch.randn(1, 3, 224, 224, device=self.device)
         _ = self.nn_encoder(dummy_input)
-        torch.cuda.synchronize()
+        if self.device.type == 'cuda':
+            torch.cuda.synchronize()
 
-        # Load weights
+        # Load weights (unchanged)
         package_dir = get_package_share_directory('tactile_sensing')
-        
-        # Construct absolute path to model
         model_path = os.path.join(package_dir, 'models', 'letac_mpc_model.pth')
         checkpoint = torch.load(model_path, map_location=torch.device(self.device))
-        # Print all keys in the checkpoint
-        print("Keys in checkpoint:", checkpoint.keys())
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
-        # Load MPC layer with missing key handling
         mpc_state_dict = checkpoint['mpc_layer_state_dict']
         model_dict = self.mpc_layer.state_dict()
-        # 1. Filter out unnecessary keys
         pretrained_dict = {k: v for k, v in mpc_state_dict.items() if k in model_dict}
-        # 2. Overwrite existing entries
         model_dict.update(pretrained_dict)
-        # 3. Load while ignoring missing keys
         self.mpc_layer.load_state_dict(model_dict, strict=False)
         self.get_logger().info("Loaded MPC weights (ignoring missing Qf_linear/Qv_linear)")
-        
 
         # Image preprocessing
         self.transform = transforms.Compose([
-            transforms.Resize((224, 224)),  # ResNet input size
+            transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
         self.bridge = CvBridge()
 
-        # Setup for batching
-        self.batch_size = 2  # Tune based on latency/GPU utilization
-        self.image_buffer = []
-        self.position_buffer = []
-        self.velocity_buffer = []
+        # Removed all batching-related buffers
+        self.current_image = None
 
-        # Replace publisher with ActionClient
-        self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
-        self.contact_group = ReentrantCallbackGroup()
+        self.rate = self.create_rate(self.frequency)
+
+        # Timer to call the run method periodically
+        self.timer = self.create_timer(1.0 / self.frequency, self.run)
+
         gs_qos_profile = QoSProfile(
-            depth=0,  # Last 5 messages kept
+            depth=0,
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
             history=HistoryPolicy.KEEP_LAST
-        )
+        )   
 
+        self.contact_group = ReentrantCallbackGroup()
         # Receives image from tactile sensor
         self.contact_area_sub = self.create_subscription(
             ROSImage, 
@@ -167,41 +180,6 @@ class ModelBasedMPCNode(Node):
             self.joint_state_cb,
             posi_qos_profile,
         )
-
-        if sys.stdin.isatty():
-            self.old_attr = termios.tcgetattr(sys.stdin)
-            tty.setcbreak(sys.stdin.fileno())
-        else:
-            self.old_attr = None
-
-        # Parameters initialization
-        self.frequency = 5
-        self.init_posi = 0.0
-        self.lower_pos_lim = 0.0 # for wsg grippers, original values
-        self.upper_pos_lim = 110 # for wsg grippers, original values
-        self.new_min = 0.0
-        self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
-        self.N = 15  # horizon steps. Higher = more stable but more computation
-        self.q_c = 36 # weight for contact tracking error. Higher = more aggressive maintenance
-        self.q_v = 1 # velocity weight. Higher = smoother but slower movement
-        self.q_d = 2 # displacement sum weight
-        self.q_a = 2 # acceleration control weight. Higher = smoother but less responsive
-        self.p = 5 # termainal cost weight
-        self.c_ref = 3500 # amount of white pixels to ideally reach
-        self.k_c = 50000 # stiffness coefficient. Higher = faster response to contact changes
-        self.acc_max = 300 # max allowed acc
-        self.vel_max = 500 # max allowed vel
-        self.dim = 4 # state vector dimension
-
-        self.del_t = 1 / self.frequency
-        self.gripper_cmd = GripperCommand.Goal()
-        self.gripper_cmd.command.position = float(self.init_posi)
-        self.gripper_cmd.command.max_effort = 100.0  # Set max effort
-        self.tactile_embedding = 0
-        self.rate = self.create_rate(self.frequency)
-
-        # Timer to call the run method periodically
-        self.timer = self.create_timer(1.0 / self.frequency, self.run)
 
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed
 
@@ -240,55 +218,45 @@ class ModelBasedMPCNode(Node):
         self.dis_sum_ = msg.data        
         
     def contact_area_cb(self, msg):
-        start_time = time.time()
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
-            
-            # Convert to tensor and move to GPU immediately
+            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')            
+            # Convert to tensor and process single image
             tensor = torch.from_numpy(cv_image).permute(2, 0, 1).float().to(self.device) / 255.0
-            
-            # Prepare normalization parameters on GPU
             mean = torch.tensor([0.485, 0.456, 0.406], device=self.device).view(3, 1, 1)
             std = torch.tensor([0.229, 0.224, 0.225], device=self.device).view(3, 1, 1)
-            
-            # Resize and normalize on GPU
             tensor = F.interpolate(tensor.unsqueeze(0), size=(224, 224)).squeeze(0)
             tensor = (tensor - mean) / std
             
             with self.contact_area_lock:
-                if len(self.image_buffer) >= self.batch_size:
-                    self.image_buffer.pop(0)
-                self.image_buffer.append(tensor)  # Already on correct device
+                self.current_image = tensor  # Store single image
+
         except Exception as e:
             self.get_logger().error(f'Tactile processing failed: {str(e)}')
         
-        stop_time = time.time()
-        # self.get_logger().info(f"Image processing run time: {stop_time - start_time:.4f}s")
-        
     def run(self):
-        if len(self.image_buffer) < self.batch_size:
-            return  # Not enough data to batch
+        if self.current_image is None:
+            return  # Not enough data
 
         try:
             # Prepare batched tensors
-            with torch.cuda.stream(self.stream), torch.no_grad():
-                image_batch = torch.stack(self.image_buffer).to(self.device)
+            with torch.no_grad():
+                image_tensor = self.current_image.unsqueeze(0)
                 # 0.2s runtime approx before this
-                gripper_p_batch = torch.tensor([self.gripper_posi_] * self.batch_size, dtype=torch.float32).to(self.device).unsqueeze(1)
-                gripper_v_batch = torch.tensor([self.gripper_vel_] * self.batch_size, dtype=torch.float32).to(self.device).unsqueeze(1)
+                gripper_p_batch = torch.tensor([self.gripper_posi_], dtype=torch.float32).to(self.device).unsqueeze(1)
+                gripper_v_batch = torch.tensor([self.gripper_vel_], dtype=torch.float32).to(self.device).unsqueeze(1)
                 # Not much more runtime before this
-                tactile_embeddings = self.nn_encoder(image_batch) # 0.16s spent here
-
+                tactile_embeddings = self.nn_encoder(image_tensor) # 0.16s spent here
                 start_time = time.time()
                 pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p_batch, gripper_v_batch) # 0.6s here
                 stop_time = time.time()
 
             # Take the action from the most recent image (last in batch)
-            target_pos = pos_sequences[-1, 0].item()
+            target_pos = pos_sequences[:, -1].item()
+            self.get_logger().info(f"Target posi (not normalized): {target_pos}")
 
             
-            self.get_logger().info(f"Batched run time: {stop_time - start_time:.4f}s")
-
+            # self.get_logger().info(f"Inference run time: {stop_time - start_time:.4f}s")
+            
             # Send command
             normalized_target = self.new_min + ((target_pos - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min)
             self.goal = GripperCommand.Goal()
@@ -296,7 +264,10 @@ class ModelBasedMPCNode(Node):
             self.goal.command.max_effort = 100.0
             self.get_logger().info(f"Sending goal: {self.goal.command.position:.4f}")
             self._send_goal(self.goal)
-            # self.rate.sleep()
+            self.get_logger().info(f"Current normalized target: {normalized_target}")
+            self.get_logger().info(f"Current gripper posi: {self.gripper_posi_}")
+            self.rate.sleep()
+
 
         except Exception as e:
             self.get_logger().error(f'Control loop failed: {str(e)}')

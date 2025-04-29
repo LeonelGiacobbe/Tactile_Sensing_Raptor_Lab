@@ -1,4 +1,4 @@
-import rclpy,
+import rclpy, time
 from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
@@ -28,6 +28,10 @@ class KinovaDataCollector(Node):
         self.gripper_posi_2 = 0.0
         self.gripper_ini_flag_1 = False
         self.gripper_ini_flag_2 = False
+
+        # Action server to operate gripper width
+        self._action_client_1 = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
+        self._action_client_2 = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd') # adjust to new namespace eventually
 
         # QoS profiles
         self.gs_qos_profile = QoSProfile(
@@ -126,6 +130,21 @@ class KinovaDataCollector(Node):
     def calculate_external_force(self, follower_arm, delta_x, delta_y):
         return follower_arm.calculate_force(delta_x, delta_y)
 
+    def relax_gripper():
+        gripper_cmd = GripperCommand.Goal()
+        # Paper limits movement speed to 4.5 mm/s
+        # No clear way of doing that in kinova, so we will have to use manual timing delay
+
+        opening_delta = 0.04 # might need tuning
+
+        start = time.time()
+        while( grasping_force > external force of impedance controller) {
+            now = time.time()
+            if (now - start >  0.05) {
+                target_posi = self.gripper_posi_2 + opening_delta # treating arm 2 as follower
+                start = now
+            }
+        }
     def simulate_impedance_controller(self):
         """
             The idea of this is to simulate an impedance controller by
@@ -139,6 +158,13 @@ class KinovaDataCollector(Node):
 
         delta_x = random.uniform(-0.035, 0.035)  # 35mm range
         delta_y = random.uniform(-0.021, 0.021)  # 21mm range
+        
+        # This probably executes sequentally so might need to use threading 
+        # To do it at the same time
+        move_arm(self.base1, self.base_cyclic1, delta_x, delta_y, 0, 0, 0, 0)
+        move_arm(self.base2, self.base_cyclic2, delta_x, delta_y, 0, 0, 0, 0)
+    
+
     def run_trial(self)
 
 
@@ -161,5 +187,5 @@ if __name__ == '__main__':
 
 """
 
-
+Possible impedance controller: https://github.com/empriselab/gen3_compliant_controllers
 """

@@ -78,8 +78,6 @@ class ResCNNEncoder(nn.Module):
         x = self.fc3(x)
         return x
 
-
-# Differentiable MPC layer
 # Differentiable MPC layer
 class MPClayer(nn.Module):
     def __init__(self, nHidden=25, eps=1e-4, nStep=20, del_t=1/10):
@@ -94,7 +92,7 @@ class MPClayer(nn.Module):
         self.del_t = del_t
 
         # Learned linear parameter q_f
-        self.q_f = Parameter(torch.randn(1, 1).to(device)) # Assuming control input is 1-dimensional
+        self.q_f = Parameter(torch.randn(1, 1).to(device)) # Control input is 1-D (gripper)
 
         # A matrix
         self.A_eye = Variable(torch.eye(self.nHidden).to(device))

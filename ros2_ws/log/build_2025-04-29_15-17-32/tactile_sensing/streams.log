@@ -1,0 +1,48 @@
+[0.399s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/tactile_sensing': PS1=(Tactile_Sensing_Raptor_Lab) ${debian_chroot:+($debian_chroot)}\u@\h:\w\$ PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/tactile_sensing build --build-base /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build install --record /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/install.log --single-version-externally-managed install_data
+[0.534s] running egg_info
+[0.542s] writing ../../build/tactile_sensing/tactile_sensing.egg-info/PKG-INFO
+[0.542s] writing dependency_links to ../../build/tactile_sensing/tactile_sensing.egg-info/dependency_links.txt
+[0.542s] writing entry points to ../../build/tactile_sensing/tactile_sensing.egg-info/entry_points.txt
+[0.542s] writing requirements to ../../build/tactile_sensing/tactile_sensing.egg-info/requires.txt
+[0.542s] writing top-level names to ../../build/tactile_sensing/tactile_sensing.egg-info/top_level.txt
+[0.560s] reading manifest file '../../build/tactile_sensing/tactile_sensing.egg-info/SOURCES.txt'
+[0.561s] writing manifest file '../../build/tactile_sensing/tactile_sensing.egg-info/SOURCES.txt'
+[0.561s] running build
+[0.561s] running build_py
+[0.561s] copying tactile_sensing/__init__.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing
+[0.561s] copying tactile_sensing/functions.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing
+[0.561s] copying tactile_sensing/model_based_mpc.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing
+[0.561s] copying tactile_sensing/nn_controller.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing
+[0.562s] copying tactile_sensing/show3d_ros2.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing
+[0.562s] copying tactile_sensing/show_tactile_image.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing
+[0.562s] copying tactile_sensing/multi_agent_mpc.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing
+[0.562s] copying tactile_sensing/movement_functions.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing
+[0.562s] copying tactile_sensing/multi_agent_nn_controller.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing
+[0.562s] copying tactile_sensing/changed_functions.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing
+[0.562s] warning: build_py: byte-compiling is disabled, skipping.
+[0.562s] 
+[0.562s] running install
+[0.565s] running install_lib
+[0.574s] copying /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build/lib/tactile_sensing/multi_agent_nn_controller.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/python3.10/site-packages/tactile_sensing
+[0.574s] running install_data
+[0.574s] copying resource/tactile_sensing -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/ament_index/resource_index/packages
+[0.574s] warning: install_lib: byte-compiling is disabled, skipping.
+[0.575s] 
+[0.575s] copying package.xml -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/tactile_sensing
+[0.575s] copying launch/mpc_controller.launch.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/tactile_sensing/launch
+[0.575s] copying launch/multi_agent_mpc_controller.launch.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/tactile_sensing/launch
+[0.575s] copying launch/multi_agent_nn_controller.launch.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/tactile_sensing/launch
+[0.575s] copying launch/nn_controller.launch.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/share/tactile_sensing/launch
+[0.575s] running install_egg_info
+[0.583s] removing '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/python3.10/site-packages/tactile_sensing-0.0.0-py3.10.egg-info' (and everything under it)
+[0.584s] Copying ../../build/tactile_sensing/tactile_sensing.egg-info to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/python3.10/site-packages/tactile_sensing-0.0.0-py3.10.egg-info
+[0.584s] running install_scripts
+[0.649s] Installing camera_publisher script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/tactile_sensing
+[0.649s] Installing model_based_mpc script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/tactile_sensing
+[0.649s] Installing multi_agent_mpc script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/tactile_sensing
+[0.649s] Installing multi_agent_nn script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/tactile_sensing
+[0.649s] Installing nn_controller script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/tactile_sensing
+[0.650s] Installing show3d_ros2 script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/tactile_sensing
+[0.650s] Installing show_tac_image script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/tactile_sensing
+[0.650s] writing list of installed files to '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/install.log'
+[0.663s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/tactile_sensing' returned '0': PS1=(Tactile_Sensing_Raptor_Lab) ${debian_chroot:+($debian_chroot)}\u@\h:\w\$ PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/tactile_sensing build --build-base /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/build install --record /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/tactile_sensing/install.log --single-version-externally-managed install_data

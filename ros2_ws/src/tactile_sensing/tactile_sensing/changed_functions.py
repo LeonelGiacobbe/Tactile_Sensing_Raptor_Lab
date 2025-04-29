@@ -92,7 +92,7 @@ class MPClayer(nn.Module):
         self.del_t = del_t
 
         # Learned linear parameter q_f
-        self.q_f = Parameter(torch.randn(1, 1).to(device)) # Assuming control input is 1-dimensional
+        self.q_f = Parameter(torch.randn(1, 1).to(device)) # Control input is 1-D (gripper)
 
         # A matrix
         self.A_eye = Variable(torch.eye(self.nHidden).to(device))
