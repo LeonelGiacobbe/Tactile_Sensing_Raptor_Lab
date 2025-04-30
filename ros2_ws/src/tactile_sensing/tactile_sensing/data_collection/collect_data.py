@@ -10,6 +10,8 @@ from kortex_api.autogen.messages import Base_pb2, BaseCyclic_pb2, Common_pb2
 
 from sensor_msgs.msg import Image, JointState
 from cv_bridge import CvBridge
+from rclpy.action import ActionClient
+
 
 import sys, os, random
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -28,6 +30,10 @@ class KinovaDataCollector(Node):
         self.gripper_posi_2 = 0.0
         self.gripper_ini_flag_1 = False
         self.gripper_ini_flag_2 = False
+
+        # Impedance parameters (stiffness and damping)
+        self.K = 1000  # Stiffness
+        self.B = 0.1   # Damping
 
         # Action server to operate gripper width
         self._action_client_1 = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
@@ -62,6 +68,13 @@ class KinovaDataCollector(Node):
             self.capture_raw_image,
             self.gs_qos_profile,
             callback_group=self.contact_group
+        )
+
+        # Subscribe to the JointState topic to get gripper position
+        posi_qos_profile = QoSProfile(
+            depth=1000,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
         )
 
         # Subscribers for gripper posi
@@ -103,7 +116,7 @@ class KinovaDataCollector(Node):
                 gripper_position = msg.position[index]
                 if bot_name == "bot_1":
                     self.gripper_posi_1 = gripper_position
-                else if bot_name == "bot_2":
+                elif bot_name == "bot_2":
                     self.gripper_posi_2 = gripper_position
                 else:
                     self.get_logger().warn("Namespace passed to gripper posi callback is not valid")
@@ -138,13 +151,12 @@ class KinovaDataCollector(Node):
         opening_delta = 0.04 # might need tuning
 
         start = time.time()
-        while( grasping_force > external force of impedance controller) {
+        while (grasping_force > external force of impedance controller):
             now = time.time()
-            if (now - start >  0.05) {
+            if (now - start >  0.05):
                 target_posi = self.gripper_posi_2 + opening_delta # treating arm 2 as follower
                 start = now
-            }
-        }
+
     def simulate_impedance_controller(self):
         """
             The idea of this is to simulate an impedance controller by

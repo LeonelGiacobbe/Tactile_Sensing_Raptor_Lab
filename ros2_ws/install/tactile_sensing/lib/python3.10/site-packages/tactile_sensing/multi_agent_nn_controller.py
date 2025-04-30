@@ -80,6 +80,7 @@ class ModelBasedMPCNode(Node):
         super().__init__('model_based_mpc_node')
         
         self.gripper_posi_ = 0.0
+        self.manual_posi_ = 0.0
         self.gripper_vel_ = 0.0
         self.gripper_ini_flag_ = False
         self.contact_area_ini_flag = False
@@ -87,7 +88,7 @@ class ModelBasedMPCNode(Node):
         self.contact_area_ = 0
         self.processing_executor = ThreadPoolExecutor(max_workers=1)
         self.contact_area_lock = threading.Lock()
-        self.frequency = 2
+        self.frequency = 10
 
         # Parameters initialization
         self.init_posi = 0.0
@@ -95,17 +96,6 @@ class ModelBasedMPCNode(Node):
         self.upper_pos_lim = 110 # for wsg grippers, original values
         self.new_min = 0.0
         self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
-        self.N = 15  # horizon steps. Higher = more stable but more computation
-        self.q_c = 36 # weight for contact tracking error. Higher = more aggressive maintenance
-        self.q_v = 1 # velocity weight. Higher = smoother but slower movement
-        self.q_d = 2 # displacement sum weight
-        self.q_a = 2 # acceleration control weight. Higher = smoother but less responsive
-        self.p = 5 # termainal cost weight
-        self.c_ref = 3500 # amount of white pixels to ideally reach
-        self.k_c = 50000 # stiffness coefficient. Higher = faster response to contact changes
-        self.acc_max = 300 # max allowed acc
-        self.vel_max = 500 # max allowed vel
-        self.dim = 4 # state vector dimension
 
 
         # Neural network stuff
@@ -132,7 +122,7 @@ class ModelBasedMPCNode(Node):
         model_dict = self.mpc_layer.state_dict()
         pretrained_dict = {k: v for k, v in mpc_state_dict.items() if k in model_dict}
         model_dict.update(pretrained_dict)
-        self.mpc_layer.load_state_dict(model_dict, strict=False)
+        self.mpc_layer.load_state_dict(model_dict, strict=True)
         self.get_logger().info("Loaded MPC weights (ignoring missing Qf_linear/Qv_linear)")
 
         # Image preprocessing
@@ -219,6 +209,7 @@ class ModelBasedMPCNode(Node):
         self.dis_sum_ = msg.data        
         
     def contact_area_cb(self, msg):
+        start = time.time()
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')            
             # Convert to tensor and process single image
@@ -230,6 +221,8 @@ class ModelBasedMPCNode(Node):
             
             with self.contact_area_lock:
                 self.current_image = tensor  # Store single image
+            stop = time.time()
+            # self.get_logger().info(f"Image processing runtime: {stop - start}")
 
         except Exception as e:
             self.get_logger().error(f'Tactile processing failed: {str(e)}')
@@ -243,7 +236,7 @@ class ModelBasedMPCNode(Node):
             with torch.no_grad():
                 image_tensor = self.current_image.unsqueeze(0)
                 # 0.2s runtime approx before this
-                gripper_p_batch = torch.tensor([self.gripper_posi_], dtype=torch.float32).to(self.device).unsqueeze(1)
+                gripper_p_batch = torch.tensor([self.manual_posi_], dtype=torch.float32).to(self.device).unsqueeze(1)
                 gripper_v_batch = torch.tensor([self.gripper_vel_], dtype=torch.float32).to(self.device).unsqueeze(1)
                 # Not much more runtime before this
                 tactile_embeddings = self.nn_encoder(image_tensor) # 0.16s spent here
@@ -256,14 +249,15 @@ class ModelBasedMPCNode(Node):
             self.get_logger().info(f"Position sequence: {pos_sequences}")
 
             
-            # self.get_logger().info(f"Inference run time: {stop_time - start_time:.4f}s")
+            self.get_logger().info(f"Inference run time: {stop_time - start_time:.4f}s")
             
             # Send command
             normalized_target = (self.new_min + ((target_pos - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min))
             self.get_logger().info(f"Current normalized target: {normalized_target}")
             self.goal = GripperCommand.Goal()
-            self.goal.command.position = self.gripper_posi_ + normalized_target
-            # self.goal.command.max_effort = 100.0
+            self.manual_posi_ = self.manual_posi_ + normalized_target
+            self.goal.command.position = self.manual_posi_
+            self.goal.command.max_effort = 100.0
             self.get_logger().info(f"Sending goal: {self.goal.command.position:.4f}")
             self._send_goal(self.goal)
             self.get_logger().info(f"Current gripper posi: {self.gripper_posi_}")

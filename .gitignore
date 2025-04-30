@@ -2,3 +2,4 @@ scripts/trained_model.pth
 scripts/vision/input_img.jpg
 scripts/vision/output_img.jpg
 **/letac_mpc_model.pth
+**/old_letac_mpc_model.pth
