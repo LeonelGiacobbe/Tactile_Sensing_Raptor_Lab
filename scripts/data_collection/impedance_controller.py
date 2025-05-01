@@ -52,12 +52,26 @@ class ImpedanceController:
 
     def control(self, q_des, v_des, compensate):
         """
-        Calculate torque command using impedance control law for last 3 joints.
+        Calculate torque command using impedance control law for the last 3 joints.
+        q_des: Desired positions (shape: (3,))
+        v_des: Desired velocities (shape: (3,))
+        compensate: Gravity compensation or other forces (shape: (3,))
         """
-        acc_des = self.damping * (v_des - self.current_velocity) + \
-                 self.stiffness * (q_des - self.current_position)
-        tau = np.dot(self.mass_matrix, acc_des.T).T + compensate
+        # Extract current velocity for the last 3 joints (5, 6, 7)
+        current_velocity_last_3 = self.current_velocity[4:7]  # Only last 3 joints (5, 6, 7)
+
+        # Ensure that the damping applies only to the last 3 joints
+        damping_last_3 = self.damping[4:7]  # Get the damping for joints 5, 6, and 7
+
+        # Compute the desired acceleration
+        acc_des = damping_last_3 * (v_des - current_velocity_last_3) + \
+                self.stiffness[4:7] * (q_des - self.current_position[4:7])  # Only last 3 joints (5, 6, 7)
+        
+        # Compute the torque for the last 3 joints
+        tau = np.dot(self.mass_matrix[4:7, 4:7], acc_des.T).T + compensate
         return tau
+
+
 
     def send_torque_command(self, torques):
         for i in range(1, 7):
@@ -99,11 +113,29 @@ class TorqueExample:
         self.already_stopped = False
         self.cyclic_running = False
 
+    def check_for_end_or_abort(self, e):
+        """Return a closure checking for END or ABORT notifications
+
+        Arguments:
+        e -- event to signal when the action is completed
+            (will be set when an END or ABORT occurs)
+        """
+        def check(notification, e = e):
+            print("EVENT : " + \
+                Base_pb2.ActionEvent.Name(notification.action_event))
+            if notification.action_event == Base_pb2.ACTION_END \
+            or notification.action_event == Base_pb2.ACTION_ABORT:
+                e.set()
+        return check
+
     def MoveToHomePosition(self):
+         # Make sure the arm is in Single Level Servoing mode
         base_servo_mode = Base_pb2.ServoingModeInformation()
         base_servo_mode.servoing_mode = Base_pb2.SINGLE_LEVEL_SERVOING
         self.base.SetServoingMode(base_servo_mode)
     
+        # Move arm to ready position
+        print("Moving the arm to a safe position")
         action_type = Base_pb2.RequestedActionType()
         action_type.action_type = Base_pb2.REACH_JOINT_ANGLES
         action_list = self.base.ReadAllActions(action_type)
@@ -117,18 +149,31 @@ class TorqueExample:
             return False
 
         e = threading.Event()
+        notification_handle = self.base.OnNotificationActionTopic(
+            self.check_for_end_or_abort(e),
+            Base_pb2.NotificationOptions()
+        )
+
+        self.base.ExecuteActionFromReference(action_handle)
+
+        print("Waiting for movement to finish ...")
         finished = e.wait(self.ACTION_TIMEOUT_DURATION)
+        self.base.Unsubscribe(notification_handle)
+
         if finished:
             print("Cartesian movement completed")
         else:
             print("Timeout on action notification wait")
         return finished
 
+        return True
+
     def InitCyclic(self, sampling_time_cyclic, t_end, print_stats):
         if self.cyclic_running:
             return True
 
         # Move to Home position first
+        print("Before moving to home position")
         if not self.MoveToHomePosition():
             return False
 
@@ -246,7 +291,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--cyclic_time", type=float, help="delay, in seconds, between cylic control call", default=0.001)
-    parser.add_argument("--duration", type=int, help="example duration, in seconds (0 means infinite)", default=30)
+    parser.add_argument("--duration", type=int, help="example duration, in seconds (0 means infinite)", default=300)
     parser.add_argument("--print_stats", default=True, help="print stats in command line or not (0 to disable)", type=lambda x: (str(x).lower() not in ['false', '0', 'no']))
     args = utilities.parseConnectionArguments1(parser)
 
@@ -254,6 +299,7 @@ def main():
     with utilities.DeviceConnection.createTcpConnection(args) as router:
 
         with utilities.DeviceConnection.createUdpConnection(args) as router_real_time:
+            print("Passed real-time post")
 
             example = TorqueExample(router, router_real_time)
             success = example.InitCyclic(args.cyclic_time, args.duration, args.print_stats)
