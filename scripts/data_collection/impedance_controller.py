@@ -14,7 +14,7 @@ class ImpedanceController:
         self.mass_matrix = M  
 
         # State initialization
-        self.joint_count = 7
+        self.joint_count = 7 # Comment to commit
         self.current_position = np.zeros(self.joint_count)
         self.current_velocity = np.zeros(self.joint_count)
 
