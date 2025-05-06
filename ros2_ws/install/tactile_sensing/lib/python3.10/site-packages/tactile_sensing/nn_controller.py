@@ -24,6 +24,16 @@ import os, time
 from ament_index_python.packages import get_package_share_directory
 from torch.nn import functional as F
 
+CONVERSION_RATE = 0.005714
+
+def gripper_posi_to_mm(gripper_posi):
+    opening = 0.8 - gripper_posi
+    return opening / CONVERSION_RATE
+
+def mm_to_gripper_posi(millimeters):
+    opening = 140 - millimeters
+    return opening * CONVERSION_RATE
+
 def vstack_help(vec, n):
     """
     Repeats a given vector vertically `n` times to create a stacked array.
@@ -79,7 +89,7 @@ class ModelBasedMPCNode(Node):
     def __init__(self):
         super().__init__('model_based_mpc_node')
         
-        self.gripper_posi_ = 0.0
+        self.gripper_posi_ = 0.0 # in mm
         self.gripper_vel_ = 0.0
         self.gripper_ini_flag_ = False
         self.contact_area_ini_flag = False
@@ -203,8 +213,10 @@ class ModelBasedMPCNode(Node):
             if 'robotiq_85_left_knuckle_joint' in msg.name:
                 index = msg.name.index('robotiq_85_left_knuckle_joint')
                 gripper_position = msg.position[index]
-                self.gripper_posi_ = gripper_position
-                # self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+
+                # Convert scale 0.0<=x<=0.8 to 0<=mm<=140
+                self.gripper_posi_ = gripper_posi_to_mm(gripper_position)
+                self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_ = gripper_vel
@@ -274,9 +286,9 @@ class ModelBasedMPCNode(Node):
                 pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p_batch, gripper_v_batch) # 0.6s here
                 stop_time = time.time()
 
-            # Take the action from the most recent image (last in batch)
-            target_pos = pos_sequences[-1, 0].item()
-
+            # Take the first action in the horizon
+            target_pos = pos_sequences[:, 0].item() # Now in mm
+            target_pos = mm_to_gripper_posi(target_pos) # Now converted to kinova scale
             
             self.get_logger().info(f"Batched run time: {stop_time - start_time:.4f}s")
 

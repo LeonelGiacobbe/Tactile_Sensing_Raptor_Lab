@@ -17,6 +17,16 @@ from rclpy.wait_for_message import wait_for_message
 from concurrent.futures import ThreadPoolExecutor
 import threading
 
+CONVERSION_RATE = 0.005714
+
+def gripper_posi_to_mm(gripper_posi):
+    opening = 0.8 - gripper_posi
+    return opening / CONVERSION_RATE
+
+def mm_to_gripper_posi(millimeters):
+    opening = 140 - millimeters
+    return opening * CONVERSION_RATE
+
 def vstack_help(vec, n):
     """
     Repeats a given vector vertically `n` times to create a stacked array.
@@ -138,7 +148,7 @@ class ModelBasedMPCNode(Node):
             self.old_attr = None
 
         # Parameters initialization
-        self.frequency = 200
+        self.frequency = 2
         self.init_posi = 0.0
         self.lower_pos_lim = 0.0 # for wsg grippers, original values
         self.upper_pos_lim = 110 # for wsg grippers, original values
@@ -291,13 +301,13 @@ class ModelBasedMPCNode(Node):
                     # state initialization
                     print("Gripper velocity: ", x_state[3])
                     with self.contact_area_lock:
-                        x_state = np.array([self.contact_area_, 0, self.gripper_posi_, x_state[3]]) # change -self.dis_sum_ to 0
+                        x_state = np.array([self.contact_area_, 0, gripper_posi_to_mm(self.gripper_posi_), x_state[3]]) # change -self.dis_sum_ to 0
                 else:
                     # tactile state update
                     # contact area, dis sum, p, v
                     print("Gripper velocity: ", x_state[3])
                     with self.contact_area_lock:
-                        x_state = np.array([self.contact_area_, 0, x_state[2], x_state[3]]) # change -self.dis_sum_ to 0
+                        x_state = np.array([self.contact_area_, 0, gripper_posi_to_mm(x_state[2]), x_state[3]]) # change -self.dis_sum_ to 0
 
                 # constraints update
                 max_con_b_update = b_CT_x0(self.max_con_b_, self.C_con_T_, x_state.reshape(self.dim, 1))
@@ -317,10 +327,9 @@ class ModelBasedMPCNode(Node):
                 if ctrl[0] is not None:
                     # p, v update
                     x_state = self.Ad.dot(x_state) + self.Bd.dot(ctrl)
-                    normalized_x_state = self.new_min + ((x_state[2] - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min)
-                    print("x_state_2 ", abs(normalized_x_state))
+                    print(f"x_state: {x_state}")
                     print("Current tactile value: ", self.contact_area_)
-                    self.gripper_cmd.command.position = self.gripper_posi_ + abs(normalized_x_state)
+                    self.gripper_cmd.command.position = self.gripper_posi_ + mm_to_gripper_posi(x_state[2])
                     self._action_client.send_goal_async(self.gripper_cmd)
                 
                 # Send goal to the action server

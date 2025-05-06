@@ -56,7 +56,7 @@ class CameraPublisher(Node):
         :param: The position of the object in centimeter coordinates [x , y]
         """
         # msg = Image()  # Create a message of this type
-        msg = self.cvbridge.cv2_to_imgmsg(img, encoding="passthrough")  # Store the x and y coordinates of the object
+        msg = self.cvbridge.cv2_to_imgmsg(img, encoding="bgr8")  # Store the x and y coordinates of the object
         self.publisher_position_cam_frame.publish(msg)  # Publish the position to the topic
 
 

@@ -18,69 +18,29 @@ import threading
 import torch
 from torchvision import transforms
 from PIL import Image
-from .changed_functions import ResCNNEncoder, MPClayer
+from .functions import ResCNNEncoder, MPClayer
 from cv_bridge import CvBridge, CvBridgeError
 import os, time
 from ament_index_python.packages import get_package_share_directory
 from torch.nn import functional as F
 
-def vstack_help(vec, n):
-    """
-    Repeats a given vector vertically `n` times to create a stacked array.
+CONVERSION_RATE = 0.005715
 
-    Parameters:
-    vec (numpy.ndarray): A 1D numpy array to be vertically stacked.
-    n (int): The number of times to repeat the vector vertically.
+def gripper_posi_to_mm(gripper_posi):
+    opening = 0.8 - gripper_posi
+    return opening / CONVERSION_RATE
 
-    Returns:
-    numpy.ndarray: A 2D numpy array where the input vector is stacked vertically `n` times.
-    """
-    combo = vec.reshape(vec.size, 1)
-    single = vec.reshape(vec.size, 1)
-    for i in range(n - 1):
-        combo = np.vstack((combo, single))
-    return combo
+def mm_to_gripper_posi(millimeters):
+    opening = 140 - millimeters
+    return opening * CONVERSION_RATE
 
-def zeros_hstack_help_inverse(vec, n, size_row, size_col):
-    """
-    Constructs a sparse matrix by horizontally stacking a given sparse vector `vec` 
-    with `n-1` zero matrices of specified dimensions.
-
-    Parameters:
-        vec (scipy.sparse.csc_matrix): The sparse vector to be appended at the end of the stacked matrices.
-        n (int): The total number of matrices to be horizontally stacked, including `vec`.
-        size_row (int): The number of rows in each zero matrix.
-        size_col (int): The number of columns in each zero matrix.
-
-    Returns:
-        scipy.sparse.csc_matrix: A sparse matrix resulting from horizontally stacking 
-        `n-1` zero matrices with the given `vec` at the end.
-    """
-    end = vec
-    single = sparse.csc_matrix((size_row, size_col), dtype=np.int8)
-    combo = single
-    for i in range(n - 2):
-        combo = sparse.hstack((combo, single))
-    combo = sparse.hstack((combo, end))
-    return combo
-
-def getCS_(C, S_):
-    C_ = sparse.block_diag([sparse.kron(sparse.eye(10), C)])
-    return C_ * S_
-
-def getCT_(C, T_):
-    C_ = sparse.block_diag([sparse.kron(sparse.eye(10), C)])  
-    return C_ * T_
-
-def b_CT_x0(b_, CT_, x0):
-    return b_ - CT_ * x0
 
 class ModelBasedMPCNode(Node):
     def __init__(self):
         super().__init__('model_based_mpc_node')
         
         self.gripper_posi_ = 0.0
-        self.manual_posi_ = 0.0
+        self.manual_posi = 0.007
         self.gripper_vel_ = 0.0
         self.gripper_ini_flag_ = False
         self.contact_area_ini_flag = False
@@ -115,22 +75,16 @@ class ModelBasedMPCNode(Node):
 
         # Load weights
         package_dir = get_package_share_directory('tactile_sensing')
-        model_path = os.path.join(package_dir, 'models', 'letac_mpc_model.pth')
+        model_path = os.path.join(package_dir, 'models', 'old_letac_mpc_model.pth')
         checkpoint = torch.load(model_path, map_location=torch.device(self.device))
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
-        mpc_state_dict = checkpoint['mpc_layer_state_dict']
-        model_dict = self.mpc_layer.state_dict()
-        pretrained_dict = {k: v for k, v in mpc_state_dict.items() if k in model_dict}
-        model_dict.update(pretrained_dict)
-        self.mpc_layer.load_state_dict(model_dict, strict=True)
+        self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
         self.get_logger().info("Loaded MPC weights (ignoring missing Qf_linear/Qv_linear)")
 
         # Image preprocessing
-        self.transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
+        self.transform = transforms.Compose([transforms.Resize([224, 224]),
+                                transforms.ToTensor(),
+                                transforms.Normalize(mean=[0, 0, 0], std=[0.2, 0.2, 0.2])])
         self.bridge = CvBridge()
 
         # Removed all batching-related buffers
@@ -149,14 +103,14 @@ class ModelBasedMPCNode(Node):
         )   
 
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
-        self.contact_group = ReentrantCallbackGroup()
+        self.callback_group = ReentrantCallbackGroup()
         # Receives image from tactile sensor
         self.contact_area_sub = self.create_subscription(
             ROSImage, 
             '/gsmini_rawimg_0', 
             self.contact_area_cb,
             gs_qos_profile, 
-            callback_group=self.contact_group
+            callback_group=self.callback_group
         )
         
         # Subscribe to the JointState topic to get gripper position
@@ -172,17 +126,22 @@ class ModelBasedMPCNode(Node):
             posi_qos_profile,
         )
 
-    # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed
+    # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed        
+    def joint_state_cb(self, msg: JointState):
+        # self.get_logger().debug("Entered joint_state_cb")  # Debug entry
+        
+        # Flag to allow run method to go out of inf loop
+        self.gripper_ini_flag_ = True
 
-    def process_joint_states(self, msg):
         try:
             self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
             
             if 'robotiq_85_left_knuckle_joint' in msg.name:
                 index = msg.name.index('robotiq_85_left_knuckle_joint')
                 gripper_position = msg.position[index]
+
                 self.gripper_posi_ = gripper_position
-                # self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+                self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_ = gripper_vel
@@ -193,16 +152,6 @@ class ModelBasedMPCNode(Node):
         except Exception as e:
             self.get_logger().error(f"joint_state_cb error: {str(e)}", throttle_duration_sec=5)
 
-
-    def joint_state_cb(self, msg: JointState):
-        # self.get_logger().debug("Entered joint_state_cb")  # Debug entry
-        
-        # Flag to allow run method to go out of inf loop
-        self.gripper_ini_flag_ = True
-
-        # Offload joint processing to background thread
-        self.processing_executor.submit(self.process_joint_states, msg)
-        
         
     # Not currently used (original author said it can be set to zero?) but here just in case
     def dis_sum_cb(self, msg):
@@ -211,13 +160,11 @@ class ModelBasedMPCNode(Node):
     def contact_area_cb(self, msg):
         start = time.time()
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')            
+            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')   
+            cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)  
+            pil_image = Image.fromarray(cv_image)        
             # Convert to tensor and process single image
-            tensor = torch.from_numpy(cv_image).permute(2, 0, 1).float().to(self.device) / 255.0
-            mean = torch.tensor([0.485, 0.456, 0.406], device=self.device).view(3, 1, 1)
-            std = torch.tensor([0.229, 0.224, 0.225], device=self.device).view(3, 1, 1)
-            tensor = F.interpolate(tensor.unsqueeze(0), size=(224, 224)).squeeze(0)
-            tensor = (tensor - mean) / std
+            tensor = self.transform(pil_image).to(self.device)
             
             with self.contact_area_lock:
                 self.current_image = tensor  # Store single image
@@ -232,35 +179,33 @@ class ModelBasedMPCNode(Node):
             return  # Not enough data
 
         try:
-            # Prepare batched tensors
+            # Prepare tensors
             with torch.no_grad():
                 image_tensor = self.current_image.unsqueeze(0)
                 # 0.2s runtime approx before this
-                gripper_p_batch = torch.tensor([self.manual_posi_], dtype=torch.float32).to(self.device).unsqueeze(1)
-                gripper_v_batch = torch.tensor([self.gripper_vel_], dtype=torch.float32).to(self.device).unsqueeze(1)
+                gripper_p = torch.tensor([gripper_posi_to_mm(self.manual_posi)]).to(self.device)
+                gripper_v = torch.tensor([self.gripper_vel_]).to(self.device)
                 # Not much more runtime before this
                 tactile_embeddings = self.nn_encoder(image_tensor) # 0.16s spent here
                 start_time = time.time()
-                pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p_batch, gripper_v_batch) # 0.6s here
+                self.get_logger().info(f"Position value passed to mpc layer: {gripper_p}")
+                pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p, gripper_v) # 0.6s here
                 stop_time = time.time()
 
-            # Take the action from the most recent image (last in batch)
-            target_pos = pos_sequences[:, 0].item()
-            self.get_logger().info(f"Position sequence: {pos_sequences}")
-
+            # Take the first action in the horizon
+            target_pos = pos_sequences[:, 0].item() # Now in mm
+            target_pos = mm_to_gripper_posi(target_pos) # Now converted to kinova scale
             
-            self.get_logger().info(f"Inference run time: {stop_time - start_time:.4f}s")
+            self.get_logger().info(f"Target pos sequence: {pos_sequences}")
             
             # Send command
-            normalized_target = (self.new_min + ((target_pos - self.lower_pos_lim) / (self.upper_pos_lim - self.lower_pos_lim)) * (self.new_max - self.new_min))
-            self.get_logger().info(f"Current normalized target: {normalized_target}")
             self.goal = GripperCommand.Goal()
-            self.manual_posi_ = self.manual_posi_ + normalized_target
-            self.goal.command.position = self.manual_posi_
+            self.manual_posi = target_pos
+            self.goal.command.position = self.manual_posi
             self.goal.command.max_effort = 100.0
             self.get_logger().info(f"Sending goal: {self.goal.command.position:.4f}")
             self._send_goal(self.goal)
-            self.get_logger().info(f"Current gripper posi: {self.gripper_posi_}")
+            # self.get_logger().info(f"Current gripper posi: {self.gripper_posi_}")
             self.rate.sleep()
 
 
@@ -280,13 +225,13 @@ class ModelBasedMPCNode(Node):
         if not goal_handle.accepted:
             self.get_logger().info('Goal rejected :(')
             return
-        self.get_logger().info('Goal accepted :)')
+        # self.get_logger().info('Goal accepted :)')
         self._get_result_future = goal_handle.get_result_async()
         self._get_result_future.add_done_callback(self._get_result_callback)
 
     def _get_result_callback(self, future):
         result = future.result().result
-        self.get_logger().info(f'Result: {result}')
+        # self.get_logger().info(f'Result: {result}')
 
 def main(args=None):
     rclpy.init(args=args)
@@ -297,3 +242,5 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+    #blublibliu
