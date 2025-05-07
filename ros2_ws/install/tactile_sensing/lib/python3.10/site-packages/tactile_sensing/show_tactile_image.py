@@ -34,7 +34,7 @@ class CameraPublisher(Node):
         self.timer = self.create_timer(timer_period, self.get_image)
         self.i = 0  # Initialize a counter variable
 
-        self.vs0 = WebcamVideoStream(src=2).start()
+        self.vs0 = WebcamVideoStream(src=0).start()
         self.cvbridge = CvBridge()
 
     def get_image(self):
@@ -56,7 +56,7 @@ class CameraPublisher(Node):
         :param: The position of the object in centimeter coordinates [x , y]
         """
         # msg = Image()  # Create a message of this type
-        msg = self.cvbridge.cv2_to_imgmsg(img, encoding="bgr8")  # Store the x and y coordinates of the object
+        msg = self.cvbridge.cv2_to_imgmsg(img, encoding="rgb8")  # Store the x and y coordinates of the object
         self.publisher_position_cam_frame.publish(msg)  # Publish the position to the topic
 
 

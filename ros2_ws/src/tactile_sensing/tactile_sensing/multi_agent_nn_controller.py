@@ -21,6 +21,7 @@ from ament_index_python.packages import get_package_share_directory
 CONVERSION_RATE = 0.005715
 
 def gripper_posi_to_mm(gripper_posi):
+
     opening = 0.8 - gripper_posi
     return opening / CONVERSION_RATE
 
@@ -34,7 +35,7 @@ class ModelBasedMPCNode(Node):
         super().__init__('model_based_mpc_node')
         
         self.gripper_posi_ = 0.0
-        self.manual_posi = 0.007
+        self.manual_posi = 0.0
         self.gripper_vel_ = 0.0
         self.gripper_ini_flag_ = False
         self.contact_area_ini_flag = False
@@ -56,7 +57,7 @@ class ModelBasedMPCNode(Node):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.get_logger().info(f"Using {self.device} in controller node")
         self.nn_encoder = ResCNNEncoder(outputDim=20).to(self.device)
-        self.mpc_layer = MPClayer(nHidden=20, nStep=15).to(self.device)
+        self.mpc_layer = MPClayer().to(self.device)
         if self.device.type == 'cuda':
             self.stream = torch.cuda.Stream()
         self.nn_encoder.eval()
@@ -73,7 +74,7 @@ class ModelBasedMPCNode(Node):
         checkpoint = torch.load(model_path, map_location=torch.device(self.device))
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
-        self.get_logger().info("Loaded MPC weights (ignoring missing Qf_linear/Qv_linear)")
+        self.get_logger().info("Loaded MPC weights")
 
         # Image preprocessing
         self.transform = transforms.Compose([transforms.Resize([224, 224]),
@@ -118,6 +119,7 @@ class ModelBasedMPCNode(Node):
             '/joint_states',
             self.joint_state_cb,
             posi_qos_profile,
+            callback_group=self.callback_group
         )
 
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed        
@@ -135,7 +137,7 @@ class ModelBasedMPCNode(Node):
                 gripper_position = msg.position[index]
 
                 self.gripper_posi_ = gripper_position
-                self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+                # self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_ = gripper_vel
@@ -155,7 +157,7 @@ class ModelBasedMPCNode(Node):
         start = time.time()
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')   
-            cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)  
+            # cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)  
             pil_image = Image.fromarray(cv_image)        
             # Convert to tensor and process single image
             tensor = self.transform(pil_image).to(self.device)
@@ -177,8 +179,8 @@ class ModelBasedMPCNode(Node):
             with torch.no_grad():
                 image_tensor = self.current_image.unsqueeze(0)
                 # 0.2s runtime approx before this
-                gripper_p = torch.tensor([gripper_posi_to_mm(self.manual_posi)]).to(self.device)
-                gripper_v = torch.tensor([self.gripper_vel_]).to(self.device)
+                gripper_p = torch.tensor([gripper_posi_to_mm(self.gripper_posi_)]).to(self.device)
+                gripper_v = torch.tensor(self.gripper_vel_).to(self.device)
                 # Not much more runtime before this
                 tactile_embeddings = self.nn_encoder(image_tensor) # 0.16s spent here
                 start_time = time.time()
@@ -194,8 +196,7 @@ class ModelBasedMPCNode(Node):
             
             # Send command
             self.goal = GripperCommand.Goal()
-            self.manual_posi = target_pos
-            self.goal.command.position = self.manual_posi
+            self.goal.command.position = target_pos
             self.goal.command.max_effort = 100.0
             self.get_logger().info(f"Sending goal: {self.goal.command.position:.4f}")
             self._send_goal(self.goal)
