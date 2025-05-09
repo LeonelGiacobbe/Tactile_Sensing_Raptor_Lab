@@ -8,8 +8,7 @@ from sklearn.model_selection import train_test_split
 import random
 from sklearn.linear_model import LinearRegression
 import torchvision.transforms as transforms
-from sklearn.metrics import mean_squared_error, r2_score
-import matplotlib.pyplot as plt
+
 # EncoderCNN architecture
 CNN_hidden1, CNN_hidden2 = 128, 128 
 CNN_embed_dim = 20  
@@ -17,7 +16,7 @@ res_size = 224
 dropout_p = 0.15  
 
 # Training parameters
-epochs = 2 
+epochs = 50 
 batch_size = 256
 learning_rate = 1e-4
 eps = 1e-4
@@ -145,10 +144,11 @@ def train(model, device, train_loader, optimizer, epoch):
         # distribute data to device
         gripper_p = X[1][0].to(device)
         gripper_v = X[1][1].to(device)
+        # other_gripper_v = X[1][2].to(device)
         X, y = X[0].to(device), y.to(device).view(-1, )
         N_count += X.size(0)
         optimizer.zero_grad()
-        output = MPC_layer(cnn_encoder(X),gripper_p,gripper_v)
+        output = MPC_layer(cnn_encoder(X),gripper_p,gripper_v) # Need to add other agent's velocity 
         y= y.unsqueeze(1).expand(X.size(0), output.size(1))
         final_y = y[:,(output.size(1)-1)]*3
         final_output = output[:,(output.size(1)-1)]*3
@@ -164,7 +164,7 @@ def train(model, device, train_loader, optimizer, epoch):
                 epoch + 1, N_count, len(train_loader.dataset), 100. * (batch_idx + 1) / len(train_loader), loss.item()))
 
 def validation(model, device, optimizer, test_loader):
-    cnn_encoder, MPC_layer = model
+    cnn_encoder, MPC_layer= model
     cnn_encoder.eval()
     MPC_layer.eval()
     test_loss = 0
@@ -176,33 +176,24 @@ def validation(model, device, optimizer, test_loader):
             # distribute data to device
             gripper_p = X[1][0].to(device)
             gripper_v = X[1][1].to(device)
+            # other_gripper_v = X[1][2].to(device)
             X, y = X[0].to(device), y.to(device).view(-1, )
             output = cnn_encoder(X)
-            output = MPC_layer(output, gripper_p, gripper_v)
-            y = y.unsqueeze(1).expand(X.size(0), output.size(1))  # Expand y to match output shape
-            final_y = y[:, (output.size(1) - 1)] * 3
-            final_output = output[:, (output.size(1) - 1)] * 3
-            loss = F.mse_loss(output, y.float()) + F.mse_loss(final_y, final_output)
+            output = MPC_layer(output,gripper_p,gripper_v) # need to add other_gripper_v
+            y= y.unsqueeze(1).expand(X.size(0), output.size(1))
+            final_y = y[:,(output.size(1)-1)]*3
+            final_output = output[:,(output.size(1)-1)]*3
+            loss = F.mse_loss(output,y.float()) + F.mse_loss(final_y,final_output)
             loss_list.append(loss.item())
-            test_loss += F.mse_loss(output, y.float()).item()
-            
-            # Store all predictions and targets
-            all_y.extend(y.cpu())  # Move tensor to CPU
-            all_y_pred.extend(output.cpu())  # Move tensor to CPU
+            test_loss += F.mse_loss(output,y.float()).item()      
+            y_pred = output.max(1, keepdim=True)[1] 
+            all_y.extend(y)
+            all_y_pred.extend(y_pred)
 
     test_loss = np.mean(loss_list)
-    all_y = torch.stack(all_y, dim=0)  # Stack tensors on CPU
-    all_y_pred = torch.stack(all_y_pred, dim=0)  # Stack tensors on CPU
-
-    # Move tensors to CPU (if not already) and convert to NumPy for R² calculation
-    all_y_np = all_y.cpu().numpy()
-    all_y_pred_np = all_y_pred.cpu().numpy()
-
-    # Calculate R² score
-    r2 = r2_score(all_y_np.flatten(), all_y_pred_np.flatten())  # Flatten to ensure 1D arrays
-    print('\nTest set ({:d} samples): Average loss: {:.4f}, R²: {:.4f}\n'.format(len(all_y), test_loss, r2))
-
-    return all_y, all_y_pred
+    all_y = torch.stack(all_y, dim=0)
+    all_y_pred = torch.stack(all_y_pred, dim=0)
+    print('\nTest set ({:d} samples): Average loss: {:.4f}\n'.format(len(all_y), test_loss))
 
 
 use_cuda = torch.cuda.is_available()                  
@@ -262,35 +253,19 @@ letac_params = list(cnn_encoder.fc1.parameters()) + list(cnn_encoder.bn1.paramet
             list(cnn_encoder.fc2.parameters()) + list(cnn_encoder.bn2.parameters()) + \
             list(cnn_encoder.fc3.parameters()) + list(MPC_layer.parameters())
 
-model = torch.load("scripts/trained_model.pth")
-cnn_encoder.load_state_dict(model["cnn_encoder_state_dict"])
-MPC_layer.load_state_dict(model["mpc_layer_state_dict"])
-
 optimizer = torch.optim.Adam(letac_params, lr=learning_rate)
-optimizer.load_state_dict(model["optimizer_state_dict"])
 
-# # start training
-for epoch in range(8):
-    all_y, all_y_pred = validation([cnn_encoder, MPC_layer], device, optimizer, valid_loader)
-    plt.figure(figsize=(10, 6))
-    plt.scatter(all_y, all_y_pred, alpha=0.5)
-    plt.plot([torch.min(all_y), torch.max(all_y)], [torch.min(all_y), torch.max(all_y)], color='red', linestyle='--')
-    plt.xlabel('True Values')
-    plt.ylabel('Predicted Values')
-    plt.title('True vs Predicted Values')
-    #plt.show()
-
-    # Residual plot
-    residuals = all_y - all_y_pred
-    plt.figure(figsize=(10, 6))
-    plt.scatter(all_y_pred, residuals, alpha=0.5)
-    plt.axhline(y=0, color='red', linestyle='--')
-    plt.xlabel('Predicted Values')
-    plt.ylabel('Residuals')
-    plt.title('Residual Plot')
-    #plt.show()
+# start training
+for epoch in range(epochs):
+    validation([cnn_encoder, MPC_layer], device, optimizer, valid_loader)
+    train([cnn_encoder, MPC_layer], device, train_loader, optimizer, epoch)
+    
+    
+"""
+While training we'll need the other agent's velocity
+Should we collect that data? How? Might need to modify the existing 
+collection pipeline
 
 
 
-# Visualize the results
-# Scatter plot of true vs predicted values
+"""
