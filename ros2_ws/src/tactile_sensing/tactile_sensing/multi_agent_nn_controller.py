@@ -1,4 +1,3 @@
-import cv2
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
@@ -18,10 +17,9 @@ from cv_bridge import CvBridge
 import os, time
 from ament_index_python.packages import get_package_share_directory
 
-CONVERSION_RATE = 0.005715
+CONVERSION_RATE = 0.005715 # Kinova unit to mm
 
 def gripper_posi_to_mm(gripper_posi):
-
     opening = 0.8 - gripper_posi
     return opening / CONVERSION_RATE
 
@@ -35,23 +33,10 @@ class ModelBasedMPCNode(Node):
         super().__init__('model_based_mpc_node')
         
         self.gripper_posi_ = 0.0
-        self.manual_posi = 0.0
         self.gripper_vel_ = 0.0
-        self.gripper_ini_flag_ = False
-        self.contact_area_ini_flag = False
-        self.dis_sum_ = 0
-        self.contact_area_ = 0
         self.processing_executor = ThreadPoolExecutor(max_workers=1)
         self.contact_area_lock = threading.Lock()
         self.frequency = 10
-
-        # Parameters initialization
-        self.init_posi = 0.0
-        self.lower_pos_lim = 0.0 # for wsg grippers, original values
-        self.upper_pos_lim = 110 # for wsg grippers, original values
-        self.new_min = 0.0
-        self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
-
 
         # Neural network stuff
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -76,13 +61,14 @@ class ModelBasedMPCNode(Node):
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
         self.get_logger().info("Loaded MPC weights")
 
-        # Image preprocessing
+        # Image preprocessing (using the same transform as in training of the CNN encoder)
         self.transform = transforms.Compose([transforms.Resize([224, 224]),
                                 transforms.ToTensor(),
                                 transforms.Normalize(mean=[0, 0, 0], std=[0.2, 0.2, 0.2])])
+        
+        # To convert GelSight images from ROS Image to CV Image
         self.bridge = CvBridge()
 
-        # Removed all batching-related buffers
         self.current_image = None
 
         self.rate = self.create_rate(self.frequency)
@@ -97,6 +83,7 @@ class ModelBasedMPCNode(Node):
             history=HistoryPolicy.KEEP_LAST
         )   
 
+        # Using Kinova arm, and we send gripper posi commands through Action Server
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
         self.callback_group = ReentrantCallbackGroup()
         # Receives image from tactile sensor
@@ -125,10 +112,6 @@ class ModelBasedMPCNode(Node):
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed        
     def joint_state_cb(self, msg: JointState):
         # self.get_logger().debug("Entered joint_state_cb")  # Debug entry
-        
-        # Flag to allow run method to go out of inf loop
-        self.gripper_ini_flag_ = True
-
         try:
             self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
             
@@ -175,15 +158,14 @@ class ModelBasedMPCNode(Node):
             return  # Not enough data
 
         try:
-            # Prepare  tensors
+            # Prepare tensors
             with torch.no_grad():
                 image_tensor = self.current_image.unsqueeze(0)
-                # 0.2s runtime approx before this
+                # Kinova uses a custom scale (see gripper posi callback for details), here we convert to mm
                 gripper_p = torch.tensor([gripper_posi_to_mm(self.gripper_posi_)]).to(self.device)
                 gripper_v = torch.tensor(self.gripper_vel_).to(self.device)
-                # Not much more runtime before this
                 tactile_embeddings = self.nn_encoder(image_tensor) # 0.16s spent here
-                start_time = time.time()
+                start_time = time.time() # Ignore, used to diagnose performance before
                 self.get_logger().info(f"Position value passed to mpc layer: {gripper_p}")
                 pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p, gripper_v) # 0.6s here
                 stop_time = time.time()
@@ -237,5 +219,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-    #blublibliu

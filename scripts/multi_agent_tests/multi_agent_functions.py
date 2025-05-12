@@ -81,25 +81,25 @@ class MPClayer(nn.Module):
         super(MPClayer, self).__init__()
 
         self.Pq = 5
-        self.Qv = 200
-        self.Qa = 1
+        self.Qv = 200 # Increase for quicker convergence
+        self.Qa = 1 # Increase for quicker convergence
         self.nHidden = nHidden
         self.eps = eps
         self.nStep = nStep
         self.del_t = del_t
     
         # A matrix
-        self.A_eye = Variable(torch.eye(self.nHidden).cuda())
+        self.A_eye = Variable(torch.eye(self.nHidden).cuda()) # Identity matrix
         self.Af_zero = Variable(torch.zeros(self.nHidden,1).cuda())
         self.Af= Parameter(torch.rand(self.nHidden,1).cuda()) # Learned parameter
-        Ap_right_temp = Variable(torch.from_numpy(np.array([
+        Ap_right_temp = Variable(torch.from_numpy(np.array([ # Referred to as Ag in the paper
         [1,     self.del_t],
         [0,     1]
         ])).float().cuda())
-        self.Ap_right = torch.hstack((Variable(0*torch.ones(2, self.nHidden).cuda()),Ap_right_temp))
+        self.Ap_right = torch.hstack((Variable(0*torch.ones(2, self.nHidden).cuda()),Ap_right_temp)) # (0 ^ 2xM, page 4 of paper) and Ag in the paper
 
         # B matrix (own control input)
-        Bg = Variable(torch.from_numpy(np.array([
+        Bg = Variable(torch.from_numpy(np.array([ # Also called Bg in the paper
         [0.5*self.del_t*self.del_t],
         [self.del_t]
         ])).float().cuda())
@@ -110,7 +110,7 @@ class MPClayer(nn.Module):
         # Define Cf_zero here, same shape as Af_zero above.
         self.Cf_zero = Variable(torch.zeros(self.nHidden,1).cuda())
         # Define Cf here, the learned parameter for the other agent
-        self.Cf = Parameter (torch.rand(self.nHidden, 1).cuda()) # Learned parameter
+        self.Cf = Parameter(torch.rand(self.nHidden, 1).cuda()) # Learned parameter
         # The other agent's velocity affects the hidden state (through Cf) and the own velocity (through Cp)
         Cp_temp = Variable(torch.from_numpy(np.array([
             [0.5 * self.del_t],  # Other agent's velocity affects position with dampening
@@ -136,25 +136,26 @@ class MPClayer(nn.Module):
         self.h = Variable(torch.zeros(self.nStep,1).cuda())
 
 
-    def forward(self, x, gripper_p, own_gripper_v, other_gripper_v):
+    def forward(self, x1, x2, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v):
         """
             In the multi-agent approach, an agent uses its own tactile embeddings,
             position and velocity, and also uses the gripper velocity of the other 
             agent. 
 
         """
-        nBatch = x.size(0)
+        nBatch = x1.size(0)
 
         # Single Q in cost function
         Q0 = self.Lq.mm(self.Lq.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda()
         Q0 = torch.hstack((Q0,self.Q0_right))
         Q0 = torch.vstack((Q0,torch.hstack((self.Q0_down,self.Q0_right_down))))
+        # Q0 is equivalent to Qf in the paper
 
         # Stacked Q
         Q0_stack = Q0.unsqueeze(0).expand(self.nStep-1, self.nHidden+2, self.nHidden+2)
         Q0_final = self.Pq*Q0.unsqueeze(0).expand(1, self.nHidden+2, self.nHidden+2)
         Q0_stack = torch.vstack((Q0_stack,Q0_final))
-        Q_dia =  torch.block_diag(*Q0_stack).cuda()
+        Q_dia =  torch.block_diag(*Q0_stack).cuda() # Contains Q0 (or Qf in paper) for each time step
 
         # Stacked R
         R0_stack = self.R0.unsqueeze(0).expand(self.nStep, 1, 1)
@@ -188,7 +189,7 @@ class MPClayer(nn.Module):
         other_effect_batch = other_effect.unsqueeze(0).expand(nBatch, self.nHidden+2, 1)
         '''
 
-        # Model computing of own dynamics
+        # Model computing of own dynamics 
         A0 = torch.vstack((torch.hstack((torch.hstack((self.A_eye,self.Af_zero)),self.Af)),self.Ap_right))
         
         T_ = A0
@@ -196,7 +197,7 @@ class MPClayer(nn.Module):
         for i in range(self.nStep-1):
             temp = torch.mm(temp,A0)
             T_ = torch.vstack((T_,temp))
-        I=Variable(torch.eye(self.nHidden+2).cuda())
+        I = Variable(torch.eye(self.nHidden+2).cuda())
         row_single = zeors_hstack_help(I, self.nStep, self.nHidden+2, self.nHidden+2)
         AN_ = row_single
         for i in range(self.nStep-1):
@@ -211,18 +212,31 @@ class MPClayer(nn.Module):
         B_dia =  torch.block_diag(*B0_stack)
         S_ = torch.mm(AN_,B_dia)
 
-        Q_final = 2*(R_dia+(torch.mm(S_.t(),Q_dia)).mm(S_))+ self.eps*Variable(torch.eye(self.nStep)).cuda()
+        Q_final = 2*(R_dia+(torch.mm(S_.t(),Q_dia)).mm(S_))+ self.eps*Variable(torch.eye(self.nStep)).cuda() # f_k^T @ Qf @ f_k
         Q_batch = Q_final.unsqueeze(0).expand(nBatch, self.nStep, self.nStep)
         p_final = 2*torch.mm(T_.t(),torch.mm(Q_dia,S_))
         p_batch = p_final.unsqueeze(0).expand(nBatch, self.nHidden+2, self.nStep)
 
         # Prepare input state
-        gripper_p = gripper_p.reshape([nBatch,1]).float()
+        own_gripper_p = own_gripper_p.reshape([nBatch,1]).float()
         own_gripper_v = own_gripper_v.reshape([nBatch,1]).float()
-        gripper_state = torch.hstack((gripper_p,own_gripper_v))
-        
-        x = torch.hstack((x,gripper_state))
-        x = x.reshape([nBatch,1,self.nHidden+2])
+        gripper_state_1 = torch.hstack((own_gripper_p,own_gripper_v))
+        x1 = torch.hstack((x1,gripper_state_1))
+        x1 = x1.reshape([nBatch,1,self.nHidden+2])
+
+        """
+        # Prepare input state for other agent
+        other_gripper_p = other_gripper_p.reshape([nBatch,1]).float()
+        other_gripper_v = other_gripper_v.reshape([nBatch,1]).float()
+        gripper_state_2 = torch.hstack((other_gripper_p,other_gripper_v))
+        x2 = torch.hstack((x2,gripper_state_2))
+        x2 = x2.reshape([nBatch,1,self.nHidden+2])
+
+        # Now combine state inputs
+        x_combined = torch.hstack((x1, x2))
+        """
+
+
         """
         # Create the influence vector from other agent for each batch element
         other_effect_batch = torch.zeros(nBatch, self.nHidden+2, 1).cuda()
@@ -233,7 +247,7 @@ class MPClayer(nn.Module):
             temp_effect[:self.nHidden] = other_influence[i]
             temp_effect[self.nHidden:] = other_physical[i] 
             other_effect_batch[i] = temp_effect
-        x_with_effect = x + other_effect_batch.transpose(1, 2)
+        x_with_effect = x_combined + other_effect_batch.transpose(1, 2)
         p_x0_batch = torch.bmm(x_with_effect, p_batch)
         """
         e = Variable(torch.Tensor())
@@ -249,7 +263,7 @@ class MPClayer(nn.Module):
         """
         # Include other agent's velocity effect in prediction for each step
         other_effect_expanded = other_effect_batch.repeat(1, self.nStep, 1)
-        x_predict = torch.bmm(S_batch, u.reshape(nBatch, self.nStep, 1)) + torch.bmm(T_batch, x.reshape(nBatch, self.nHidden+2, 1)) + other_effect_expanded
+        x_predict = torch.bmm(S_batch, u.reshape(nBatch, self.nStep, 1)) + torch.bmm(T_batch, x_combined.reshape(nBatch, self.nHidden+2, 1)) + other_effect_expanded
         """
         embb_output = Variable(torch.zeros(1,self.nHidden).cuda())
         state_output = Variable(torch.eye(1).cuda())

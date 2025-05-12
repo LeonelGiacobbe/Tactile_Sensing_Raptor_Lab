@@ -1,4 +1,4 @@
-import cv2
+import cv2, random
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
@@ -13,15 +13,14 @@ import threading
 import torch
 from torchvision import transforms
 from PIL import Image
-from .functions import ResCNNEncoder, MPClayer
+from .implemented_functions import ResCNNEncoder, MPClayer
 from cv_bridge import CvBridge
 import os, time
 from ament_index_python.packages import get_package_share_directory
 
-CONVERSION_RATE = 0.005715
+CONVERSION_RATE = 0.005715 # Kinova unit to mm
 
 def gripper_posi_to_mm(gripper_posi):
-
     opening = 0.8 - gripper_posi
     return opening / CONVERSION_RATE
 
@@ -35,23 +34,10 @@ class ModelBasedMPCNode(Node):
         super().__init__('model_based_mpc_node')
         
         self.gripper_posi_ = 0.0
-        self.manual_posi = 0.0
         self.gripper_vel_ = 0.0
-        self.gripper_ini_flag_ = False
-        self.contact_area_ini_flag = False
-        self.dis_sum_ = 0
-        self.contact_area_ = 0
         self.processing_executor = ThreadPoolExecutor(max_workers=1)
         self.contact_area_lock = threading.Lock()
         self.frequency = 10
-
-        # Parameters initialization
-        self.init_posi = 0.0
-        self.lower_pos_lim = 0.0 # for wsg grippers, original values
-        self.upper_pos_lim = 110 # for wsg grippers, original values
-        self.new_min = 0.0
-        self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
-
 
         # Neural network stuff
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -181,7 +167,6 @@ class ModelBasedMPCNode(Node):
                 # 0.2s runtime approx before this
                 gripper_p = torch.tensor([gripper_posi_to_mm(self.gripper_posi_)]).to(self.device)
                 gripper_v = torch.tensor(self.gripper_vel_).to(self.device)
-                # Not much more runtime before this
                 tactile_embeddings = self.nn_encoder(image_tensor) # 0.16s spent here
                 start_time = time.time()
                 self.get_logger().info(f"Position value passed to mpc layer: {gripper_p}")

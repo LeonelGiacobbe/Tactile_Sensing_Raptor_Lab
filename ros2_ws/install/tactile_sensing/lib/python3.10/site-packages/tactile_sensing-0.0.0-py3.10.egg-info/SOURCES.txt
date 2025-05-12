@@ -16,6 +16,7 @@ resource/tactile_sensing
 tactile_sensing/__init__.py
 tactile_sensing/changed_functions.py
 tactile_sensing/functions.py
+tactile_sensing/implemented_functions.py
 tactile_sensing/model_based_mpc.py
 tactile_sensing/movement_functions.py
 tactile_sensing/multi_agent_mpc.py
