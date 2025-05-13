@@ -41,7 +41,7 @@ class ModelBasedMPCNode(Node):
         # Neural network stuff
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.get_logger().info(f"Using {self.device} in controller node")
-        self.nn_encoder = ResCNNEncoder(outputDim=20).to(self.device)
+        self.nn_encoder = ResCNNEncoder().to(self.device)
         self.mpc_layer = MPClayer().to(self.device)
         if self.device.type == 'cuda':
             self.stream = torch.cuda.Stream()
@@ -86,6 +86,7 @@ class ModelBasedMPCNode(Node):
         # Using Kinova arm, and we send gripper posi commands through Action Server
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
         self.callback_group = ReentrantCallbackGroup()
+
         # Receives image from tactile sensor
         self.contact_area_sub = self.create_subscription(
             ROSImage, 
@@ -101,6 +102,7 @@ class ModelBasedMPCNode(Node):
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
         )
+        
         self.joint_state_sub = self.create_subscription(
             JointState,
             '/joint_states',
