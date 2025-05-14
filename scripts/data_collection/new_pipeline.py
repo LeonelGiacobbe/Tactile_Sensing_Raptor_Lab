@@ -112,8 +112,6 @@ class GripperLowLevelExample:
         if target_position < 0.0:
             target_position = 0.0
 
-        
-
         while True:
             try:
                 base_feedback = self.base_cyclic.Refresh(self.base_command)
@@ -121,14 +119,6 @@ class GripperLowLevelExample:
                 # Calculate speed according to position error (target position VS current position)
                 position_error = target_position - base_feedback.interconnect.gripper_feedback.motor[0].position
                 print(f"Position error: {position_error}")
-
-                f0 = dev.get_raw_image()
-                if f0 is not None:
-                    cv2.imwrite(f'gp_{base_feedback.interconnect.gripper_feedback.motor[0].position}_frame{self.counter}.jpg', f0)
-                    self.counter += 1
-                    print("Image saved")
-                else:
-                    print("Error: No image captured")
                 
                 # If positional error is small, stop gripper
                 if abs(position_error) < 1.5:
@@ -170,12 +160,25 @@ def get_next_trial_number(base_dir):
     # Return the next trial number (max + 1)
     return max(trial_numbers) + 1
     
+def capture_image(gripper_posi, counter, dev):
+    f0 = dev.get_raw_image()
+    if f0 is not None:
+        cv2.imwrite(f'gp_{gripper_posi}_frame{counter}.jpg', f0)
+        print("Image saved")
+    else:
+        print("Error: No image captured")
+
 
 def main():
+    # Counter for captured frame identification
+    counter = 1
     # Gelsight connection
-    dev = gsdevice.Camera("GelSight Mini")
+    # To define multiple connections, edit gsdevice to accept dev_id as a constructor argument
+    # That way we can instantiate multiple objects, according to /dev/videoX
+    # dev_id will be the X in videoX
+    dev1 = gsdevice.Camera("GelSight Mini")
 
-    dev.connect()
+    dev1.connect()
 
     # f0 = dev.get_raw_image()
 
@@ -186,30 +189,27 @@ def main():
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=0.5) # 0.006
-    args = utilities.parseConnectionArguments1(parser)
+    # parser.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=0.5) # 0.006
+    args1 = utilities.parseConnectionArguments1(parser)
+    args2 = utilities.parseConnectionArguments2(parser)
 
     # Create connection to the device and get the router
-    with utilities.DeviceConnection.createTcpConnection(args) as router:
+    with utilities.DeviceConnection.createTcpConnection(args1) as router1, utilities.DeviceConnection.createTCpConnection(args2) as router2:
 
-        with utilities.DeviceConnection.createUdpConnection(args) as router_real_time:
+        with utilities.DeviceConnection.createUdpConnection(args1) as router_real_time1, utilities.DeviceConnection.createUdpConnection(args2) as router_real_time2:
 
-            example = GripperLowLevelExample(router, router_real_time, args.proportional_gain)
+            gripper1 = GripperLowLevelExample(router1, router_real_time1, 0.5) # Slow gripper
+            gripper2 = GripperLowLevelExample(router2, router_real_time2, 0.75)
             # To avoid using impedance controller, we can measure before-hand a gripper width 
             # That causes the object to fall barely. then we can stop the measuring there.
             try:
-                # example.Goto(0, dev)
-                posi = example.GetGripperPosi()
+                posi = gripper1.GetGripperPosi()
                 print("Posi: ", posi)
-                # while posi < 100:
-                #     example.Goto(posi - 2.0, dev)
-                #     posi = example.GetGripperPosi()
-                #     print(f"Current posi: {posi}")
-                    # time.sleep(0.2)
-                # example.Goto(0, dev)
                 while posi > 52.0:
-                    example.Goto(posi - 2, dev)
-                    posi = example.GetGripperPosi()
+                    gripper1.Goto(posi - 2)
+                    posi = gripper1.GetGripperPosi()
+                    capture_image(posi, counter, dev1)
+                    counter += 1
                 print(f"Current posi: {posi}")
                 trial_cnt = get_next_trial_number(os.getcwd())
                 subcnt = 1
@@ -219,12 +219,12 @@ def main():
                 for image in images:
                     dst_path = os.path.join(trial_dir_name, os.path.basename(image))
                     shutil.move(image, dst_path)
-                example.Cleanup()
+                gripper1.Cleanup()
 
                 # frame = dev.get_raw_image()
 
             except Exception as e :
-                example.Cleanup()
+                gripper1.Cleanup()
                 print("Error! ", e)
                 
 

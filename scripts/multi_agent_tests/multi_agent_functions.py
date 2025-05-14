@@ -163,11 +163,24 @@ class MPClayer(nn.Module):
         Q_dia =  torch.block_diag(*Q0_stack).cuda() # Contains Q0 (or Qf in paper) for each time step
         
         """
-        # If we're coupling the state matrices of both agents, Q_dia needs to be twice as big:
-        Q0_combined = torch.block_diag(Q0, Q0)  # Double Q0 first
-        Q0_stack = Q0_combined.unsqueeze(0).expand(self.nStep-1, 2*(self.nHidden+2), 2*(self.nHidden+2))
-        Q0_final = self.Pq * Q0_combined.unsqueeze(0).expand(1, 2*(self.nHidden+2), 2*(nHidden+2))
-        Q_dia = torch.block_diag(*torch.vstack((Q0_stack, Q0_final)))  # Block-diagonal
+        Q_coupling = torch.zeros_like(Q0).cuda()
+        Q0 = torch.block_diag(Q0, Q0)
+
+        # What does Q_coupling need to be? 
+        # According to the paper, it must be positive semi-definite
+        # This ensures symmetry and PSD, but adds another param to learn? Talk to Dr. Sun about this
+        self.Lq_coupling = Parameter(torch.tril(torch.rand(self.nHidden + 2, self.nHidden + 2).cuda()))
+        Q_coupling = self.Lq_coupling.mm(self.Lq_coupling.t())  
+        
+        # Add coupling to Q0
+        Q0_combined[:self.nHidden + 2, self.nHidden + 2:] = Q_coupling  # Top-right
+        Q0_combined[self.nHidden + 2:, :self.nHidden + 2] = Q_coupling.t()  # Bottom-left
+        # Now Q0 is guaranteed to be symmetric because we add Q_coupling to top right and its transpose to bottom left
+        # Stacked Q
+        Q0_stack = Q0_combined.unsqueeze(0).expand(self.nStep-1, self.nHidden+2, self.nHidden+2)
+        Q0_final = self.Pq*Q0_combined.unsqueeze(0).expand(1, self.nHidden+2, self.nHidden+2)
+        Q0_stack = torch.vstack((Q0_stack,Q0_final))
+        Q_dia =  torch.block_diag(*Q0_stack).cuda() # Contains Q0_combined (or Qf in paper) for each time step
         """
 
         # Stacked R
@@ -178,7 +191,14 @@ class MPClayer(nn.Module):
         A0 = torch.vstack((torch.hstack((torch.hstack((self.A_eye,self.Af_zero)),self.Af)),self.Ap_right))
         """
         # Expaning dynamics matrix for both agents
+        coupling_matrix = zeros_like(A0).cuda()  # (M+2) x (M+2) zeros
         A0 = torch.block_diag(A0, A0) 
+
+        coupling_matrix[:self.nHidden, -1] = self.Cf.squeeze() # Add Cf in last column (velocity coupling) like Dr. Sun's graph
+        
+        # Insert coupling (top-right and bottom-left corners of A0)
+        A0[self.nHidden+2:, :self.nHidden+2] = coupling_matrix
+        A0[:self.nHidden+2, self.nHidden+2:] = coupling matrix
         """
         
         T_ = A0
