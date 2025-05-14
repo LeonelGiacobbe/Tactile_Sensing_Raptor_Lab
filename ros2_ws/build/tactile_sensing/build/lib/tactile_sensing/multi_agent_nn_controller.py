@@ -1,4 +1,3 @@
-import cv2, random
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
@@ -42,7 +41,7 @@ class ModelBasedMPCNode(Node):
         # Neural network stuff
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.get_logger().info(f"Using {self.device} in controller node")
-        self.nn_encoder = ResCNNEncoder(outputDim=20).to(self.device)
+        self.nn_encoder = ResCNNEncoder().to(self.device)
         self.mpc_layer = MPClayer().to(self.device)
         if self.device.type == 'cuda':
             self.stream = torch.cuda.Stream()
@@ -62,13 +61,14 @@ class ModelBasedMPCNode(Node):
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
         self.get_logger().info("Loaded MPC weights")
 
-        # Image preprocessing
+        # Image preprocessing (using the same transform as in training of the CNN encoder)
         self.transform = transforms.Compose([transforms.Resize([224, 224]),
                                 transforms.ToTensor(),
                                 transforms.Normalize(mean=[0, 0, 0], std=[0.2, 0.2, 0.2])])
+        
+        # To convert GelSight images from ROS Image to CV Image
         self.bridge = CvBridge()
 
-        # Removed all batching-related buffers
         self.current_image = None
 
         self.rate = self.create_rate(self.frequency)
@@ -83,8 +83,10 @@ class ModelBasedMPCNode(Node):
             history=HistoryPolicy.KEEP_LAST
         )   
 
+        # Using Kinova arm, and we send gripper posi commands through Action Server
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
         self.callback_group = ReentrantCallbackGroup()
+
         # Receives image from tactile sensor
         self.contact_area_sub = self.create_subscription(
             ROSImage, 
@@ -100,6 +102,7 @@ class ModelBasedMPCNode(Node):
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
         )
+        
         self.joint_state_sub = self.create_subscription(
             JointState,
             '/joint_states',
@@ -111,10 +114,6 @@ class ModelBasedMPCNode(Node):
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed        
     def joint_state_cb(self, msg: JointState):
         # self.get_logger().debug("Entered joint_state_cb")  # Debug entry
-        
-        # Flag to allow run method to go out of inf loop
-        self.gripper_ini_flag_ = True
-
         try:
             self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
             
@@ -161,15 +160,16 @@ class ModelBasedMPCNode(Node):
             return  # Not enough data
 
         try:
-            # Prepare  tensors
+            # Prepare tensors
             with torch.no_grad():
                 image_tensor = self.current_image.unsqueeze(0)
-                # 0.2s runtime approx before this
+                # Kinova uses a custom scale (see gripper posi callback for details), here we convert to mm
                 gripper_p = torch.tensor([gripper_posi_to_mm(self.gripper_posi_)]).to(self.device)
-                gripper_v = torch.tensor(self.gripper_vel_).to(self.device)
+                gripper_v = torch.tensor(self.gripper_vel_ + 0.5).to(self.device)
                 tactile_embeddings = self.nn_encoder(image_tensor) # 0.16s spent here
-                start_time = time.time()
+                start_time = time.time() # Ignore, used to diagnose performance before
                 self.get_logger().info(f"Position value passed to mpc layer: {gripper_p}")
+                self.get_logger().info(f"Position value passed to mpc layer: {gripper_v}")
                 pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p, gripper_v) # 0.6s here
                 stop_time = time.time()
 
@@ -222,5 +222,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
-    #blublibliu

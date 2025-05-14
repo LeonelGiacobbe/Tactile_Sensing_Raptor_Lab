@@ -81,7 +81,7 @@ class ResCNNEncoder(nn.Module):
 
 # Differentiable MPC layer
 class MPClayer(nn.Module):
-    def __init__(self, nHidden=20, eps=1e-4, nStep=20, del_t=1/10):
+    def __init__(self, nHidden=20, eps=1e-4, nStep=20, del_t=1/60):
         super(MPClayer, self).__init__()
 
         self.Pq = 5

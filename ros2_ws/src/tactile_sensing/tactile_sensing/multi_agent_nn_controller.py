@@ -12,7 +12,7 @@ import threading
 import torch
 from torchvision import transforms
 from PIL import Image
-from .functions import ResCNNEncoder, MPClayer
+from .implemented_functions import ResCNNEncoder, MPClayer
 from cv_bridge import CvBridge
 import os, time
 from ament_index_python.packages import get_package_share_directory
@@ -169,6 +169,7 @@ class ModelBasedMPCNode(Node):
                 tactile_embeddings = self.nn_encoder(image_tensor) # 0.16s spent here
                 start_time = time.time() # Ignore, used to diagnose performance before
                 self.get_logger().info(f"Position value passed to mpc layer: {gripper_p}")
+                self.get_logger().info(f"Position value passed to mpc layer: {gripper_v}")
                 pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p, gripper_v) # 0.6s here
                 stop_time = time.time()
 

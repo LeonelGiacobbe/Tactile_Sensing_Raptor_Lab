@@ -161,6 +161,7 @@ class MPClayer(nn.Module):
         Q0_final = self.Pq*Q0.unsqueeze(0).expand(1, self.nHidden+2, self.nHidden+2)
         Q0_stack = torch.vstack((Q0_stack,Q0_final))
         Q_dia =  torch.block_diag(*Q0_stack).cuda() # Contains Q0 (or Qf in paper) for each time step
+        
         """
         # If we're coupling the state matrices of both agents, Q_dia needs to be twice as big:
         Q0_combined = torch.block_diag(Q0, Q0)  # Double Q0 first
@@ -270,6 +271,5 @@ class MPClayer(nn.Module):
         posi_predict = torch.bmm(output_batch,x_predict).resize(nBatch,self.nStep)
         x = posi_predict
         return x
-
 
 
