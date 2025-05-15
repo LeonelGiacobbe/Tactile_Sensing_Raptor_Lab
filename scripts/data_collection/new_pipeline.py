@@ -160,10 +160,10 @@ def get_next_trial_number(base_dir):
     # Return the next trial number (max + 1)
     return max(trial_numbers) + 1
     
-def capture_image(gripper_posi, counter, dev):
+def capture_image(gripper_posi, counter, dev, gripper_no):
     f0 = dev.get_raw_image()
     if f0 is not None:
-        cv2.imwrite(f'gp_{gripper_posi}_frame{counter}.jpg', f0)
+        cv2.imwrite(f'gn_{gripper_no}_gp_{gripper_posi}_frame{counter}.jpg', f0)
         print("Image saved")
     else:
         print("Error: No image captured")
@@ -171,16 +171,17 @@ def capture_image(gripper_posi, counter, dev):
 
 def main():
     # Counter for captured frame identification
-    counter = 1
+    counter1 = 1
+    counter2 = 1
     # Gelsight connection
     # To define multiple connections, edit gsdevice to accept dev_id as a constructor argument
     # That way we can instantiate multiple objects, according to /dev/videoX
     # dev_id will be the X in videoX
-    dev1 = gsdevice.Camera("GelSight Mini")
+    dev1 = gsdevice.Camera("GelSight Mini", 1) # second arg should be X in videoX
+    dev2 = gsdevice.Camera("Gelsight Mini", 3) # second arg should be X in videoX
 
     dev1.connect()
-
-    # f0 = dev.get_raw_image()
+    dev2.connect()
 
     # Import the utilities helper module
     import argparse
@@ -199,32 +200,45 @@ def main():
         with utilities.DeviceConnection.createUdpConnection(args1) as router_real_time1, utilities.DeviceConnection.createUdpConnection(args2) as router_real_time2:
 
             gripper1 = GripperLowLevelExample(router1, router_real_time1, 0.5) # Slow gripper
-            gripper2 = GripperLowLevelExample(router2, router_real_time2, 0.75)
+            gripper2 = GripperLowLevelExample(router2, router_real_time2, 0.75) # Fast gripper
             # To avoid using impedance controller, we can measure before-hand a gripper width 
             # That causes the object to fall barely. then we can stop the measuring there.
             try:
-                posi = gripper1.GetGripperPosi()
-                print("Posi: ", posi)
-                while posi > 52.0:
-                    gripper1.Goto(posi - 2)
-                    posi = gripper1.GetGripperPosi()
-                    capture_image(posi, counter, dev1)
-                    counter += 1
-                print(f"Current posi: {posi}")
+                posi1 = gripper1.GetGripperPosi()
+                posi2 = gripper2.GetGripperPosi()
+
+                # Below condition is basically "While object has not slipped"
+                while posi1 > 52.0 or posi2 > 52.0:
+                    if posi1 > 52.0:
+                        gripper1.Goto(posi1 - 2)
+                        posi1 = gripper1.GetGripperPosi()
+                        capture_image(posi1, counter1, dev1, 1)
+                        counter1 += 1
+                    if posi2 > 52.0:
+                        gripper2.Goto(posi2 - 2)
+                        posi2 = gripper2.GetGripperPosi()
+                        capture_image(posi2, counter2, dev2, 2)
+                        counter2 += 1
+
+                print(f"Current positions (1 and 2): {posi1}, {posi2}")
                 trial_cnt = get_next_trial_number(os.getcwd())
                 subcnt = 1
-                trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_some_material_x_{1.1}_y_{3.3}_gp_{str(posi)}"
+                trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_some_material_x_{1.1}_y_{3.3}_gp_{str(posi1)}"
                 os.mkdir(trial_dir_name)
                 images = glob.glob(os.path.join(os.getcwd(), '*.jpg'), recursive=True)
                 for image in images:
                     dst_path = os.path.join(trial_dir_name, os.path.basename(image))
                     shutil.move(image, dst_path)
+
+                # Restore state
                 gripper1.Cleanup()
+                gripper2.Cleanup()
 
                 # frame = dev.get_raw_image()
 
             except Exception as e :
                 gripper1.Cleanup()
+                gripper2.Cleanup()
                 print("Error! ", e)
                 
 

@@ -119,7 +119,8 @@ class MPClayer(nn.Module):
         self.Cf = Parameter(torch.rand(self.nHidden, 1).cuda()) # Learned parameter
         # The other agent's velocity affects the hidden state (through Cf) and the velocity (through Cp)
         Cp_temp = Variable(torch.from_numpy(np.array([
-            [0.5 * self.del_t],  # Other agent's velocity affects position with dampening
+            [0.5 * self.del_t ],  # Other agent's velocity affects position with dampening
+            # Or change to self.del_t**2, just as in Ap_right_temp
             [0]          # Does not directly affect velocity
         ])).float().cuda())
         # Not sure if the decisions for Cp_temp above are right, but they're easily changeable
@@ -167,12 +168,14 @@ class MPClayer(nn.Module):
         Q0 = torch.block_diag(Q0, Q0)
 
         # What does Q_coupling need to be? 
-        # According to the paper, it must be positive semi-definite
+        # According to the paper, Q0 must be positive semi-definite
         # This ensures symmetry and PSD, but adds another param to learn? Talk to Dr. Sun about this
-        self.Lq_coupling = Parameter(torch.tril(torch.rand(self.nHidden + 2, self.nHidden + 2).cuda()))
+        self.Lq_coupling = # Some matrix of size (nHidden + 2, nHidden + 2)
+        # Should Lq_coupling be learned, or a model-defined matrix?
         Q_coupling = self.Lq_coupling.mm(self.Lq_coupling.t())  
         
         # Add coupling to Q0
+        # CHANGE THESE TWO LINES TO V AND H STACK
         Q0_combined[:self.nHidden + 2, self.nHidden + 2:] = Q_coupling  # Top-right
         Q0_combined[self.nHidden + 2:, :self.nHidden + 2] = Q_coupling.t()  # Bottom-left
         # Now Q0 is guaranteed to be symmetric because we add Q_coupling to top right and its transpose to bottom left
@@ -184,8 +187,8 @@ class MPClayer(nn.Module):
         """
 
         # Stacked R
-        R0_stack = self.R0.unsqueeze(0).expand(self.nStep, 1, 1)
-        R_dia =  torch.block_diag(*R0_stack).cuda()
+        R0_stack = self.R0.unsqueeze(0).expand(self.nStep, 1, 1) # Qa stack
+        R_dia =  torch.block_diag(*R0_stack).cuda() #Qa diagonal
 
         # Model computing of own dynamics 
         A0 = torch.vstack((torch.hstack((torch.hstack((self.A_eye,self.Af_zero)),self.Af)),self.Ap_right))
@@ -197,8 +200,9 @@ class MPClayer(nn.Module):
         coupling_matrix[:self.nHidden, -1] = self.Cf.squeeze() # Add Cf in last column (velocity coupling) like Dr. Sun's graph
         
         # Insert coupling (top-right and bottom-left corners of A0)
-        A0[self.nHidden+2:, :self.nHidden+2] = coupling_matrix
-        A0[:self.nHidden+2, self.nHidden+2:] = coupling matrix
+        # CHANGE BELOW LINES TO V AND H STACK
+        A0[0:self.nHidden, -1] = coupling matrix # top right
+        A0[self.nHidden+ 2: 2 * self.nHidden + 2, self.nHidden + 1] = coupling_matrix # bottom left
         """
         
         T_ = A0
