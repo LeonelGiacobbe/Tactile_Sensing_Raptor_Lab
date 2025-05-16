@@ -31,3 +31,5 @@ own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v = generate_pos()
 
 mpc_output = mpc_layer(encoding1, encoding2, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
 
+print(mpc_output)
+

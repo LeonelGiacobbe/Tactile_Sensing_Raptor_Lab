@@ -136,8 +136,8 @@ class MPClayer(nn.Module):
         self.Q0_right = Variable(torch.zeros(self.nHidden,2).cuda())
 
         # No constraints during training
-        self.G = Variable(torch.zeros(self.nStep,self.nStep).cuda())
-        self.h = Variable(torch.zeros(self.nStep,1).cuda())
+        self.G = Variable(torch.zeros(2 * self.nStep,2 * self.nStep).cuda())
+        self.h = Variable(torch.zeros(2 * self.nStep,1).cuda())
 
 
     def forward(self, x1, x2, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v):
@@ -158,7 +158,8 @@ class MPClayer(nn.Module):
         
         Q_coupling = self.Lq_coupling.mm(self.Lq_coupling.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda()
         Q_coupling = torch.hstack((Q_coupling, self.Q0_right))
-        Q_coupling = torch.vstack((Q_coupling,torch.hstack((self.Q0_down,self.Q0_right_down))))
+        # If Q_coupling is not scaled, then the off-diagonal coupling is too strong and the matrix is not SPD
+        Q_coupling = torch.vstack((Q_coupling,torch.hstack((self.Q0_down,self.Q0_right_down)))) * 0.25
 
         # Add coupling terms on off-diagonal sections, combine for bigger Q matrix
         Top_Q0 = torch.hstack((Q0, Q_coupling)) # Top right
@@ -242,15 +243,12 @@ class MPClayer(nn.Module):
         # Calculate other gripper's effect on hidden and own velocity
         # Initialize the batch effect tensor directly
         other_effect_batch = torch.zeros(nBatch, nHiddenExpand, 1).cuda()
-        print("other effect batch size ", other_effect_batch.size())
 
         # Process batch elements
         for i in range(nBatch):
             # Compute influences for element
             hidden_effect = torch.mm(self.Cf, other_gripper_v[i].unsqueeze(0).t())
             state_effect = torch.mm(self.Cp, other_gripper_v[i].unsqueeze(0).t())
-            print("hidden effect size: ", hidden_effect.size())
-            print("State effect size: ", state_effect.size())
             
             # Combine
             other_effect_batch[i, :self.nHidden, 0] = hidden_effect.squeeze()
@@ -258,30 +256,39 @@ class MPClayer(nn.Module):
 
         # Now use other_effect_batch directly
         x_with_effect = x_combined + other_effect_batch.transpose(1, 2)
+        print("x with effect size: ", x_with_effect.size())
+        print("p_batch size: ", p_batch.size())
+
         p_x0_batch = torch.bmm(x_with_effect, p_batch)
+        print("p_x0_batch size: ", p_x0_batch.size())
 
         e = Variable(torch.Tensor())
-        G = self.G.unsqueeze(0).expand(nBatch, self.nStep, self.nStep)
-        h = self.h.unsqueeze(0).expand(nBatch, self.nStep, 1)
-        p_x0_batch = p_x0_batch.reshape([nBatch,self.nStep])
-        h = h.reshape([nBatch, self.nStep])
+        G = self.G.unsqueeze(0).expand(nBatch, 2 * self.nStep, 2 * self.nStep)
+        h = self.h.unsqueeze(0).expand(nBatch, 2 * self.nStep, 1)
+        p_x0_batch = p_x0_batch.reshape([nBatch,2 * self.nStep])
+        h = h.reshape([nBatch, 2 * self.nStep])
 
         u = QPFunction(verbose=-1)(Q_batch, p_x0_batch, G, h, e, e)
 
-        S_batch = S_.unsqueeze(0).expand(nBatch, self.nStep*(nHiddenExpand), self.nStep)
+        S_batch = S_.unsqueeze(0).expand(nBatch, self.nStep*(nHiddenExpand), 2 * self.nStep)
         T_batch = T_.unsqueeze(0).expand(nBatch, self.nStep*(nHiddenExpand), nHiddenExpand)
 
         # Include other agent's velocity effect in prediction for each step
         other_effect_expanded = other_effect_batch.repeat(1, self.nStep, 1)
-        x_predict = torch.bmm(S_batch, u.reshape(nBatch, self.nStep, 1)) + torch.bmm(T_batch, x_combined.reshape(nBatch, nHiddenExpand, 1)) + other_effect_expanded
+        x_predict = torch.bmm(S_batch, u.reshape(nBatch, 2 * self.nStep, 1)) + torch.bmm(T_batch, x_combined.reshape(nBatch, nHiddenExpand, 1)) + other_effect_expanded
         
-        embb_output = Variable(torch.zeros(1,self.nHidden).cuda())
+        embb_output = Variable(torch.zeros(1,2 * self.nHidden).cuda())
         state_output = Variable(torch.eye(1).cuda())
         output_single = torch.hstack((embb_output,state_output))
+        output_single = torch.hstack((output_single, state_output))
         output_single = torch.hstack((output_single,torch.zeros(1,1).cuda()))
+        output_single = torch.hstack((output_single,torch.zeros(1,1).cuda()))
+        print("Output single size: ", output_single.size())
         output_stack = output_single.unsqueeze(0).expand(self.nStep, 1, nHiddenExpand)
         output_dia =  torch.block_diag(*output_stack).cuda()
         output_batch = output_dia.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(nHiddenExpand))
+        print("output batch size: ", output_batch.size())
+        print("x_predict size: ", x_predict.size())
         posi_predict = torch.bmm(output_batch,x_predict).resize(nBatch,self.nStep)
         x = posi_predict
         return x
