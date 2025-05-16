@@ -45,7 +45,7 @@ class Dataset_LeTac(data.Dataset):
 
 # 2D CNN encoder using ResNet-152 pretrained.
 class ResCNNEncoder(nn.Module):
-    def __init__(self, hidden1=512, hidden2=512, dropP=0.3, outputDim=300):
+    def __init__(self, hidden1=512, hidden2=512, dropP=0.3, outputDim=25):
         """Load the pretrained ResNet-152 and replace top fc layer."""
         super(ResCNNEncoder, self).__init__()
 
@@ -107,7 +107,7 @@ class MPClayer(nn.Module):
         self.B0 = torch.vstack((self.B_zero,Bg))
 
         # Need to expand B0 for coupling of agents
-        self.B0 = torch.block_diag((self.B0, self.B0))
+        self.B0 = torch.block_diag(self.B0, self.B0)
 
         # These are the matrices related to the "other" agent
         # Define Cf_zero here, same shape as Af_zero above.
@@ -147,6 +147,7 @@ class MPClayer(nn.Module):
 
         """
         nBatch = x1.size(0)
+        nHiddenExpand = 2 * (self.nHidden + 2)
 
         # Single Q in cost function
         Q0 = self.Lq.mm(self.Lq.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda()
@@ -156,6 +157,8 @@ class MPClayer(nn.Module):
         # According to the paper, Q0 must be positive semi-definite
         
         Q_coupling = self.Lq_coupling.mm(self.Lq_coupling.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda()
+        Q_coupling = torch.hstack((Q_coupling, self.Q0_right))
+        Q_coupling = torch.vstack((Q_coupling,torch.hstack((self.Q0_down,self.Q0_right_down))))
 
         # Add coupling terms on off-diagonal sections, combine for bigger Q matrix
         Top_Q0 = torch.hstack((Q0, Q_coupling)) # Top right
@@ -164,20 +167,20 @@ class MPClayer(nn.Module):
 
         
         # # Stacked Q
-        # Q0_stack = Q0.unsqueeze(0).expand(self.nStep-1, self.nHidden+2, self.nHidden+2)
-        # Q0_final = self.Pq*Q0.unsqueeze(0).expand(1, self.nHidden+2, self.nHidden+2)
+        # Q0_stack = Q0.unsqueeze(0).expand(self.nStep-1, nHiddenExpand, nHiddenExpand)
+        # Q0_final = self.Pq*Q0.unsqueeze(0).expand(1, nHiddenExpand, nHiddenExpand)
         # Q0_stack = torch.vstack((Q0_stack,Q0_final))
         # Q_dia =  torch.block_diag(*Q0_stack).cuda() # Contains Q0 (or Qf in paper) for each time step
 
         # Now Q0 is guaranteed to be symmetric because we add Q_coupling to top right and its transpose to bottom left
         # Stacked Q
-        Q0_stack = Q0_combined.unsqueeze(0).expand(self.nStep-1, self.nHidden+2, self.nHidden+2)
-        Q0_final = self.Pq*Q0_combined.unsqueeze(0).expand(1, self.nHidden+2, self.nHidden+2)
+        Q0_stack = Q0_combined.unsqueeze(0).expand(self.nStep-1, nHiddenExpand, nHiddenExpand)
+        Q0_final = self.Pq*Q0_combined.unsqueeze(0).expand(1, nHiddenExpand, nHiddenExpand)
         Q0_stack = torch.vstack((Q0_stack,Q0_final))
         Q_dia =  torch.block_diag(*Q0_stack).cuda() # Contains Q0_combined (or Qf in paper) for each time step
         
         # Stacked R
-        R0_stack = self.R0.unsqueeze(0).expand(self.nStep, 1, 1) # Qa stack
+        R0_stack = self.R0.unsqueeze(0).expand(2 * self.nStep, 1, 1) # Qa stack
         R_dia =  torch.block_diag(*R0_stack).cuda() #Qa diagonal
 
         # Model computing of own dynamics 
@@ -199,8 +202,8 @@ class MPClayer(nn.Module):
         for i in range(self.nStep-1):
             temp = torch.mm(temp,A0)
             T_ = torch.vstack((T_,temp))
-        I = Variable(torch.eye(self.nHidden+2).cuda())
-        row_single = zeors_hstack_help(I, self.nStep, self.nHidden+2, self.nHidden+2)
+        I = Variable(torch.eye(nHiddenExpand).cuda())
+        row_single = zeors_hstack_help(I, self.nStep, nHiddenExpand, nHiddenExpand)
         AN_ = row_single
         for i in range(self.nStep-1):
             AN = I
@@ -208,47 +211,50 @@ class MPClayer(nn.Module):
             for j in range(i+1):
                 AN = torch.mm(A0,AN)
                 row_single = torch.hstack((AN,row_single))
-            row_single = zeors_hstack_help(row_single, self.nStep-i-1, self.nHidden+2, self.nHidden+2)
+            row_single = zeors_hstack_help(row_single, self.nStep-i-1, nHiddenExpand, nHiddenExpand)
             AN_=torch.vstack((AN_, row_single))
-        B0_stack = self.B0.unsqueeze(0).expand(self.nStep, self.nHidden+2, 1)
+        B0_stack = self.B0.unsqueeze(0).expand(self.nStep, nHiddenExpand, 2)
         B_dia =  torch.block_diag(*B0_stack)
         S_ = torch.mm(AN_,B_dia)
-
-        Q_final = 2*(R_dia+(torch.mm(S_.t(),Q_dia)).mm(S_))+ self.eps*Variable(torch.eye(self.nStep)).cuda() # f_k^T @ Qf @ f_k
-        Q_batch = Q_final.unsqueeze(0).expand(nBatch, self.nStep, self.nStep)
+        
+        Q_final = 2*(R_dia+(torch.mm(S_.t(),Q_dia)).mm(S_))+ self.eps*Variable(torch.eye(2 * self.nStep)).cuda() # f_k^T @ Qf @ f_k
+        Q_batch = Q_final.unsqueeze(0).expand(nBatch, 2 * self.nStep, 2 * self.nStep)
         p_final = 2*torch.mm(T_.t(),torch.mm(Q_dia,S_)) # f_n^T @ Q_f @ 
-        p_batch = p_final.unsqueeze(0).expand(nBatch, self.nHidden+2, self.nStep)
+        p_batch = p_final.unsqueeze(0).expand(nBatch, nHiddenExpand, 2 * self.nStep)
 
         # Prepare input state
         own_gripper_p = own_gripper_p.reshape([nBatch,1]).float()
         own_gripper_v = own_gripper_v.reshape([nBatch,1]).float()
         gripper_state_1 = torch.hstack((own_gripper_p,own_gripper_v))
         x1 = torch.hstack((x1,gripper_state_1))
-        x1 = x1.reshape([nBatch,1,self.nHidden+2])
+        x1 = x1.reshape([nBatch,1,self.nHidden + 2])
 
         # Prepare input state for other agent
         other_gripper_p = other_gripper_p.reshape([nBatch,1]).float()
         other_gripper_v = other_gripper_v.reshape([nBatch,1]).float()
         gripper_state_2 = torch.hstack((other_gripper_p,other_gripper_v))
         x2 = torch.hstack((x2,gripper_state_2))
-        x2 = x2.reshape([nBatch,1,self.nHidden+2])
+        x2 = x2.reshape([nBatch,1,self.nHidden + 2])
 
         # Now combine state inputs
         x_combined = torch.cat((x1.squeeze(1), x2.squeeze(1)), dim=1) 
 
         # Calculate other gripper's effect on hidden and own velocity
         # Initialize the batch effect tensor directly
-        other_effect_batch = torch.zeros(nBatch, self.nHidden+2, 1).cuda()
+        other_effect_batch = torch.zeros(nBatch, nHiddenExpand, 1).cuda()
+        print("other effect batch size ", other_effect_batch.size())
 
         # Process batch elements
         for i in range(nBatch):
             # Compute influences for element
             hidden_effect = torch.mm(self.Cf, other_gripper_v[i].unsqueeze(0).t())
             state_effect = torch.mm(self.Cp, other_gripper_v[i].unsqueeze(0).t())
+            print("hidden effect size: ", hidden_effect.size())
+            print("State effect size: ", state_effect.size())
             
             # Combine
             other_effect_batch[i, :self.nHidden, 0] = hidden_effect.squeeze()
-            other_effect_batch[i, self.nHidden:, 0] = state_effect.squeeze()
+            other_effect_batch[i, self.nHidden + 2:, 0] = state_effect.squeeze()
 
         # Now use other_effect_batch directly
         x_with_effect = x_combined + other_effect_batch.transpose(1, 2)
@@ -262,22 +268,21 @@ class MPClayer(nn.Module):
 
         u = QPFunction(verbose=-1)(Q_batch, p_x0_batch, G, h, e, e)
 
-        S_batch = S_.unsqueeze(0).expand(nBatch, self.nStep*(self.nHidden+2), self.nStep)
-        T_batch = T_.unsqueeze(0).expand(nBatch, self.nStep*(self.nHidden+2), self.nHidden+2)
+        S_batch = S_.unsqueeze(0).expand(nBatch, self.nStep*(nHiddenExpand), self.nStep)
+        T_batch = T_.unsqueeze(0).expand(nBatch, self.nStep*(nHiddenExpand), nHiddenExpand)
 
         # Include other agent's velocity effect in prediction for each step
         other_effect_expanded = other_effect_batch.repeat(1, self.nStep, 1)
-        x_predict = torch.bmm(S_batch, u.reshape(nBatch, self.nStep, 1)) + torch.bmm(T_batch, x_combined.reshape(nBatch, self.nHidden+2, 1)) + other_effect_expanded
+        x_predict = torch.bmm(S_batch, u.reshape(nBatch, self.nStep, 1)) + torch.bmm(T_batch, x_combined.reshape(nBatch, nHiddenExpand, 1)) + other_effect_expanded
         
         embb_output = Variable(torch.zeros(1,self.nHidden).cuda())
         state_output = Variable(torch.eye(1).cuda())
         output_single = torch.hstack((embb_output,state_output))
         output_single = torch.hstack((output_single,torch.zeros(1,1).cuda()))
-        output_stack = output_single.unsqueeze(0).expand(self.nStep, 1, self.nHidden+2)
+        output_stack = output_single.unsqueeze(0).expand(self.nStep, 1, nHiddenExpand)
         output_dia =  torch.block_diag(*output_stack).cuda()
-        output_batch = output_dia.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(self.nHidden+2))
+        output_batch = output_dia.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(nHiddenExpand))
         posi_predict = torch.bmm(output_batch,x_predict).resize(nBatch,self.nStep)
         x = posi_predict
         return x
-
 
