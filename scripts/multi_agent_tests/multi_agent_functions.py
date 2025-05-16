@@ -106,12 +106,9 @@ class MPClayer(nn.Module):
         self.B_zero = Variable(torch.zeros(self.nHidden, 1).cuda())
         self.B0 = torch.vstack((self.B_zero,Bg))
 
-        """
         # Need to expand B0 for coupling of agents
         self.B0 = torch.block_diag((self.B0, self.B0))
-        """
 
-        """
         # These are the matrices related to the "other" agent
         # Define Cf_zero here, same shape as Af_zero above.
         self.Cf_zero = Variable(torch.zeros(self.nHidden,1).cuda())
@@ -119,17 +116,17 @@ class MPClayer(nn.Module):
         self.Cf = Parameter(torch.rand(self.nHidden, 1).cuda()) # Learned parameter
         # The other agent's velocity affects the hidden state (through Cf) and the velocity (through Cp)
         Cp_temp = Variable(torch.from_numpy(np.array([
-            [0.5 * self.del_t ],  # Other agent's velocity affects position with dampening
+            [0.5 * self.del_t],  # Other agent's velocity affects position with dampening
             # Or change to self.del_t**2, just as in Ap_right_temp
             [0]          # Does not directly affect velocity
         ])).float().cuda())
         # Not sure if the decisions for Cp_temp above are right, but they're easily changeable
         self.Cp = torch.vstack((self.Cf_zero, Cp_temp))
-        """
         
 
         # Weights
         self.Lq = Parameter(torch.tril(torch.rand(self.nHidden, self.nHidden).cuda()))
+        self.Lq_coupling = Parameter(torch.tril(torch.rand(self.nHidden, self.nHidden).cuda()))
         self.R0 = self.Qa*Variable(torch.eye(1).cuda())
         self.Q0_right_down = Variable(torch.from_numpy(np.array([
         [0,     0],
@@ -156,54 +153,46 @@ class MPClayer(nn.Module):
         Q0 = torch.hstack((Q0,self.Q0_right))
         Q0 = torch.vstack((Q0,torch.hstack((self.Q0_down,self.Q0_right_down))))
         # Q0 is equivalent to Qf in the paper
-
-        # Stacked Q
-        Q0_stack = Q0.unsqueeze(0).expand(self.nStep-1, self.nHidden+2, self.nHidden+2)
-        Q0_final = self.Pq*Q0.unsqueeze(0).expand(1, self.nHidden+2, self.nHidden+2)
-        Q0_stack = torch.vstack((Q0_stack,Q0_final))
-        Q_dia =  torch.block_diag(*Q0_stack).cuda() # Contains Q0 (or Qf in paper) for each time step
-        
-        """
-        Q_coupling = torch.zeros_like(Q0).cuda()
-        Q0 = torch.block_diag(Q0, Q0)
-
-        # What does Q_coupling need to be? 
         # According to the paper, Q0 must be positive semi-definite
-        # This ensures symmetry and PSD, but adds another param to learn? Talk to Dr. Sun about this
-        self.Lq_coupling = # Some matrix of size (nHidden + 2, nHidden + 2)
-        # Should Lq_coupling be learned, or a model-defined matrix?
-        Q_coupling = self.Lq_coupling.mm(self.Lq_coupling.t())  
         
-        # Add coupling to Q0
-        # CHANGE THESE TWO LINES TO V AND H STACK
-        Q0_combined[:self.nHidden + 2, self.nHidden + 2:] = Q_coupling  # Top-right
-        Q0_combined[self.nHidden + 2:, :self.nHidden + 2] = Q_coupling.t()  # Bottom-left
+        Q_coupling = self.Lq_coupling.mm(self.Lq_coupling.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda()
+
+        # Add coupling terms on off-diagonal sections, combine for bigger Q matrix
+        Top_Q0 = torch.hstack((Q0, Q_coupling)) # Top right
+        Bottom_Q0 = torch.hstack((Q_coupling.t(), Q0)) # Bottom left
+        Q0_combined = torch.vstack((Top_Q0, Bottom_Q0))
+
+        
+        # # Stacked Q
+        # Q0_stack = Q0.unsqueeze(0).expand(self.nStep-1, self.nHidden+2, self.nHidden+2)
+        # Q0_final = self.Pq*Q0.unsqueeze(0).expand(1, self.nHidden+2, self.nHidden+2)
+        # Q0_stack = torch.vstack((Q0_stack,Q0_final))
+        # Q_dia =  torch.block_diag(*Q0_stack).cuda() # Contains Q0 (or Qf in paper) for each time step
+
         # Now Q0 is guaranteed to be symmetric because we add Q_coupling to top right and its transpose to bottom left
         # Stacked Q
         Q0_stack = Q0_combined.unsqueeze(0).expand(self.nStep-1, self.nHidden+2, self.nHidden+2)
         Q0_final = self.Pq*Q0_combined.unsqueeze(0).expand(1, self.nHidden+2, self.nHidden+2)
         Q0_stack = torch.vstack((Q0_stack,Q0_final))
         Q_dia =  torch.block_diag(*Q0_stack).cuda() # Contains Q0_combined (or Qf in paper) for each time step
-        """
-
+        
         # Stacked R
         R0_stack = self.R0.unsqueeze(0).expand(self.nStep, 1, 1) # Qa stack
         R_dia =  torch.block_diag(*R0_stack).cuda() #Qa diagonal
 
         # Model computing of own dynamics 
         A0 = torch.vstack((torch.hstack((torch.hstack((self.A_eye,self.Af_zero)),self.Af)),self.Ap_right))
-        """
+
         # Expaning dynamics matrix for both agents
-        coupling_matrix = zeros_like(A0).cuda()  # (M+2) x (M+2) zeros
-        A0 = torch.block_diag(A0, A0) 
+        coupling_matrix = torch.zeros_like(A0).cuda()  # (M+2) x (M+2) zeros
 
         coupling_matrix[:self.nHidden, -1] = self.Cf.squeeze() # Add Cf in last column (velocity coupling) like Dr. Sun's graph
         
         # Insert coupling (top-right and bottom-left corners of A0)
-        # CHANGE BELOW LINES TO V AND H STACK
-        A0[0:self.nHidden, -1] = coupling matrix # top right
-        A0[self.nHidden+ 2: 2 * self.nHidden + 2, self.nHidden + 1] = coupling_matrix # bottom left
-        """
+        Top_A0 = torch.hstack((A0, coupling_matrix))
+        Bottom_A0 = torch.hstack((coupling_matrix, A0))
+        A0 = torch.vstack((Top_A0, Bottom_A0))
+        
         
         T_ = A0
         temp = A0
@@ -237,7 +226,6 @@ class MPClayer(nn.Module):
         x1 = torch.hstack((x1,gripper_state_1))
         x1 = x1.reshape([nBatch,1,self.nHidden+2])
 
-        """
         # Prepare input state for other agent
         other_gripper_p = other_gripper_p.reshape([nBatch,1]).float()
         other_gripper_v = other_gripper_v.reshape([nBatch,1]).float()
@@ -266,8 +254,6 @@ class MPClayer(nn.Module):
         x_with_effect = x_combined + other_effect_batch.transpose(1, 2)
         p_x0_batch = torch.bmm(x_with_effect, p_batch)
 
-        """
-
         e = Variable(torch.Tensor())
         G = self.G.unsqueeze(0).expand(nBatch, self.nStep, self.nStep)
         h = self.h.unsqueeze(0).expand(nBatch, self.nStep, 1)
@@ -279,11 +265,9 @@ class MPClayer(nn.Module):
         S_batch = S_.unsqueeze(0).expand(nBatch, self.nStep*(self.nHidden+2), self.nStep)
         T_batch = T_.unsqueeze(0).expand(nBatch, self.nStep*(self.nHidden+2), self.nHidden+2)
 
-        """
         # Include other agent's velocity effect in prediction for each step
         other_effect_expanded = other_effect_batch.repeat(1, self.nStep, 1)
         x_predict = torch.bmm(S_batch, u.reshape(nBatch, self.nStep, 1)) + torch.bmm(T_batch, x_combined.reshape(nBatch, self.nHidden+2, 1)) + other_effect_expanded
-        """
         
         embb_output = Variable(torch.zeros(1,self.nHidden).cuda())
         state_output = Variable(torch.eye(1).cuda())

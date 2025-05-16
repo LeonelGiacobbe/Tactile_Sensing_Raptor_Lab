@@ -5,6 +5,8 @@ from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
 from kortex_api.autogen.messages import Base_pb2
 from kortex_api.autogen.messages import BaseCyclic_pb2
 
+P_SLIP = 47.36
+
 class GripperLowLevelExample:
     def __init__(self, router, router_real_time, proportional_gain = 2.0):
         """
@@ -91,7 +93,7 @@ class GripperLowLevelExample:
         self.base.SetServoingMode(self.previous_servoing_mode)
 
 
-    def Goto(self, target_position, dev):
+    def Goto(self, target_position):
         """
             Position gripper to a requested target position using a simple
             proportional feedback loop which changes speed according to error
@@ -118,7 +120,7 @@ class GripperLowLevelExample:
 
                 # Calculate speed according to position error (target position VS current position)
                 position_error = target_position - base_feedback.interconnect.gripper_feedback.motor[0].position
-                print(f"Position error: {position_error}")
+                # print(f"Position error: {position_error}")
                 
                 # If positional error is small, stop gripper
                 if abs(position_error) < 1.5:
@@ -160,10 +162,10 @@ def get_next_trial_number(base_dir):
     # Return the next trial number (max + 1)
     return max(trial_numbers) + 1
     
-def capture_image(gripper_posi, counter, dev, gripper_no):
+def capture_image(gripper_posi_own, gripper_posi_other, counter, dev):
     f0 = dev.get_raw_image()
     if f0 is not None:
-        cv2.imwrite(f'gn_{gripper_no}_gp_{gripper_posi}_frame{counter}.jpg', f0)
+        cv2.imwrite(f'gpown_{gripper_posi_own}_gpother_{gripper_posi_other}_frame{counter}.jpg', f0)
         print("Image saved")
     else:
         print("Error: No image captured")
@@ -177,8 +179,8 @@ def main():
     # To define multiple connections, edit gsdevice to accept dev_id as a constructor argument
     # That way we can instantiate multiple objects, according to /dev/videoX
     # dev_id will be the X in videoX
-    dev1 = gsdevice.Camera("GelSight Mini", 1) # second arg should be X in videoX
-    dev2 = gsdevice.Camera("Gelsight Mini", 3) # second arg should be X in videoX
+    dev1 = gsdevice.Camera("GelSight Mini", 4) # second arg should be X in videoX
+    dev2 = gsdevice.Camera("Gelsight Mini", 2) # second arg should be X in videoX
 
     dev1.connect()
     dev2.connect()
@@ -189,38 +191,43 @@ def main():
     import utilities
 
     # Parse arguments
-    parser = argparse.ArgumentParser()
+    parser1 = argparse.ArgumentParser()
+    parser2 = argparse.ArgumentParser()
     # parser.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=0.5) # 0.006
-    args1 = utilities.parseConnectionArguments1(parser)
-    args2 = utilities.parseConnectionArguments2(parser)
+    args1 = utilities.parseConnectionArguments1(parser1)
+    args2 = utilities.parseConnectionArguments2(parser2)
 
     # Create connection to the device and get the router
-    with utilities.DeviceConnection.createTcpConnection(args1) as router1, utilities.DeviceConnection.createTCpConnection(args2) as router2:
+    with utilities.DeviceConnection.createTcpConnection(args1) as router1, utilities.DeviceConnection.createTcpConnection(args2) as router2:
 
         with utilities.DeviceConnection.createUdpConnection(args1) as router_real_time1, utilities.DeviceConnection.createUdpConnection(args2) as router_real_time2:
 
-            gripper1 = GripperLowLevelExample(router1, router_real_time1, 0.5) # Slow gripper
-            gripper2 = GripperLowLevelExample(router2, router_real_time2, 0.75) # Fast gripper
+            gripper1 = GripperLowLevelExample(router1, router_real_time1, 0.5) # Fast gripper
+            gripper2 = GripperLowLevelExample(router2, router_real_time2, 0.75) # Slow gripper
             # To avoid using impedance controller, we can measure before-hand a gripper width 
             # That causes the object to fall barely. then we can stop the measuring there.
             try:
                 posi1 = gripper1.GetGripperPosi()
                 posi2 = gripper2.GetGripperPosi()
+                start1, start2 = posi1, posi2
+                print(f"Current positions (1 and 2): {posi1}, {posi2}")
 
                 # Below condition is basically "While object has not slipped"
-                while posi1 > 52.0 or posi2 > 52.0:
-                    if posi1 > 52.0:
+                while posi2 > P_SLIP:
+                    if posi1 > P_SLIP:
                         gripper1.Goto(posi1 - 2)
                         posi1 = gripper1.GetGripperPosi()
-                        capture_image(posi1, counter1, dev1, 1)
+                        capture_image(posi1, posi2, counter1, dev1)
                         counter1 += 1
-                    if posi2 > 52.0:
+                    else:
+                        print("Moving stationary gripper")
+                        gripper1.Goto(start1 - 2)
+                        posi1 = gripper1.GetGripperPosi()
                         gripper2.Goto(posi2 - 2)
                         posi2 = gripper2.GetGripperPosi()
-                        capture_image(posi2, counter2, dev2, 2)
-                        counter2 += 1
 
-                print(f"Current positions (1 and 2): {posi1}, {posi2}")
+                print("Finished trial, moving images to folder...")
+
                 trial_cnt = get_next_trial_number(os.getcwd())
                 subcnt = 1
                 trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_some_material_x_{1.1}_y_{3.3}_gp_{str(posi1)}"
@@ -230,9 +237,12 @@ def main():
                     dst_path = os.path.join(trial_dir_name, os.path.basename(image))
                     shutil.move(image, dst_path)
 
+                print("Moved images to ", trial_dir_name)
                 # Restore state
                 gripper1.Cleanup()
                 gripper2.Cleanup()
+
+                print("Returned to original state")
 
                 # frame = dev.get_raw_image()
 
