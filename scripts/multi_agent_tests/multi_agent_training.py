@@ -35,7 +35,8 @@ def read_empty_data(data_path):
     ys = []
     fnames = os.listdir(data_path)
     all_names = []
-    grip_posi = []
+    own_grip_posi = []
+    other_grip_posi = []
     path_list = []
 
     for f in fnames:
@@ -44,30 +45,36 @@ def read_empty_data(data_path):
         trials.append(f[(loc1 + 3): loc2])
         loc3 = f.find('x_')
         loc4 = f.find('_y_')
-        loc5 = f.find('_gp_')
+        loc5 = f.find('_gpown_')
+        loc6 = f.find('_gpother')
         xs.append(f[(loc3 + 2): loc4])
         ys.append(f[(loc4 + 3): loc5])
-        grip_posi.append(f[(loc5+4):len(f)])
+        own_grip_posi.append(f[(loc5 + 3): loc6])
+        other_grip_posi.append(f[(loc6+4):len(f)])
         path_list.append(data_path+'/'+f+'/')
         sub_fnames = os.listdir(data_path+'/'+f)
         all_names.append(sub_fnames)
     selected_all_names = []
     output_p = []
-    grip_posi_num = []
+    own_grip_posi_num = []
+    other_grip_posi_num = []
     total = []
     index = []
-    grip_vel_num = []
+    own_grip_vel_num = []
+    other_grip_vel_num = []
     for i in range(len(xs)):
         for j in range(10):
-            grip_posi_num.append(eval(grip_posi[i]))
+            own_grip_posi_num.append(eval(own_grip_posi[i]))
+            other_grip_posi_num.append(eval(other_grip_posi[i]))
             total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
             img = all_names[i][j]
             selected_all_names.append(path_list[i]+img)
             index.append(j)
             rand_num = 1*(random.random()-0.5)
             output_p.append(28.5+rand_num)
-            grip_vel_num.append((28.5+rand_num-30)/3)
-    return index,total,selected_all_names,output_p,grip_posi_num,grip_vel_num
+            own_grip_vel_num.append((28.5+rand_num-30)/3)
+            other_grip_vel_num.append((28.5+rand_num-30)/3)
+    return index,total,selected_all_names,output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
 def read_data(data_path,label_path,up_limit = 25,offset=0):
     all_names = []
@@ -76,7 +83,8 @@ def read_data(data_path,label_path,up_limit = 25,offset=0):
     ys = []
     fnames = os.listdir(data_path)
     all_names = []
-    grip_posi = []
+    own_grip_posi = []
+    other_grip_posi = []
     path_list = []
 
     for f in fnames:
@@ -85,10 +93,12 @@ def read_data(data_path,label_path,up_limit = 25,offset=0):
         trials.append(f[(loc1 + 3): loc2])
         loc3 = f.find('x_')
         loc4 = f.find('_y_')
-        loc5 = f.find('_gp_')
+        loc5 = f.find('_gpown_')
+        loc6 = f.find('_gpother')
         xs.append(f[(loc3 + 2): loc4])
         ys.append(f[(loc4 + 3): loc5])
-        grip_posi.append(f[(loc5+4):len(f)])
+        own_grip_posi.append(f[(loc5 + 3): loc6])
+        other_grip_posi.append(f[(loc6+4):len(f)])
         path_list.append(data_path+'/'+f+'/')
         sub_fnames = os.listdir(data_path+'/'+f)
         all_names.append(sub_fnames)
@@ -96,10 +106,12 @@ def read_data(data_path,label_path,up_limit = 25,offset=0):
     label_dict = label_dict[()]
     selected_all_names = []
     output_p = []
-    grip_posi_num = []
+    own_grip_posi_num = []
+    other_grip_posi_num = []
     total = []
     index = []
-    grip_vel_num = []
+    own_grip_vel_num = []
+    other_grip_vel_num = []
     for i in range(len(xs)):
         if trials[i] in label_dict.keys():
             if label_dict[trials[i]] < up_limit:
@@ -107,29 +119,35 @@ def read_data(data_path,label_path,up_limit = 25,offset=0):
                     output_p.append(label_dict[trials[i]]+offset)
                     total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
                     img = all_names[i][j]
-                    loc1 = img.find('gp_')
-                    loc2 = img.find('_fr')
+                    loc1 = img.find('gpown_')
+                    loc2 = img.find('_gpother')
+                    loc3 = img.find('_fr')
                     img[(loc1 + 3): loc2]
                     selected_all_names.append(path_list[i]+img)
-                    grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
+                    own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
+                    other_grip_posi_num.append(eval(img[(loc2 + 3): loc3]))
                     index.append(j)
-                    grip_vel_num.append(2*(random.random()-0.5))
+                    own_grip_vel_num.append(2*(random.random()-0.5))
+                    other_grip_vel_num.append(2*(random.random()-0.5))
     linear_regressor = LinearRegression()
     linear_regressor.fit(np.array(total).reshape(-1, 1),np.array(output_p).reshape(-1, 1))
     for i in range(len(xs)):
         if not(trials[i] in label_dict.keys()):
             for j in range(10):
                 img = all_names[i][j]
-                loc1 = img.find('gp_')
-                loc2 = img.find('_fr')
+                loc1 = img.find('gpown_')
+                loc2 = img.find('_gpother')
+                loc3 = img.find('_fr')
                 img[(loc1 + 3): loc2]
                 selected_all_names.append(path_list[i]+img)
-                grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
+                own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
+                own_grip_posi_num.append(eval(img[(loc2 + 3): loc3]))
                 total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
                 index.append(j)
-                grip_vel_num.append(2*(random.random()-0.5))
+                own_grip_vel_num.append(2*(random.random()-0.5))
+                other_grip_vel_num.append(2*(random.random()-0.5))
                 output_p.append(linear_regressor.predict((np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i]))).reshape(-1, 1))[0,0])
-    return index,total,selected_all_names,output_p,grip_posi_num,grip_vel_num
+    return index,total,selected_all_names,output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
 def train(model, device, train_loader, optimizer, epoch):
     # set model as training mode
@@ -208,32 +226,38 @@ index_ = []
 total_ = []
 selected_all_names_ = []
 output_p_ = []
-grip_posi_num_ = []
-grip_vel_num_ = []
+own_grip_posi_num = []
+other_grip_posi_num = []
+own_grip_vel_num = []
+other_grip_vel_num = []
 
 for i, val in enumerate(dataset_list):
     if 'npy' not in val:
         if val == 'empty':
-            index,total,selected_all_names,output_p,grip_posi_num,grip_vel_num = read_empty_data(data_path+'/'+val)
+            index,total,selected_all_names,output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_empty_data(data_path+'/'+val)
             index_.extend(index)
             total_.extend(total)
             selected_all_names_.extend(selected_all_names)
             output_p_.extend(output_p)
-            grip_posi_num_.extend(grip_posi_num)
-            grip_vel_num_.extend(grip_vel_num)
+            own_grip_posi_num.extend(own_grip_posi_num)
+            other_grip_posi_num.extend(other_grip_posi_num)
+            own_grip_vel_num.extend(own_grip_vel_num)
+            other_grip_vel_num.extend(other_grip_vel_num)
         else:
             if 'gel' in val or 'hard_rubber' in val:
-                index,total,selected_all_names,output_p,grip_posi_num,grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy',up_limit = 11.5)
+                index,total,selected_all_names,output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy',up_limit = 11.5)
             else:
-                index,total,selected_all_names,output_p,grip_posi_num,grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
+                index,total,selected_all_names,output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
             index_.extend(index)
             total_.extend(total)
             selected_all_names_.extend(selected_all_names)
             output_p_.extend(output_p)
-            grip_posi_num_.extend(grip_posi_num)
-            grip_vel_num_.extend(grip_vel_num)
+            own_grip_posi_num.extend(own_grip_posi_num)
+            other_grip_posi_num.extend(other_grip_posi_num)
+            own_grip_vel_num.extend(own_grip_vel_num)
+            other_grip_vel_num.extend(other_grip_vel_num)
 
-pv_pair_list = zip(grip_posi_num_,grip_vel_num_)
+pv_pair_list = zip(own_grip_posi_num,own_grip_vel_num)
 frame_pair_list = zip(selected_all_names_,index_)
 all_x_list = list(zip(frame_pair_list, pv_pair_list))        
 all_y_list = (output_p_) 
@@ -260,12 +284,3 @@ for epoch in range(epochs):
     validation([cnn_encoder, MPC_layer], device, optimizer, valid_loader)
     train([cnn_encoder, MPC_layer], device, train_loader, optimizer, epoch)
     
-    
-"""
-While training we'll need the other agent's velocity
-Should we collect that data? How? Might need to modify the existing 
-collection pipeline
-
-
-
-"""

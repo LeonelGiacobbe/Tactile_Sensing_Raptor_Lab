@@ -5,7 +5,16 @@ from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
 from kortex_api.autogen.messages import Base_pb2
 from kortex_api.autogen.messages import BaseCyclic_pb2
 
-P_SLIP = 47.36
+P_SLIP_1 = 39.00 # Must be a value in mm (not percentage of gripper opening)
+P_SLIP_2 = 39.00 # Must be a value in mm (not percentage of gripper opening)
+
+
+def gripper_140_posi_to_mm(posi):
+    """
+    Big gripper (2f-140) does not open correctly, so I ran a quick
+    linear regression to associate opening % to mm.
+    """
+    return -135.3*(posi / 100) + 145.4
 
 class GripperLowLevelExample:
     def __init__(self, router, router_real_time, proportional_gain = 2.0):
@@ -210,14 +219,18 @@ def main():
                 posi1 = gripper1.GetGripperPosi()
                 posi2 = gripper2.GetGripperPosi()
                 start1, start2 = posi1, posi2
-                print(f"Current positions (1 and 2): {posi1}, {posi2}")
+                print(f"Current positions in percentage (1 and 2): {posi1}, {posi2}")
+                print(f"Current positions in mm (1 and 2): {85 - posi1 * 0.85}, {gripper_140_posi_to_mm(posi2)}")
 
                 # Below condition is basically "While object has not slipped"
-                while posi2 > P_SLIP:
-                    if posi1 > P_SLIP:
+                while gripper_140_posi_to_mm(posi2) < P_SLIP_2: # values in mm
+                    if (85 - posi1 * 0.85) < P_SLIP_1: # values in mm
                         gripper1.Goto(posi1 - 2)
                         posi1 = gripper1.GetGripperPosi()
-                        capture_image(posi1, posi2, counter1, dev1)
+                        mm_posi2 = gripper_140_posi_to_mm(posi2)
+                        mm_posi1 = posi1 * 85.0 # current opening (percentage) times max opening (85 mm)
+                        capture_image(mm_posi1, mm_posi2, counter1, dev1)
+                        print(f"gripper1 posi in mm: {85 - posi1 * 0.85}")
                         counter1 += 1
                     else:
                         print("Moving stationary gripper")
@@ -225,12 +238,13 @@ def main():
                         posi1 = gripper1.GetGripperPosi()
                         gripper2.Goto(posi2 - 2)
                         posi2 = gripper2.GetGripperPosi()
+                        print(f"gripper2 posi in mm: {gripper_140_posi_to_mm(posi2)}")
 
                 print("Finished trial, moving images to folder...")
 
                 trial_cnt = get_next_trial_number(os.getcwd())
                 subcnt = 1
-                trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_some_material_x_{1.1}_y_{3.3}_gp_{str(posi1)}"
+                trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_some_material_x_{1.1}_y_{3.3}_gpown_{str(85 - posi1 * 0.85)}_gpother_{str(gripper_140_posi_to_mm(posi2))}"
                 os.mkdir(trial_dir_name)
                 images = glob.glob(os.path.join(os.getcwd(), '*.jpg'), recursive=True)
                 for image in images:
