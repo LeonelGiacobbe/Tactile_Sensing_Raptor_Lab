@@ -1,157 +1,48 @@
-import sys, os, time, cv2, gsdevice, glob, shutil, re
+import sys, os, time, cv2, gsdevice, glob, shutil, re, random, threading
 
 from kortex_api.autogen.client_stubs.BaseClientRpc import BaseClient
 from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
 from kortex_api.autogen.messages import Base_pb2
 from kortex_api.autogen.messages import BaseCyclic_pb2
+from movement_functions import *
 
-P_SLIP_1 = 39.00 # Must be a value in mm (not percentage of gripper opening)
-P_SLIP_2 = 39.00 # Must be a value in mm (not percentage of gripper opening)
+P_SLIP_1 = 26.00 # Must be a value in mm (not percentage of gripper opening)
+P_SLIP_2 = 26.00 # Must be a value in mm (not percentage of gripper opening)
 
-
-def gripper_140_posi_to_mm(posi):
-    """
-    Big gripper (2f-140) does not open correctly, so I ran a quick
-    linear regression to associate opening % to mm.
-    """
-    return -135.3*(posi / 100) + 145.4
-
-class GripperLowLevelExample:
-    def __init__(self, router, router_real_time, proportional_gain = 2.0):
-        """
-            GripperLowLevelExample class constructor.
-
-            Inputs:
-                kortex_api.RouterClient router:            TCP router
-                kortex_api.RouterClient router_real_time:  Real-time UDP router
-                float proportional_gain: Proportional gain used in control loop (default value is 2.0)
-
-            Outputs:
-                None
-            Notes:
-                - Actuators and gripper initial position are retrieved to set initial positions
-                - Actuator and gripper cyclic command objects are created in constructor. Their
-                  references are used to update position and speed.
-        """
-        self.counter = 1
+class GripperCommandExample:
+    def __init__(self, router, proportional_gain = 2.0):
 
         self.proportional_gain = proportional_gain
-
-        ###########################################################################################
-        # UDP and TCP sessions are used in this example.
-        # TCP is used to perform the change of servoing mode
-        # UDP is used for cyclic commands.
-        #
-        # 2 sessions have to be created: 1 for TCP and 1 for UDP
-        ###########################################################################################
-
         self.router = router
-        self.router_real_time = router_real_time
 
         # Create base client using TCP router
         self.base = BaseClient(self.router)
 
-        # Create base cyclic client using UDP router.
-        self.base_cyclic = BaseCyclicClient(self.router_real_time)
+        # Create base_cyclic client using UDP router
 
-        # Create base cyclic command object.
-        self.base_command = BaseCyclic_pb2.Command()
-        self.base_command.frame_id = 0
-        self.base_command.interconnect.command_id.identifier = 0
-        self.base_command.interconnect.gripper_command.command_id.identifier = 0
+        
 
-        # Add motor command to interconnect's cyclic
-        self.motorcmd = self.base_command.interconnect.gripper_command.motor_cmd.add()
+    def Goto(self, percentage):
+        gripper_command = Base_pb2.GripperCommand()
+        finger = gripper_command.gripper.finger.add()
 
-        # Set gripper's initial position velocity and force
-        base_feedback = self.base_cyclic.RefreshFeedback()
-        self.motorcmd.position = base_feedback.interconnect.gripper_feedback.motor[0].position
-        self.motorcmd.velocity = 0
-        self.motorcmd.force = 100
-
-        for actuator in base_feedback.actuators:
-            self.actuator_command = self.base_command.actuators.add()
-            self.actuator_command.position = actuator.position
-            self.actuator_command.velocity = 0.0
-            self.actuator_command.torque_joint = 0.0
-            self.actuator_command.command_id = 0
-            print("Position = ", actuator.position)
-
-        # Save servoing mode before changing it
-        self.previous_servoing_mode = self.base.GetServoingMode()
-
-        # Set base in low level servoing mode
-        servoing_mode_info = Base_pb2.ServoingModeInformation()
-        servoing_mode_info.servoing_mode = Base_pb2.LOW_LEVEL_SERVOING
-        self.base.SetServoingMode(servoing_mode_info)
-
-    def Cleanup(self):
-        """
-            Restore arm's servoing mode to the one that
-            was effective before running the example.
-
-            Inputs:
-                None
-            Outputs:
-                None
-            Notes:
-                None
-
-        """
-        # Restore servoing mode to the one that was in use before running the example
-        self.base.SetServoingMode(self.previous_servoing_mode)
-
-
-    def Goto(self, target_position):
-        """
-            Position gripper to a requested target position using a simple
-            proportional feedback loop which changes speed according to error
-            between target position and current gripper position
-
-            Inputs:
-                float target_position: position (0% - 100%) to send gripper to.
-            Outputs:
-                Returns True if gripper was positionned successfully, returns False
-                otherwise.
-            Notes:
-                - This function blocks until position is reached.
-                - If target position exceeds 100.0, its value is changed to 100.0.
-                - If target position is below 0.0, its value is set to 0.0.
-        """
-        if target_position > 100.0:
-            target_position = 100.0
-        if target_position < 0.0:
-            target_position = 0.0
-
-        while True:
-            try:
-                base_feedback = self.base_cyclic.Refresh(self.base_command)
-
-                # Calculate speed according to position error (target position VS current position)
-                position_error = target_position - base_feedback.interconnect.gripper_feedback.motor[0].position
-                # print(f"Position error: {position_error}")
-                
-                # If positional error is small, stop gripper
-                if abs(position_error) < 1.5:
-                    position_error = 0
-                    self.motorcmd.velocity = 0
-                    self.base_cyclic.Refresh(self.base_command)
-                    return True
-                else:
-                    self.motorcmd.velocity = self.proportional_gain * abs(position_error)
-                    if self.motorcmd.velocity > 100.0:
-                        self.motorcmd.velocity = 100.0
-                    self.motorcmd.position = target_position
-
-            except Exception as e:
-                print("Error in refresh: " + str(e))
-                return False
-            time.sleep(0.001)
-        return True
+        # Close the gripper with position increments
+        #print("Performing gripper test in position...")
+        gripper_command.mode = Base_pb2.GRIPPER_POSITION
+        position = percentage
+        finger.finger_identifier = 1
+        finger.value = position
+        # print("Going to position {:0.2f}...".format(finger.value))
+        self.base.SendGripperCommand(gripper_command)
+        time.sleep(0.5)
     
     def GetGripperPosi(self):
-        base_feedback = self.base_cyclic.Refresh(self.base_command)
-        return base_feedback.interconnect.gripper_feedback.motor[0].position
+        gripper_request = Base_pb2.GripperRequest()
+        # Wait for reported position to be opened
+        gripper_request.mode = Base_pb2.GRIPPER_POSITION
+        gripper_measure = self.base.GetMeasuredGripperMovement(gripper_request)
+
+        return gripper_measure.finger[0].value
     
 def get_next_trial_number(base_dir):
     # List all directories in the given base directory
@@ -175,10 +66,12 @@ def capture_image(gripper_posi_own, gripper_posi_other, counter, dev):
     f0 = dev.get_raw_image()
     if f0 is not None:
         cv2.imwrite(f'gpown_{gripper_posi_own}_gpother_{gripper_posi_other}_frame{counter}.jpg', f0)
-        print("Image saved")
+        # print("Image saved")
     else:
         print("Error: No image captured")
 
+def move_arm_thread(base, base_cyclic, x, y, z, theta_x, theta_y, theta_z):
+    move_arm(base, base_cyclic, x, y, z, theta_x, theta_y, theta_z)
 
 def main():
     # Counter for captured frame identification
@@ -188,11 +81,13 @@ def main():
     # To define multiple connections, edit gsdevice to accept dev_id as a constructor argument
     # That way we can instantiate multiple objects, according to /dev/videoX
     # dev_id will be the X in videoX
-    dev1 = gsdevice.Camera("GelSight Mini", 4) # second arg should be X in videoX
-    dev2 = gsdevice.Camera("Gelsight Mini", 2) # second arg should be X in videoX
+    # For 2f-140 gripper
+    # dev2 = gsdevice.Camera("GelSight Mini", 4) # second arg should be X in videoX 
+    # # For 2f-85 gripper
+    # dev1 = gsdevice.Camera("Gelsight Mini", 2) # second arg should be X in videoX
 
-    dev1.connect()
-    dev2.connect()
+    # dev1.connect()
+    # dev2.connect()
 
     # Import the utilities helper module
     import argparse
@@ -209,42 +104,68 @@ def main():
     # Create connection to the device and get the router
     with utilities.DeviceConnection.createTcpConnection(args1) as router1, utilities.DeviceConnection.createTcpConnection(args2) as router2:
 
-        with utilities.DeviceConnection.createUdpConnection(args1) as router_real_time1, utilities.DeviceConnection.createUdpConnection(args2) as router_real_time2:
+        gripper1 = GripperCommandExample(router1, 0.5) # 2f-85 gripper
+        gripper2 = GripperCommandExample(router2, 0.5) # 2f-140 gripper
+        # To avoid using impedance controller, we can measure before-hand a gripper width 
+        # That causes the object to fall barely. then we can stop the measuring there.
 
-            gripper1 = GripperLowLevelExample(router1, router_real_time1, 0.5) # Fast gripper
-            gripper2 = GripperLowLevelExample(router2, router_real_time2, 0.75) # Slow gripper
-            # To avoid using impedance controller, we can measure before-hand a gripper width 
-            # That causes the object to fall barely. then we can stop the measuring there.
-            try:
-                posi1 = gripper1.GetGripperPosi()
+        base1 = BaseClient(router1)
+        base2 = BaseClient(router2)
+        base_cyclic1 = BaseCyclicClient(router1)
+        base_cyclic2 = BaseCyclicClient(router2)
+        try:
+            subcnt = 1
+            trial_cnt = get_next_trial_number(os.getcwd())
+            for i in range(3):
+                gripper1.Goto(0.75) # 0.711
+                gripper2.Goto(0.83)
                 posi2 = gripper2.GetGripperPosi()
+                posi1 = gripper1.GetGripperPosi()
                 start1, start2 = posi1, posi2
                 print(f"Current positions in percentage (1 and 2): {posi1}, {posi2}")
-                print(f"Current positions in mm (1 and 2): {85 - posi1 * 0.85}, {gripper_140_posi_to_mm(posi2)}")
+                print(f"Current positions in mm (1 and 2): {85 - posi1 * 85}, {(140 - posi2 * 140)}")
+
+                xmov = random.uniform(0, 0.035)
+                ymov = random.uniform(0, 0.021)
+                print("x and y mov: ", xmov * 100, ymov)
+                # Create threads for each move_arm call
+                thread1 = threading.Thread(target=move_arm_thread, args=(base1, base_cyclic1, 0, xmov, ymov, 0, 0, 0))
+                thread2 = threading.Thread(target=move_arm_thread, args=(base2, base_cyclic2, 0, xmov, ymov, 0, 0, 0))
+                
+                # Start both threads
+                thread1.start()
+                thread2.start()
+                
+                # Wait for both threads to complete
+                thread1.join()
+                thread2.join()
+
+                time.sleep(2)
 
                 # Below condition is basically "While object has not slipped"
-                while gripper_140_posi_to_mm(posi2) < P_SLIP_2: # values in mm
-                    if (85 - posi1 * 0.85) < P_SLIP_1: # values in mm
-                        gripper1.Goto(posi1 - 2)
+                while (140 - posi2 * 140) < P_SLIP_2: # values in mm
+                    if (85 - posi1 * 85) < P_SLIP_1: # values in mm
+                        gripper1.Goto(posi1 - .01)
                         posi1 = gripper1.GetGripperPosi()
-                        mm_posi2 = gripper_140_posi_to_mm(posi2)
-                        mm_posi1 = posi1 * 85.0 # current opening (percentage) times max opening (85 mm)
+                        mm_posi2 = (140 - posi2 * 140)
+                        mm_posi1 = (85 - posi1 * 85) # current opening (percentage) times max opening (85 mm)
                         capture_image(mm_posi1, mm_posi2, counter1, dev1)
-                        print(f"gripper1 posi in mm: {85 - posi1 * 0.85}")
+                        # print(f"gripper1 opening in mm: {85 - posi1 * 85}")
                         counter1 += 1
                     else:
                         print("Moving stationary gripper")
-                        gripper1.Goto(start1 - 2)
+                        gripper2.Goto(posi2 - .01)
+                        
+                        # Only close gripper 1 if the trial has not ended:
+                        if (140 - posi2 * 140) < P_SLIP_2:
+                            gripper1.Goto(start1 - .01)
                         posi1 = gripper1.GetGripperPosi()
-                        gripper2.Goto(posi2 - 2)
                         posi2 = gripper2.GetGripperPosi()
-                        print(f"gripper2 posi in mm: {gripper_140_posi_to_mm(posi2)}")
+                        # print(f"gripper2 posi in mm: {(140 - posi2 * 140)}")
 
                 print("Finished trial, moving images to folder...")
-
-                trial_cnt = get_next_trial_number(os.getcwd())
-                subcnt = 1
-                trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_some_material_x_{1.1}_y_{3.3}_gpown_{str(85 - posi1 * 0.85)}_gpother_{str(gripper_140_posi_to_mm(posi2))}"
+                
+                trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_wood_block_x_{xmov * 1000}_y_{ymov * 1000}_gpown_{str(85 - posi1 * 85)}_gpother_{str((140 - posi2 * 140))}"
                 os.mkdir(trial_dir_name)
                 images = glob.glob(os.path.join(os.getcwd(), '*.jpg'), recursive=True)
                 for image in images:
@@ -252,19 +173,29 @@ def main():
                     shutil.move(image, dst_path)
 
                 print("Moved images to ", trial_dir_name)
-                # Restore state
-                gripper1.Cleanup()
-                gripper2.Cleanup()
 
-                print("Returned to original state")
+                thread1 = threading.Thread(target=move_arm_thread, args=(base1, base_cyclic1, 0, 0, -ymov, 0, 0, 0))
+                thread2 = threading.Thread(target=move_arm_thread, args=(base2, base_cyclic2, 0, 0, -ymov, 0, 0, 0))
 
-                # frame = dev.get_raw_image()
-
-            except Exception as e :
-                gripper1.Cleanup()
-                gripper2.Cleanup()
-                print("Error! ", e)
+                # Start both threads
+                thread1.start()
+                thread2.start()
                 
+                # Wait for both threads to complete
+                thread1.join()
+                thread2.join()
+            
+                print("Returned arms to original position")
+
+                time.sleep(2)
+
+                subcnt += 1
+
+            print("Done with trial")
+
+        except Exception as e :
+            print("Error! ", e)
+        
 
 if __name__ == "__main__":
     main()

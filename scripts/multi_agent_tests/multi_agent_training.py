@@ -29,6 +29,11 @@ transform = transforms.Compose([transforms.Resize([res_size, res_size]),
                                 transforms.ToTensor(),
                                 transforms.Normalize(mean=[0, 0, 0], std=[0.2, 0.2, 0.2])])
 def read_empty_data(data_path):
+    """
+    For images when nothing is touching the sensor
+    pn should be 30 (gp_* in dir and images)
+    
+    """
     all_names = []
     trials = []
     xs = []
