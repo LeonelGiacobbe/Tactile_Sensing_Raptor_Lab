@@ -189,6 +189,9 @@ def main():
                         posi2 = gripper2.GetGripperPosi()
                         # print(f"gripper2 posi in mm: {(140 - posi2 * 140)}")
 
+                gripper1.Goto(0.76)
+                gripper2.Goto(0.85) 
+
                 print("Finished trial, moving images to folder...")
                 
                 trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_wood_block_x_{xmov * 1000}_y_{ymov * 1000}_gpown_{str(P_SLIP_1)}_gpother_{str((P_SLIP_2))}"
