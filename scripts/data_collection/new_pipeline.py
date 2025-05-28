@@ -166,7 +166,7 @@ def main():
                 thread1.join()
                 thread2.join()
 
-                time.sleep(2)
+                time.sleep(1)
 
                 # Below condition is basically "While object has not slipped"
                 while (140 - posi2 * 140) < P_SLIP_2: # values in mm
@@ -188,9 +188,6 @@ def main():
                         posi1 = gripper1.GetGripperPosi()
                         posi2 = gripper2.GetGripperPosi()
                         # print(f"gripper2 posi in mm: {(140 - posi2 * 140)}")
-
-                gripper1.Goto(0.76)
-                gripper2.Goto(0.85) 
 
                 print("Finished trial, moving images to folder...")
                 
@@ -221,7 +218,7 @@ def main():
             
                 print("Returned arms to original position")
 
-                time.sleep(2)
+                time.sleep(0.5)
 
                 subcnt += 1
 
