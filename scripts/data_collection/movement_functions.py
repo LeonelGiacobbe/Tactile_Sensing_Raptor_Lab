@@ -20,8 +20,8 @@ def check_for_end_or_abort(e):
         (will be set when an END or ABORT occurs)
     """
     def check(notification, e = e):
-        print("EVENT : " + \
-              Base_pb2.ActionEvent.Name(notification.action_event))
+        # print("EVENT : " + \
+        #       Base_pb2.ActionEvent.Name(notification.action_event))
         if notification.action_event == Base_pb2.ACTION_END \
         or notification.action_event == Base_pb2.ACTION_ABORT:
             e.set()
@@ -61,7 +61,7 @@ def GripperCommand(base, base_cyclic, position = 0.0):
     return finished
 
 def move_arm(base, base_cyclic, xMov, yMov, zMov, xTheta, yTheta, zTheta):
-    print("Starting Arm Cartesian movement ...")
+    # print("Starting Arm Cartesian movement ...")
     action = Base_pb2.Action() # Create action object
     action.name = "Arm movement"
     action.application_data = ""
@@ -86,17 +86,18 @@ def move_arm(base, base_cyclic, xMov, yMov, zMov, xTheta, yTheta, zTheta):
         Base_pb2.NotificationOptions()
     )
 
-    print("Executing action")
+    # print("Executing action")
     base.ExecuteAction(action)
 
     
 
-    print("Waiting for movement to finish ...")
+    # print("Waiting for movement to finish ...")
     finished = e.wait(TIMEOUT_DURATION) # Sort of while loop to wait until the bot is done moving
     base.Unsubscribe(notification_handle) # After executing movement, notifications will not be useful anymore.
 
     if finished:
-        print("Cartesian movement completed")
+        # print("Cartesian movement completed")
+        pass
     else:
         print("Timeout on action notification wait")
     return finished
