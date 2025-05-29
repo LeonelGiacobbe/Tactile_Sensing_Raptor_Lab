@@ -68,8 +68,6 @@ def capture_image(gripper_posi_own, gripper_posi_other, counter, dev):
         print("Error: No image captured")
 
 def move_arm_thread1(base, base_cyclic, x, y, z, theta_x, theta_y, theta_z):
-    # Reason for this delay is to cause a bit of horizontal sheer force, like in the paper
-    time.sleep(0.05)
     move_arm(base, base_cyclic, x, y, z, theta_x, theta_y, theta_z)
 
 def move_arm_thread2(base, base_cyclic, x, y, z, theta_x, theta_y, theta_z):
@@ -138,21 +136,21 @@ def main():
                 gripper1.Goto(0.18)
 
                 # Since we're not using impedance, add small variability to P_SLIP
-                rand_slip = random.uniform (-0.4, 0.35)
+                rand_slip = random.uniform (0.0, 0.35)
                 
-                P_SLIP_1 = 25.50 + rand_slip # Must be a value in mm (not percentage of gripper opening)
-                P_SLIP_2 = 25.50 + rand_slip # Must be a value in mm (not percentage of gripper opening)
+                P_SLIP_1 = 24.8 + rand_slip # Must be a value in mm (not percentage of gripper opening)
+                P_SLIP_2 = 24.8 + rand_slip # Must be a value in mm (not percentage of gripper opening)
 
-                gripper1.Goto(0.76)
-                gripper2.Goto(0.85)
+                rand_goto = random.uniform(0.0,0.005)
+                gripper1.Goto(0.73 + rand_goto)
+                gripper2.Goto(0.84 + rand_goto)
                 
 
                 posi2 = gripper2.GetGripperPosi()
                 posi1 = gripper1.GetGripperPosi()
                 start1, start2 = posi1, posi2
-                print(f"Current positions in percentage (1 and 2): {posi1}, {posi2}")
-                print(f"Current positions in mm (1 and 2): {85 - posi1 * 85}, {(140 - posi2 * 140)}")
-
+                # print(f"Current positions in percentage (1 and 2): {posi1}, {posi2}")
+                # print(f"Current positions in mm (1 and 2): {85 - posi1 * 85}, {(140 - posi2 * 140)}")
                 
                 # Create threads for each move_arm call
                 thread1 = threading.Thread(target=move_arm_thread1, args=(base1, base_cyclic1, 0, xmov, ymov, 0, 0, 0))
@@ -171,22 +169,27 @@ def main():
                 # Below condition is basically "While object has not slipped"
                 while (140 - posi2 * 140) < P_SLIP_2: # values in mm
                     if (85 - posi1 * 85) < P_SLIP_1: # values in mm
-                        gripper1.Goto(posi1 - .01)
-                        posi1 = gripper1.GetGripperPosi()
                         mm_posi2 = (140 - posi2 * 140)
                         mm_posi1 = (85 - posi1 * 85) # current opening (percentage) times max opening (85 mm)
                         capture_image(mm_posi1, mm_posi2, counter1, dev1)
+                        gripper1.Goto(posi1 - .003)
+                        posi1 = gripper1.GetGripperPosi()
+                        
                         # print(f"gripper1 opening in mm: {85 - posi1 * 85}")
                         counter1 += 1
                     else:
-                        print("Moving stationary gripper")
-                        gripper2.Goto(posi2 - .01)
+                        # print("Moving stationary gripper")
+                        gripper2.Goto(posi2 - .003)
+                        posi2 = gripper2.GetGripperPosi()
                         
                         # Only close gripper 1 if the trial has not ended:
                         if (140 - posi2 * 140) < P_SLIP_2:
-                            gripper1.Goto(start1 - .01)
+                            gripper1.Goto(start1)
+                        else:
+                            print("Retracted gripper")
+                            gripper1.Goto(0.4)
+                        
                         posi1 = gripper1.GetGripperPosi()
-                        posi2 = gripper2.GetGripperPosi()
                         # print(f"gripper2 posi in mm: {(140 - posi2 * 140)}")
 
                 print("Finished trial, moving images to folder...")
@@ -197,6 +200,26 @@ def main():
                 for image in images:
                     dst_path = os.path.join(trial_dir_name, os.path.basename(image))
                     shutil.move(image, dst_path)
+
+                jpg_files = glob.glob(os.path.join(trial_dir_name, "*.jpg"))
+
+                if len(jpg_files) > 20:
+                    print(f"Removed {len(jpg_files) - 20} images")
+                    # Sort by gpown_ value extracted from filename
+                    def extract_gpown(filename):
+                        match = re.search(r"gpown_(.*?)_gpother", os.path.basename(filename))
+                        return float(match.group(1)) if match else float("inf")
+
+                    # Sort by lowest gpown value
+                    jpg_files.sort(key=extract_gpown)
+
+                    # Delete images until only 20 remain
+                    remove_amount = len(jpg_files) - 20
+                    for file_to_delete in jpg_files[:remove_amount]:
+                        print("Deleting:", file_to_delete)
+                        os.remove(file_to_delete)
+                else:
+                    print("WARNING!!!!!!!!!!!! Not enough pictures in trial!!!!!!!!!!")
 
                 trials = glob.glob(os.path.join(os.getcwd(), 'tr_*'), recursive=True)
                 for trial in trials:
