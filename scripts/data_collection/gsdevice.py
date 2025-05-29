@@ -13,23 +13,23 @@ def warp_perspective(img, corners, output_sz):
     result = cv2.warpPerspective(img, matrix, (WARP_W, WARP_H))
     return result
 
-def get_camera_id(camera_name):
-    cam_num = None
-    if os.name == 'nt':
-        cam_num = find_cameras_windows(camera_name)
-    else:
-        for file in os.listdir("/sys/class/video4linux"):
-            real_file = os.path.realpath("/sys/class/video4linux/" + file + "/name")
-            with open(real_file, "rt") as name_file:
-                name = name_file.read().rstrip()
-            if camera_name in name:
-                cam_num = int(re.search("\d+$", file).group(0))
-                found = "FOUND!"
-            else:
-                found = "      "
-            print("{} {} -> {}".format(found, file, name))
+# def get_camera_id(camera_name):
+#     cam_num = None
+#     if os.name == 'nt':
+#         cam_num = find_cameras_windows(camera_name)
+#     else:
+#         for file in os.listdir("/sys/class/video4linux"):
+#             real_file = os.path.realpath("/sys/class/video4linux/" + file + "/name")
+#             with open(real_file, "rt") as name_file:
+#                 name = name_file.read().rstrip()
+#             if camera_name in name:
+#                 cam_num = int(re.search("\d+$", file).group(0))
+#                 found = "FOUND!"
+#             else:
+#                 found = "      "
+#             print("{} {} -> {}".format(found, file, name))
 
-    return cam_num
+#     return cam_num
 
 if os.name == 'nt':
     def find_cameras_windows(camera_name):

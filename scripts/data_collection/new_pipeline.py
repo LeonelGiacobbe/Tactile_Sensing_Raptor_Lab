@@ -95,6 +95,8 @@ def main():
     dev1.connect()
     dev2.connect()
 
+    print("Connected to gelsights")
+
     # Import the utilities helper module
     import argparse
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -110,6 +112,7 @@ def main():
     # Create connection to the device and get the router
     with utilities.DeviceConnection.createTcpConnection(args1) as router1, utilities.DeviceConnection.createTcpConnection(args2) as router2:
 
+        print("Connected to arms")
         gripper1 = GripperCommand(router1, 0.5) # 2f-85 gripper
         gripper2 = GripperCommand(router2, 0.5) # 2f-140 gripper
         # To avoid using impedance controller, we can measure before-hand a gripper width 
@@ -216,8 +219,9 @@ def main():
                     # Delete images until only 20 remain
                     remove_amount = len(jpg_files) - 20
                     for file_to_delete in jpg_files[:remove_amount]:
-                        print("Deleting:", file_to_delete)
                         os.remove(file_to_delete)
+                elif len(jpg_files) == 20:
+                    pass
                 else:
                     print("WARNING!!!!!!!!!!!! Not enough pictures in trial!!!!!!!!!!")
 
