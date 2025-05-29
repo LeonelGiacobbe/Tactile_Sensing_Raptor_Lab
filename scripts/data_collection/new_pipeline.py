@@ -141,12 +141,12 @@ def main():
                 # Since we're not using impedance, add small variability to P_SLIP
                 rand_slip = random.uniform (0.0, 0.35)
                 
-                P_SLIP_1 = 24.8 + rand_slip # Must be a value in mm (not percentage of gripper opening)
-                P_SLIP_2 = 24.8 + rand_slip # Must be a value in mm (not percentage of gripper opening)
+                P_SLIP_1 = 24.3 + rand_slip # Must be a value in mm (not percentage of gripper opening)
+                P_SLIP_2 = 24.3 + rand_slip # Must be a value in mm (not percentage of gripper opening)
 
                 rand_goto = random.uniform(0.0,0.005)
-                gripper1.Goto(0.73 + rand_goto)
-                gripper2.Goto(0.84 + rand_goto)
+                gripper1.Goto(0.74 + rand_goto)
+                gripper2.Goto(0.85 + rand_goto)
                 
 
                 posi2 = gripper2.GetGripperPosi()
@@ -217,8 +217,8 @@ def main():
                     jpg_files.sort(key=extract_gpown)
 
                     # Delete images until only 20 remain
-                    remove_amount = len(jpg_files) - 20
-                    for file_to_delete in jpg_files[:remove_amount]:
+                    for file_to_delete in jpg_files[25:]:
+                        # print(f"Removed ", file_to_delete)
                         os.remove(file_to_delete)
                 elif len(jpg_files) == 20:
                     pass
