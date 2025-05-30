@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.utils.data as data
-from functions import *
+from multi_agent_functions import *
 from sklearn.model_selection import train_test_split
 import random
 from sklearn.linear_model import LinearRegression
@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 
 # EncoderCNN architecture
 CNN_hidden1, CNN_hidden2 = 128, 128 
-CNN_embed_dim = 20  
+CNN_embed_dim = 25  
 res_size = 224       
 dropout_p = 0.15  
 
@@ -20,10 +20,10 @@ epochs = 50
 batch_size = 256
 learning_rate = 1e-4
 eps = 1e-4
-nStep = 15
+nStep = 20
 del_t = 1/25
 
-data_path = "dataset"
+data_path = "../data_collection/dataset"
 
 transform = transforms.Compose([transforms.Resize([res_size, res_size]),
                                 transforms.ToTensor(),
@@ -129,8 +129,8 @@ def read_data(data_path,label_path,up_limit = 25,offset=0):
                     loc3 = img.find('_fr')
                     img[(loc1 + 3): loc2]
                     selected_all_names.append(path_list[i]+img)
-                    own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
-                    other_grip_posi_num.append(eval(img[(loc2 + 3): loc3]))
+                    own_grip_posi_num.append(eval(img[(loc1 + 6): loc2]))
+                    other_grip_posi_num.append(eval(img[(loc2 + 9): loc3]))
                     index.append(j)
                     own_grip_vel_num.append(2*(random.random()-0.5))
                     other_grip_vel_num.append(2*(random.random()-0.5))
@@ -145,8 +145,8 @@ def read_data(data_path,label_path,up_limit = 25,offset=0):
                 loc3 = img.find('_fr')
                 img[(loc1 + 3): loc2]
                 selected_all_names.append(path_list[i]+img)
-                own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
-                own_grip_posi_num.append(eval(img[(loc2 + 3): loc3]))
+                own_grip_posi_num.append(eval(img[(loc1 + 6): loc2]))
+                own_grip_posi_num.append(eval(img[(loc2 + 9): loc3]))
                 total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
                 index.append(j)
                 own_grip_vel_num.append(2*(random.random()-0.5))
@@ -165,13 +165,17 @@ def train(model, device, train_loader, optimizer, epoch):
     N_count = 0 
     for batch_idx, (X, y) in enumerate(train_loader):
         # distribute data to device
-        gripper_p = X[1][0].to(device)
-        gripper_v = X[1][1].to(device)
+        own_gripper_p = X[1][0].to(device)
+        own_gripper_v = X[1][1].to(device)
+        other_gripper_p = X[1][0].to(device) # NEEDS MODIFYING, PLACEHOLDER
+        other_gripper_v = X[1][1].to(device) # NEEDS MODIFYING, PLACEHOLDER
         # other_gripper_v = X[1][2].to(device)
         X, y = X[0].to(device), y.to(device).view(-1, )
         N_count += X.size(0)
         optimizer.zero_grad()
-        output = MPC_layer(cnn_encoder(X),gripper_p,gripper_v) # Need to add other agent's velocity 
+        own_output = cnn_encoder(X)
+        other_output = cnn_encoder(X) # NEEDS MODIFYING, PLACEHOLDER
+        output = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) # Need to add other agent's velocity 
         y= y.unsqueeze(1).expand(X.size(0), output.size(1))
         final_y = y[:,(output.size(1)-1)]*3
         final_output = output[:,(output.size(1)-1)]*3
@@ -197,12 +201,21 @@ def validation(model, device, optimizer, test_loader):
     with torch.no_grad():
         for X, y in test_loader:
             # distribute data to device
-            gripper_p = X[1][0].to(device)
-            gripper_v = X[1][1].to(device)
+            own_gripper_p = X[1][0].to(device)
+            own_gripper_v = X[1][1].to(device)
+            other_gripper_p = X[1][0].to(device) # NEEDS MODIFYING, PLACEHOLDER
+            other_gripper_v = X[1][1].to(device) # NEEDS MODIFYING, PLACEHOLDER
             # other_gripper_v = X[1][2].to(device)
             X, y = X[0].to(device), y.to(device).view(-1, )
-            output = cnn_encoder(X)
-            output = MPC_layer(output,gripper_p,gripper_v) # need to add other_gripper_v
+            own_output = cnn_encoder(X)
+            other_output = cnn_encoder(X) # NEEDS MODIFYING, PLACEHOLDER
+            print("own_output size: ", own_output.size())
+            print("other_output size: ", other_output.size())
+            print("own gripper pos size: ", own_gripper_p.size())
+            print("own gripper v size: ", own_gripper_v.size())
+            print("other gripper pos size: ", other_gripper_p.size())
+            print("other gripper v size: ", other_gripper_v.size())
+            output = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) # need to add other_gripper_v
             y= y.unsqueeze(1).expand(X.size(0), output.size(1))
             final_y = y[:,(output.size(1)-1)]*3
             final_output = output[:,(output.size(1)-1)]*3

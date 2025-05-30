@@ -77,7 +77,7 @@ class ResCNNEncoder(nn.Module):
 
 # Differentiable MPC layer
 class MPClayer(nn.Module):
-    def __init__(self,nHidden = 25, eps = 1e-4, nStep = 20, del_t = 1/60):
+    def __init__(self, nHidden = 25, eps = 1e-4, nStep = 20, del_t = 1/60):
         super(MPClayer, self).__init__()
 
         self.Pq = 5
@@ -239,6 +239,7 @@ class MPClayer(nn.Module):
 
         # Now combine state inputs
         x_combined = torch.cat((x1.squeeze(1), x2.squeeze(1)), dim=1) 
+        print("x_combined size: ", x_combined.size())
 
         # Calculate other gripper's effect on hidden and own velocity
         # Initialize the batch effect tensor directly
@@ -256,15 +257,16 @@ class MPClayer(nn.Module):
 
         # Now use other_effect_batch directly
         x_with_effect = x_combined + other_effect_batch.transpose(1, 2)
-        print("x with effect size: ", x_with_effect.size())
-        print("p_batch size: ", p_batch.size())
+        print("x with effect size: ", x_with_effect.size()) # size is nBatch, nBatch, nHiddenExpand? // in working version, its nBatch,1,self.nHidden+2
+        print("p_batch size: ", p_batch.size()) # size is nBatch, nHiddenExpand, 2 * self.nStep // in working version, its nBatch, self.nHidden+2, self.nStep
 
-        p_x0_batch = torch.bmm(x_with_effect, p_batch)
-        print("p_x0_batch size: ", p_x0_batch.size())
+        p_x0_batch = torch.bmm(x_with_effect, p_batch) # In og paper, the bmm is x and p_batch
 
         e = Variable(torch.Tensor())
         G = self.G.unsqueeze(0).expand(nBatch, 2 * self.nStep, 2 * self.nStep)
         h = self.h.unsqueeze(0).expand(nBatch, 2 * self.nStep, 1)
+
+        print("p_x0_batch size: ", p_x0_batch.size())
         p_x0_batch = p_x0_batch.reshape([nBatch,2 * self.nStep])
         h = h.reshape([nBatch, 2 * self.nStep])
 
