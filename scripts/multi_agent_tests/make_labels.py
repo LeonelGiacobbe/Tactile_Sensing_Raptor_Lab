@@ -16,7 +16,9 @@ for material_dir in os.listdir(data_path):
             
             # Store just the gpown value as the label (or modify as needed)
             gpown = float(parts[parts.index('gpown') + 1])
-            label_dict[trial_num] = gpown  # Single value instead of dict
+            gpother = float(parts[parts.index('gpother') + 1])
+            label_dict[trial_num] = (gpown, gpother)  # Single value instead of dict
+            print("Successfully loaded data into .npy file")
             
         except (ValueError, IndexError):
             continue

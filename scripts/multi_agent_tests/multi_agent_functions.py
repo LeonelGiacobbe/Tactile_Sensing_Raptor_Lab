@@ -240,7 +240,7 @@ class MPClayer(nn.Module):
         # Now combine state inputs
         x_combined = torch.cat((x1, x2), dim=2) 
         #x_combined = torch.vstack((x1, x2))
-        print("x_combined size: ", x_combined.size())
+        #print("x_combined size: ", x_combined.size())
 
         # Calculate other gripper's effect on hidden and own velocity
         # Initialize the batch effect tensor directly
@@ -258,8 +258,8 @@ class MPClayer(nn.Module):
 
         # Now use other_effect_batch directly
         x_with_effect = x_combined + other_effect_batch.transpose(1, 2)
-        print("x with effect size: ", x_with_effect.size()) # size is nBatch, nBatch, nHiddenExpand? // in working version, its nBatch,1,self.nHidden+2
-        print("p_batch size: ", p_batch.size()) # size is nBatch, nHiddenExpand, 2 * self.nStep // in working version, its nBatch, self.nHidden+2, self.nStep
+        # print("x with effect size: ", x_with_effect.size()) # size is nBatch, nBatch, nHiddenExpand? // in working version, its nBatch,1,self.nHidden+2
+        # print("p_batch size: ", p_batch.size()) # size is nBatch, nHiddenExpand, 2 * self.nStep // in working version, its nBatch, self.nHidden+2, self.nStep
 
         p_x0_batch = torch.bmm(x_with_effect, p_batch) # In og paper, the bmm is x and p_batch
 
@@ -267,7 +267,7 @@ class MPClayer(nn.Module):
         G = self.G.unsqueeze(0).expand(nBatch, 2 * self.nStep, 2 * self.nStep)
         h = self.h.unsqueeze(0).expand(nBatch, 2 * self.nStep, 1)
 
-        print("p_x0_batch size: ", p_x0_batch.size())
+        # print("p_x0_batch size: ", p_x0_batch.size())
         p_x0_batch = p_x0_batch.reshape([nBatch,2 * self.nStep])
         h = h.reshape([nBatch, 2 * self.nStep])
 
@@ -286,12 +286,12 @@ class MPClayer(nn.Module):
         output_single = torch.hstack((output_single, state_output))
         output_single = torch.hstack((output_single,torch.zeros(1,1).cuda()))
         output_single = torch.hstack((output_single,torch.zeros(1,1).cuda()))
-        print("Output single size: ", output_single.size())
+        # print("Output single size: ", output_single.size())
         output_stack = output_single.unsqueeze(0).expand(self.nStep, 1, nHiddenExpand)
         output_dia =  torch.block_diag(*output_stack).cuda()
         output_batch = output_dia.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(nHiddenExpand))
-        print("output batch size: ", output_batch.size())
-        print("x_predict size: ", x_predict.size())
+        # print("output batch size: ", output_batch.size())
+        # print("x_predict size: ", x_predict.size())
         posi_predict = torch.bmm(output_batch,x_predict).resize(nBatch,self.nStep)
         x = posi_predict
         return x

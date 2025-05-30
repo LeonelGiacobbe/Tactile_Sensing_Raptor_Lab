@@ -60,7 +60,7 @@ def read_empty_data(data_path):
         sub_fnames = os.listdir(data_path+'/'+f)
         all_names.append(sub_fnames)
     selected_all_names = []
-    output_p = []
+    own_output_p = []
     own_grip_posi_num = []
     other_grip_posi_num = []
     total = []
@@ -76,12 +76,16 @@ def read_empty_data(data_path):
             selected_all_names.append(path_list[i]+img)
             index.append(j)
             rand_num = 1*(random.random()-0.5)
-            output_p.append(28.5+rand_num)
+            own_output_p.append(28.5+rand_num)
             own_grip_vel_num.append((28.5+rand_num-30)/3)
             other_grip_vel_num.append((28.5+rand_num-30)/3)
-    return index,total,selected_all_names,output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
+    # For empty data, I think it's a good idea to keep own and other output_p equal. Maybe talk to Dr. Sun about this?
+    other_output_p = own_output_p
+    return index,total,selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
-def read_data(data_path,label_path,up_limit = 25,offset=0):
+def read_data(data_path,label_path,up_limit = 30,offset=0):
+    # up_limit acts as a filer for trials where final gripper opening
+    # was greater than up_limit. Those trials are ignored
     all_names = []
     trials = []
     xs = []
@@ -110,7 +114,8 @@ def read_data(data_path,label_path,up_limit = 25,offset=0):
     label_dict = np.load(label_path,allow_pickle=True)
     label_dict = label_dict[()]
     selected_all_names = []
-    output_p = []
+    own_output_p = []
+    other_output_p = []
     own_grip_posi_num = []
     other_grip_posi_num = []
     total = []
@@ -119,9 +124,14 @@ def read_data(data_path,label_path,up_limit = 25,offset=0):
     other_grip_vel_num = []
     for i in range(len(xs)):
         if trials[i] in label_dict.keys():
-            if label_dict[trials[i]] < up_limit:
+            # print("label_dict[trials[i]][0] : ", label_dict[trials[i]][0])
+            # print("label_dict[trials[i]][0] type: ", type(label_dict[trials[i]][0]))
+            if label_dict[trials[i]][0] < up_limit and label_dict[trials[i]][1] < up_limit:
                 for j in range(10):
-                    output_p.append(label_dict[trials[i]]+offset)
+                    own_output_p.append(label_dict[trials[i]][0]+offset)
+                    other_output_p.append(label_dict[trials[i]][1]+offset)
+                    # print("own_output_p: ", own_output_p)
+                    # print("other_output_p: ",other_output_p)
                     total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
                     img = all_names[i][j]
                     loc1 = img.find('gpown_')
@@ -134,8 +144,11 @@ def read_data(data_path,label_path,up_limit = 25,offset=0):
                     index.append(j)
                     own_grip_vel_num.append(2*(random.random()-0.5))
                     other_grip_vel_num.append(2*(random.random()-0.5))
-    linear_regressor = LinearRegression()
-    linear_regressor.fit(np.array(total).reshape(-1, 1),np.array(output_p).reshape(-1, 1))
+    own_linear_regressor = LinearRegression()
+    own_linear_regressor.fit(np.array(total).reshape(-1, 1),np.array(own_output_p).reshape(-1, 1))
+    # Same regressor but for 'other' gripper
+    other_linear_regressor = LinearRegression()
+    other_linear_regressor.fit(np.array(total).reshape(-1, 1),np.array(other_output_p).reshape(-1, 1))
     for i in range(len(xs)):
         if not(trials[i] in label_dict.keys()):
             for j in range(10):
@@ -151,8 +164,9 @@ def read_data(data_path,label_path,up_limit = 25,offset=0):
                 index.append(j)
                 own_grip_vel_num.append(2*(random.random()-0.5))
                 other_grip_vel_num.append(2*(random.random()-0.5))
-                output_p.append(linear_regressor.predict((np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i]))).reshape(-1, 1))[0,0])
-    return index,total,selected_all_names,output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
+                own_output_p.append(own_linear_regressor.predict((np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i]))).reshape(-1, 1))[0,0])
+                other_output_p.append(other_linear_regressor.predict((np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i]))).reshape(-1, 1))[0,0])
+    return index,total,selected_all_names,own_output_p,other_output_p, own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
 def train(model, device, train_loader, optimizer, epoch):
     # set model as training mode
@@ -209,12 +223,12 @@ def validation(model, device, optimizer, test_loader):
             X, y = X[0].to(device), y.to(device).view(-1, )
             own_output = cnn_encoder(X)
             other_output = cnn_encoder(X) # NEEDS MODIFYING, PLACEHOLDER
-            print("own_output size: ", own_output.size())
-            print("other_output size: ", other_output.size())
-            print("own gripper pos size: ", own_gripper_p.size())
-            print("own gripper v size: ", own_gripper_v.size())
-            print("other gripper pos size: ", other_gripper_p.size())
-            print("other gripper v size: ", other_gripper_v.size())
+            # print("own_output size: ", own_output.size())
+            # print("other_output size: ", other_output.size())
+            # print("own gripper pos size: ", own_gripper_p.size())
+            # print("own gripper v size: ", own_gripper_v.size())
+            # print("other gripper pos size: ", other_gripper_p.size())
+            # print("other gripper v size: ", other_gripper_v.size())
             output = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) # need to add other_gripper_v
             y= y.unsqueeze(1).expand(X.size(0), output.size(1))
             final_y = y[:,(output.size(1)-1)]*3
@@ -243,7 +257,8 @@ dataset_list = os.listdir(data_path)
 index_ = []
 total_ = []
 selected_all_names_ = []
-output_p_ = []
+own_output_p_ = []
+other_output_p_ = []
 own_grip_posi_num = []
 other_grip_posi_num = []
 own_grip_vel_num = []
@@ -252,24 +267,27 @@ other_grip_vel_num = []
 for i, val in enumerate(dataset_list):
     if 'npy' not in val:
         if val == 'empty':
-            index,total,selected_all_names,output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_empty_data(data_path+'/'+val)
+            index,total,selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_empty_data(data_path+'/'+val)
             index_.extend(index)
             total_.extend(total)
             selected_all_names_.extend(selected_all_names)
-            output_p_.extend(output_p)
+            own_output_p_.extend(own_output_p)
+            other_output_p_.extend(other_output_p)
+            other_output_p_.extend(other_output_p)
             own_grip_posi_num.extend(own_grip_posi_num)
             other_grip_posi_num.extend(other_grip_posi_num)
             own_grip_vel_num.extend(own_grip_vel_num)
             other_grip_vel_num.extend(other_grip_vel_num)
         else:
             if 'gel' in val or 'hard_rubber' in val:
-                index,total,selected_all_names,output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy',up_limit = 11.5)
+                index,total,selected_all_names,own_output_p,other_output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy',up_limit = 11.5)
             else:
-                index,total,selected_all_names,output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
+                index,total,selected_all_names,own_output_p,other_output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
             index_.extend(index)
             total_.extend(total)
             selected_all_names_.extend(selected_all_names)
-            output_p_.extend(output_p)
+            own_output_p_.extend(own_output_p)
+            other_output_p_.extend(other_output_p)
             own_grip_posi_num.extend(own_grip_posi_num)
             other_grip_posi_num.extend(other_grip_posi_num)
             own_grip_vel_num.extend(own_grip_vel_num)
@@ -278,7 +296,7 @@ for i, val in enumerate(dataset_list):
 pv_pair_list = zip(own_grip_posi_num,own_grip_vel_num)
 frame_pair_list = zip(selected_all_names_,index_)
 all_x_list = list(zip(frame_pair_list, pv_pair_list))        
-all_y_list = (output_p_) 
+all_y_list = (own_output_p_) 
 
 # train, test split
 train_list, test_list, train_label, test_label = train_test_split(all_x_list, all_y_list, test_size=0.2, random_state=42)
