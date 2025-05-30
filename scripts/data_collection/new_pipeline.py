@@ -128,7 +128,7 @@ def main():
             trial_cnt = get_next_trial_number(full_dir)
 
             ymov = random.uniform(-0.035, 0.035) # 35 mm
-            zmov = random.uniform(0, 0.021) # 21 mm
+            zmov = random.uniform(-0.021, 0.021) # 21 mm
             print("x and y mov: ", ymov * 100, zmov)
             
 
@@ -147,24 +147,24 @@ def main():
                 gripper1.Goto(0.74 + rand_goto)
                 gripper2.Goto(0.85 + rand_goto)
                 
-
-                posi2 = gripper2.GetGripperPosi()
                 posi1 = gripper1.GetGripperPosi()
+                posi2 = gripper2.GetGripperPosi()
                 start1, start2 = posi1, posi2
                 # print(f"Current positions in percentage (1 and 2): {posi1}, {posi2}")
                 # print(f"Current positions in mm (1 and 2): {85 - posi1 * 85}, {(140 - posi2 * 140)}")
+
+                thread_elevate_1 = threading.Thread(target=move_arm_thread1, args=(base1, base_cyclic1, 0, 0, 0.05, 0, 0, 0))
+                thread_elevate_2 = threading.Thread(target=move_arm_thread2, args=(base1, base_cyclic1, 0, 0, 0.05, 0, 0, 0))
+
+                thread_elevate_1.start(), thread_elevate_2.start()
+                thread_elevate_1.join(), thread_elevate_2.join()
                 
                 # Create threads for each move_arm call
-                thread1 = threading.Thread(target=move_arm_thread1, args=(base1, base_cyclic1, 0, ymov, zmov, 0, 0, 0))
-                thread2 = threading.Thread(target=move_arm_thread2, args=(base2, base_cyclic2, 0, ymov, zmov, 0, 0, 0))
+                thread_randmov_1 = threading.Thread(target=move_arm_thread1, args=(base1, base_cyclic1, 0, ymov, zmov, 0, 0, 0))
+                thread_randmov_2 = threading.Thread(target=move_arm_thread2, args=(base2, base_cyclic2, 0, ymov, zmov, 0, 0, 0))
                 
-                # Start both threads
-                thread1.start()
-                thread2.start()
-                
-                # Wait for both threads to complete
-                thread1.join()
-                thread2.join()
+                thread_randmov_1.start(), thread_randmov_2.start()
+                thread_randmov_1.join(), thread_randmov_2.join()
 
                 time.sleep(1)
 
@@ -263,17 +263,19 @@ def main():
 
                 print("Moved images to ", trial_dir_name)
 
-                thread1 = threading.Thread(target=move_arm_thread2, args=(base1, base_cyclic1, 0, -ymov, -zmov, 0, 0, 0))
-                thread2 = threading.Thread(target=move_arm_thread2, args=(base2, base_cyclic2, 0, -ymov, -zmov, 0, 0, 0))
+                thread_rev_randmov_1 = threading.Thread(target=move_arm_thread2, args=(base1, base_cyclic1, 0, -ymov, -zmov, 0, 0, 0))
+                thread_rev_randmov_2 = threading.Thread(target=move_arm_thread2, args=(base2, base_cyclic2, 0, -ymov, -zmov, 0, 0, 0))
 
-
-                # Start both threads
-                thread1.start()
-                thread2.start()
+                thread_rev_randmov_1.start(), thread_rev_randmov_2.start()
                 
-                # Wait for both threads to complete
-                thread1.join()
-                thread2.join()
+                thread_rev_randmov_1.join(), thread_rev_randmov_2.join()
+
+                thread_lower_1 = threading.Thread(target=move_arm_thread1, args=(base1, base_cyclic1, 0, 0, 0.05, 0, 0, 0))
+                thread_lower_2 = threading.Thread(target=move_arm_thread2, args=(base1, base_cyclic1, 0, 0, 0.05, 0, 0, 0))
+
+                thread_lower_1.start(), thread_lower_2.start()
+                thread_lower_1.join(), thread_lower_2.join()
+                
             
                 print("Returned arms to original position")
 

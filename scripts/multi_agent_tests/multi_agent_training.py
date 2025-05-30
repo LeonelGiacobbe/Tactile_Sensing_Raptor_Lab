@@ -285,7 +285,6 @@ for i, val in enumerate(dataset_list):
             selected_all_names_.extend(selected_all_names)
             own_output_p_.extend(own_output_p)
             other_output_p_.extend(other_output_p)
-            other_output_p_.extend(other_output_p)
             own_grip_posi_num.extend(own_grip_posi_num)
             other_grip_posi_num.extend(other_grip_posi_num)
             own_grip_vel_num.extend(own_grip_vel_num)
@@ -311,12 +310,19 @@ Since we're separating own and other posi and vel, it might be smart to separate
 selected_all_names and maybe index_(?) and have two versions, one for each gripper?
 We'll need the info because of the new MPC Layer architecture
 
+For now, I'll try keeping the data together (for own and other) and we'll see
+
 '''
 
-pv_pair_list = zip(own_grip_posi_num,own_grip_vel_num)
-frame_pair_list = zip(selected_all_names_,index_)
-all_x_list = list(zip(frame_pair_list, pv_pair_list))        
-all_y_list = (own_output_p_) 
+# Create a combined structure that includes both agents' data
+pv_pair_list = list(zip(
+    zip(own_grip_posi_num, own_grip_vel_num),  # Own agent's (posi, vel)
+    zip(other_grip_posi_num, other_grip_vel_num)  # Other agent's (posi, vel)
+))
+frame_pair_list = list(zip(selected_all_names_, index_))
+# Now each element contains (frame_info, (own_pv, other_pv))
+all_x_list = list(zip(frame_pair_list, pv_pair_list))       
+all_y_list = list(zip(own_output_p_, other_output_p_))
 
 # train, test split
 train_list, test_list, train_label, test_label = train_test_split(all_x_list, all_y_list, test_size=0.2, random_state=42)
