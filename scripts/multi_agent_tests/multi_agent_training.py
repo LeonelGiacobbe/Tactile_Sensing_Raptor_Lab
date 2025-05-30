@@ -73,7 +73,8 @@ def read_empty_data(data_path):
             other_grip_posi_num.append(eval(other_grip_posi[i]))
             total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
             img = all_names[i][j]
-            selected_all_names.append(path_list[i]+img)
+            selected_all_names.append(path_list[i]+img) # I don't think there's a need to differentiate between
+            # Gripper 1 and gripper 2 images? Not sure
             index.append(j)
             rand_num = 1*(random.random()-0.5)
             own_output_p.append(28.5+rand_num)
@@ -109,7 +110,7 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
         own_grip_posi.append(f[(loc5 + 3): loc6])
         other_grip_posi.append(f[(loc6+4):len(f)])
         path_list.append(data_path+'/'+f+'/')
-        sub_fnames = os.listdir(data_path+'/'+f)
+        sub_fnames = os.listdir(data_path+'/'+f) # Contains list of all images in trial
         all_names.append(sub_fnames)
     label_dict = np.load(label_path,allow_pickle=True)
     label_dict = label_dict[()]
@@ -127,23 +128,30 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
             # print("label_dict[trials[i]][0] : ", label_dict[trials[i]][0])
             # print("label_dict[trials[i]][0] type: ", type(label_dict[trials[i]][0]))
             if label_dict[trials[i]][0] < up_limit and label_dict[trials[i]][1] < up_limit:
-                for j in range(10):
+                for j in range(50): # because there's 50 images per subtrial (25 pairs)
                     own_output_p.append(label_dict[trials[i]][0]+offset)
                     other_output_p.append(label_dict[trials[i]][1]+offset)
                     # print("own_output_p: ", own_output_p)
                     # print("other_output_p: ",other_output_p)
                     total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
                     img = all_names[i][j]
-                    loc1 = img.find('gpown_')
-                    loc2 = img.find('_gpother')
-                    loc3 = img.find('_fr')
+                    loc1 = img.find('gp_')
+                    loc2 = img.find('_fr')
                     img[(loc1 + 3): loc2]
                     selected_all_names.append(path_list[i]+img)
-                    own_grip_posi_num.append(eval(img[(loc1 + 6): loc2]))
-                    other_grip_posi_num.append(eval(img[(loc2 + 9): loc3]))
+                    if img.startswith('1_'): # Own gripper image
+                        own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
+                        rand_vel = 2*(random.random()-0.5)
+                        # Velocities of both grippers should be related since they're
+                        # Acting on the same object, right? Maybe ask Dr. Sun?
+                        own_grip_vel_num.append(rand_vel)
+                        other_grip_vel_num.append(rand_vel)
+                    else:
+                        other_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
+                        
+                    
                     index.append(j)
-                    own_grip_vel_num.append(2*(random.random()-0.5))
-                    other_grip_vel_num.append(2*(random.random()-0.5))
+                    
     own_linear_regressor = LinearRegression()
     own_linear_regressor.fit(np.array(total).reshape(-1, 1),np.array(own_output_p).reshape(-1, 1))
     # Same regressor but for 'other' gripper
@@ -153,17 +161,21 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
         if not(trials[i] in label_dict.keys()):
             for j in range(10):
                 img = all_names[i][j]
-                loc1 = img.find('gpown_')
-                loc2 = img.find('_gpother')
-                loc3 = img.find('_fr')
+                loc1 = img.find('gp_')
+                loc2 = img.find('_fr')
                 img[(loc1 + 3): loc2]
                 selected_all_names.append(path_list[i]+img)
-                own_grip_posi_num.append(eval(img[(loc1 + 6): loc2]))
-                own_grip_posi_num.append(eval(img[(loc2 + 9): loc3]))
+                if img.startswith('1_'): # Own gripper image
+                    own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
+                    rand_vel = 2*(random.random()-0.5)
+                    # Velocities of both grippers should be related since they're
+                    # Acting on the same object, right? Maybe ask Dr. Sun?
+                    own_grip_vel_num.append(rand_vel)
+                    other_grip_vel_num.append(rand_vel)
+                else:
+                    other_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
                 total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
                 index.append(j)
-                own_grip_vel_num.append(2*(random.random()-0.5))
-                other_grip_vel_num.append(2*(random.random()-0.5))
                 own_output_p.append(own_linear_regressor.predict((np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i]))).reshape(-1, 1))[0,0])
                 other_output_p.append(other_linear_regressor.predict((np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i]))).reshape(-1, 1))[0,0])
     return index,total,selected_all_names,own_output_p,other_output_p, own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num

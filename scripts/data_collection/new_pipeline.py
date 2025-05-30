@@ -59,10 +59,10 @@ def get_next_trial_number(base_dir):
     # Return the next trial number (max + 1)
     return max(trial_numbers) + 1
     
-def capture_image(gripper_posi_own, gripper_posi_other, counter, dev):
+def capture_image(gripper_posi, counter, dev, gripper_no):
     f0 = dev.get_raw_image()
     if f0 is not None:
-        cv2.imwrite(f'gpown_{gripper_posi_own}_gpother_{gripper_posi_other}_frame{counter}.jpg', f0)
+        cv2.imwrite(f'{gripper_no}_gp_{gripper_posi}_frame{counter}.jpg', f0)
         # print("Image saved")
     else:
         print("Error: No image captured")
@@ -81,8 +81,7 @@ def gripper_thread2(gripper, pos):
 
 def main():
     # Counter for captured frame identification
-    counter1 = 1
-    counter2 = 1
+    counter = 1
     # Gelsight connection
     # To define multiple connections, edit gsdevice to accept dev_id as a constructor argument
     # That way we can instantiate multiple objects, according to /dev/videoX
@@ -125,7 +124,7 @@ def main():
         try:
             subcnt = 1
             cwd = os.getcwd()
-            full_dir = cwd + "/wood_block"
+            full_dir = cwd + "/new_wood_block"
             trial_cnt = get_next_trial_number(full_dir)
 
             xmov = random.uniform(-0.035, 0.035) # 35 mm
@@ -174,12 +173,13 @@ def main():
                     if (85 - posi1 * 85) < P_SLIP_1: # values in mm
                         mm_posi2 = (140 - posi2 * 140)
                         mm_posi1 = (85 - posi1 * 85) # current opening (percentage) times max opening (85 mm)
-                        capture_image(mm_posi1, mm_posi2, counter1, dev1)
+                        capture_image(mm_posi1, counter, dev1, 1)
+                        capture_image(mm_posi2, counter, dev2, 2)
                         gripper1.Goto(posi1 - .003)
                         posi1 = gripper1.GetGripperPosi()
                         
                         # print(f"gripper1 opening in mm: {85 - posi1 * 85}")
-                        counter1 += 1
+                        counter += 1
                     else:
                         # print("Moving stationary gripper")
                         gripper2.Goto(posi2 - .003)
@@ -204,26 +204,58 @@ def main():
                     dst_path = os.path.join(trial_dir_name, os.path.basename(image))
                     shutil.move(image, dst_path)
 
-                jpg_files = glob.glob(os.path.join(trial_dir_name, "*.jpg"))
+                jpg_files = glob.glob(os.path.join(trial_dir_name, "1_*.jpg"))
 
-                if len(jpg_files) > 20:
-                    print(f"Removed {len(jpg_files) - 20} images")
+                if len(jpg_files) > 25:
+                    print(f"Removed {2 * (len(jpg_files) - 25)} images")
                     # Sort by gpown_ value extracted from filename
-                    def extract_gpown(filename):
-                        match = re.search(r"gpown_(.*?)_gpother", os.path.basename(filename))
-                        return float(match.group(1)) if match else float("inf")
+                    def extract_sort_key(filename):
+                        basename = os.path.basename(filename)
+                        gp_match = re.search(r"gp_(.*?)_", basename)
+                        frame_match = re.search(r"frame(\d+)\.jpg", basename)
+                        gp_value = float(gp_match.group(1)) if gp_match else float("inf")
+                        frame_num = frame_match.group(1) if frame_match else None
+                        return (gp_value, frame_num)
 
                     # Sort by lowest gpown value
-                    jpg_files.sort(key=extract_gpown)
+                    jpg_files.sort(key=extract_sort_key)
 
-                    # Delete images until only 20 remain
-                    for file_to_delete in jpg_files[25:]:
-                        # print(f"Removed ", file_to_delete)
+                    # Get the files we want to delete (keep first 25)
+                    files_to_delete = jpg_files[25:]
+                    
+                    # Delete each file and its pair
+                    for file_to_delete in files_to_delete:
+                        # Extract frame number
+                        frame_num = re.search(r"frame(\d+)\.jpg", os.path.basename(file_to_delete)).group(1)
+                        
+                        # Build pair filename pattern
+                        pair_pattern = os.path.join(trial_dir_name, f"2_*frame{frame_num}.jpg")
+                        paired_files = glob.glob(pair_pattern)
+                        
+                        # Delete both files
                         os.remove(file_to_delete)
-                elif len(jpg_files) == 20:
-                    pass
+                        if paired_files:  # Ensure pair exists before deletion
+                            os.remove(paired_files[0])
+                elif len(jpg_files) == 25:
+                    # Verify pairs exist for all 25
+                    missing_pairs = 0
+                    for f in jpg_files:
+                        frame_num = re.search(r"frame(\d+)\.jpg", os.path.basename(f)).group(1)
+                        pair_pattern = os.path.join(trial_dir_name, f"2_*frame{frame_num}.jpg")
+                        if not glob.glob(pair_pattern):
+                            missing_pairs += 1
+                    if missing_pairs:
+                        print(f"WARNING: {missing_pairs} pairs are incomplete!")
                 else:
                     print("WARNING!!!!!!!!!!!! Not enough pictures in trial!!!!!!!!!!")
+
+                # After deletion, verify we have exactly 25 pairs
+                remaining_1 = glob.glob(os.path.join(trial_dir_name, "1_*.jpg"))
+                remaining_2 = glob.glob(os.path.join(trial_dir_name, "2_*.jpg"))
+                if len(remaining_1) != 25 or len(remaining_2) != 25:
+                    print("ERROR: Final count mismatch! Found:")
+                    print(f"- 1_*.jpg: {len(remaining_1)} files")
+                    print(f"- 2_*.jpg: {len(remaining_2)} files")
 
                 trials = glob.glob(os.path.join(os.getcwd(), 'tr_*'), recursive=True)
                 for trial in trials:
