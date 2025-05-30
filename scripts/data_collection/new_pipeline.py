@@ -127,9 +127,9 @@ def main():
             full_dir = cwd + "/new_wood_block"
             trial_cnt = get_next_trial_number(full_dir)
 
-            xmov = random.uniform(-0.035, 0.035) # 35 mm
-            ymov = random.uniform(0, 0.021) # 21 mm
-            print("x and y mov: ", xmov * 100, ymov)
+            ymov = random.uniform(-0.035, 0.035) # 35 mm
+            zmov = random.uniform(0, 0.021) # 21 mm
+            print("x and y mov: ", ymov * 100, zmov)
             
 
             for i in range(3):
@@ -155,8 +155,8 @@ def main():
                 # print(f"Current positions in mm (1 and 2): {85 - posi1 * 85}, {(140 - posi2 * 140)}")
                 
                 # Create threads for each move_arm call
-                thread1 = threading.Thread(target=move_arm_thread1, args=(base1, base_cyclic1, 0, xmov, ymov, 0, 0, 0))
-                thread2 = threading.Thread(target=move_arm_thread2, args=(base2, base_cyclic2, 0, xmov, ymov, 0, 0, 0))
+                thread1 = threading.Thread(target=move_arm_thread1, args=(base1, base_cyclic1, 0, ymov, zmov, 0, 0, 0))
+                thread2 = threading.Thread(target=move_arm_thread2, args=(base2, base_cyclic2, 0, ymov, zmov, 0, 0, 0))
                 
                 # Start both threads
                 thread1.start()
@@ -197,7 +197,7 @@ def main():
 
                 print("Finished trial, moving images to folder...")
                 
-                trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_wood_block_x_{xmov * 1000}_y_{ymov * 1000}_gpown_{str(P_SLIP_1)}_gpother_{str((P_SLIP_2))}"
+                trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_wood_block_y_{ymov * 1000}_z_{zmov * 1000}_gpown_{str(P_SLIP_1)}_gpother_{str((P_SLIP_2))}"
                 os.mkdir(trial_dir_name)
                 images = glob.glob(os.path.join(os.getcwd(), '*.jpg'), recursive=True)
                 for image in images:
@@ -263,8 +263,8 @@ def main():
 
                 print("Moved images to ", trial_dir_name)
 
-                thread1 = threading.Thread(target=move_arm_thread2, args=(base1, base_cyclic1, 0, -xmov, -ymov, 0, 0, 0))
-                thread2 = threading.Thread(target=move_arm_thread2, args=(base2, base_cyclic2, 0, -xmov, -ymov, 0, 0, 0))
+                thread1 = threading.Thread(target=move_arm_thread2, args=(base1, base_cyclic1, 0, -ymov, -zmov, 0, 0, 0))
+                thread2 = threading.Thread(target=move_arm_thread2, args=(base2, base_cyclic2, 0, -ymov, -zmov, 0, 0, 0))
 
 
                 # Start both threads

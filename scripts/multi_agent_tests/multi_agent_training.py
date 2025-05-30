@@ -36,8 +36,8 @@ def read_empty_data(data_path):
     """
     all_names = []
     trials = []
-    xs = []
     ys = []
+    zs = []
     fnames = os.listdir(data_path)
     all_names = []
     own_grip_posi = []
@@ -48,12 +48,12 @@ def read_empty_data(data_path):
         loc1 = f.find('tr_')
         loc2 = f.find('_dp')
         trials.append(f[(loc1 + 3): loc2])
-        loc3 = f.find('x_')
-        loc4 = f.find('_y_')
+        loc3 = f.find('y_')
+        loc4 = f.find('_z_')
         loc5 = f.find('_gpown_')
         loc6 = f.find('_gpother')
-        xs.append(f[(loc3 + 2): loc4])
-        ys.append(f[(loc4 + 3): loc5])
+        ys.append(f[(loc3 + 2): loc4])
+        zs.append(f[(loc4 + 3): loc5])
         own_grip_posi.append(f[(loc5 + 3): loc6])
         other_grip_posi.append(f[(loc6+4):len(f)])
         path_list.append(data_path+'/'+f+'/')
@@ -67,11 +67,11 @@ def read_empty_data(data_path):
     index = []
     own_grip_vel_num = []
     other_grip_vel_num = []
-    for i in range(len(xs)):
+    for i in range(len(ys)):
         for j in range(10):
             own_grip_posi_num.append(eval(own_grip_posi[i]))
             other_grip_posi_num.append(eval(other_grip_posi[i]))
-            total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
+            total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
             img = all_names[i][j]
             selected_all_names.append(path_list[i]+img) # I don't think there's a need to differentiate between
             # Gripper 1 and gripper 2 images? Not sure
@@ -89,8 +89,8 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
     # was greater than up_limit. Those trials are ignored
     all_names = []
     trials = []
-    xs = []
     ys = []
+    zs = []
     fnames = os.listdir(data_path)
     all_names = []
     own_grip_posi = []
@@ -101,12 +101,12 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
         loc1 = f.find('tr_')
         loc2 = f.find('_dp')
         trials.append(f[(loc1 + 3): loc2])
-        loc3 = f.find('x_')
-        loc4 = f.find('_y_')
+        loc3 = f.find('y_')
+        loc4 = f.find('_z_')
         loc5 = f.find('_gpown_')
         loc6 = f.find('_gpother')
-        xs.append(f[(loc3 + 2): loc4])
-        ys.append(f[(loc4 + 3): loc5])
+        ys.append(f[(loc3 + 2): loc4])
+        zs.append(f[(loc4 + 3): loc5])
         own_grip_posi.append(f[(loc5 + 3): loc6])
         other_grip_posi.append(f[(loc6+4):len(f)])
         path_list.append(data_path+'/'+f+'/')
@@ -123,7 +123,7 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
     index = []
     own_grip_vel_num = []
     other_grip_vel_num = []
-    for i in range(len(xs)):
+    for i in range(len(ys)):
         if trials[i] in label_dict.keys():
             # print("label_dict[trials[i]][0] : ", label_dict[trials[i]][0])
             # print("label_dict[trials[i]][0] type: ", type(label_dict[trials[i]][0]))
@@ -133,7 +133,7 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                     other_output_p.append(label_dict[trials[i]][1]+offset)
                     # print("own_output_p: ", own_output_p)
                     # print("other_output_p: ",other_output_p)
-                    total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
+                    total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
                     img = all_names[i][j]
                     loc1 = img.find('gp_')
                     loc2 = img.find('_fr')
@@ -157,7 +157,7 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
     # Same regressor but for 'other' gripper
     other_linear_regressor = LinearRegression()
     other_linear_regressor.fit(np.array(total).reshape(-1, 1),np.array(other_output_p).reshape(-1, 1))
-    for i in range(len(xs)):
+    for i in range(len(ys)):
         if not(trials[i] in label_dict.keys()):
             for j in range(10):
                 img = all_names[i][j]
@@ -174,10 +174,10 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                     other_grip_vel_num.append(rand_vel)
                 else:
                     other_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
-                total.append(np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i])))
+                total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
                 index.append(j)
-                own_output_p.append(own_linear_regressor.predict((np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i]))).reshape(-1, 1))[0,0])
-                other_output_p.append(other_linear_regressor.predict((np.sqrt(eval(xs[i])*eval(xs[i])+eval(ys[i])*eval(ys[i]))).reshape(-1, 1))[0,0])
+                own_output_p.append(own_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
+                other_output_p.append(other_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
     return index,total,selected_all_names,own_output_p,other_output_p, own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
 def train(model, device, train_loader, optimizer, epoch):
