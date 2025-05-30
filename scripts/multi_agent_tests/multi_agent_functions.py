@@ -238,7 +238,8 @@ class MPClayer(nn.Module):
         x2 = x2.reshape([nBatch,1,self.nHidden + 2])
 
         # Now combine state inputs
-        x_combined = torch.cat((x1.squeeze(1), x2.squeeze(1)), dim=1) 
+        x_combined = torch.cat((x1, x2), dim=2) 
+        #x_combined = torch.vstack((x1, x2))
         print("x_combined size: ", x_combined.size())
 
         # Calculate other gripper's effect on hidden and own velocity
