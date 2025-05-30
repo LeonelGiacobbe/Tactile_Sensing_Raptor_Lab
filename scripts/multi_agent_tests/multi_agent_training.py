@@ -304,6 +304,14 @@ for i, val in enumerate(dataset_list):
             other_grip_posi_num.extend(other_grip_posi_num)
             own_grip_vel_num.extend(own_grip_vel_num)
             other_grip_vel_num.extend(other_grip_vel_num)
+'''
+Now, selected_all_names contains all images (of both sensors), and index_
+contains the total amount of pairs (0 to 49) * num of subtrials (3 * num of trials)
+Since we're separating own and other posi and vel, it might be smart to separate
+selected_all_names and maybe index_(?) and have two versions, one for each gripper?
+We'll need the info because of the new MPC Layer architecture
+
+'''
 
 pv_pair_list = zip(own_grip_posi_num,own_grip_vel_num)
 frame_pair_list = zip(selected_all_names_,index_)
