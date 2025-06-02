@@ -129,7 +129,7 @@ def main():
 
             ymov = random.uniform(-0.035, 0.035) # 35 mm
             zmov = random.uniform(-0.021, 0.021) # 21 mm
-            print("y and z mov: ", ymov * 100, zmov)
+            print("y and z mov: ", ymov * 100, zmov * 100)
             
 
             for i in range(3):
