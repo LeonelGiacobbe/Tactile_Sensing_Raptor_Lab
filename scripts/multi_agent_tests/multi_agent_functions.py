@@ -17,14 +17,14 @@ def zeors_hstack_help(vec, n, size_row, size_col):
         combo = torch.hstack((combo,single))
     return combo
 
-# Dataloader 
+#Dataloader
 class Dataset_LeTac(data.Dataset):
     def __init__(self, folders_pv_pair, labels, frames, transform=None):
         self.labels = labels
-        self.folders = list(np.array(tuple(folders_pv_pair), dtype=object)[:,0])
-        self.pv_pairs = list(np.array(tuple(folders_pv_pair), dtype=object)[:,1])
+        self.folders = list(np.array(tuple(folders_pv_pair),dtype=object)[:,0])
+        self.pv_pairs = list(np.array(tuple(folders_pv_pair),dtype=object)[:,1])
         self.transform = transform
-        self.frames = frames
+        self.frames = frames 
 
     def __len__(self):
         return len(self.folders)
@@ -37,16 +37,9 @@ class Dataset_LeTac(data.Dataset):
 
     def __getitem__(self, index):
         folder = self.folders[index]
-        pv_pairs = self.pv_pairs[index] # This is now (own_pv, other_pv)
-
-        x_img = self.read_images(folder, self.transform)    
-
-        own_pv = torch.FloatTensor(pv_pairs[0])  # (posi, vel) for own agent
-        other_pv = torch.FloatTensor(pv_pairs[1])  # (posi, vel) for other agent
-
-        # Combine inputs
-        x = (x_img, (own_pv, other_pv))
-
+        pv_pair = self.pv_pairs[index]
+        x = self.read_images(folder, self.transform)    
+        x = (x,tuple(pv_pair))
         y = torch.FloatTensor([self.labels[index]])            
         return x, y
 

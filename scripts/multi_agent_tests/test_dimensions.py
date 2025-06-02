@@ -25,6 +25,7 @@ mpc_layer = MPClayer().to(device)
 mpc_layer.eval()
 
 x1, x2 = generate_image_data()
+print("x1 size: ", x1.size())
 encoding1, encoding2 = cnn_encoder(x1), cnn_encoder(x2)
 
 own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v = generate_pos()
@@ -35,6 +36,8 @@ print("own gripper pos size: ", own_gripper_p.size())
 print("own gripper v size: ", own_gripper_v.size())
 print("other gripper pos size: ", other_gripper_p.size())
 print("other gripper v size: ", other_gripper_v.size())
+raise KeyError
+
 mpc_output = mpc_layer(encoding1, encoding2, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
 
 print(mpc_output)
