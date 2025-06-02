@@ -129,7 +129,7 @@ def main():
 
             ymov = random.uniform(-0.035, 0.035) # 35 mm
             zmov = random.uniform(-0.021, 0.021) # 21 mm
-            print("x and y mov: ", ymov * 100, zmov)
+            print("y and z mov: ", ymov * 100, zmov)
             
 
             for i in range(3):
@@ -154,7 +154,7 @@ def main():
                 # print(f"Current positions in mm (1 and 2): {85 - posi1 * 85}, {(140 - posi2 * 140)}")
 
                 thread_elevate_1 = threading.Thread(target=move_arm_thread1, args=(base1, base_cyclic1, 0, 0, 0.05, 0, 0, 0))
-                thread_elevate_2 = threading.Thread(target=move_arm_thread2, args=(base1, base_cyclic1, 0, 0, 0.05, 0, 0, 0))
+                thread_elevate_2 = threading.Thread(target=move_arm_thread2, args=(base2, base_cyclic2, 0, 0, 0.05, 0, 0, 0))
 
                 thread_elevate_1.start(), thread_elevate_2.start()
                 thread_elevate_1.join(), thread_elevate_2.join()
@@ -188,9 +188,7 @@ def main():
                         # Only close gripper 1 if the trial has not ended:
                         if (140 - posi2 * 140) < P_SLIP_2:
                             gripper1.Goto(start1)
-                        else:
-                            print("Retracted gripper")
-                            gripper1.Goto(0.4)
+                        
                         
                         posi1 = gripper1.GetGripperPosi()
                         # print(f"gripper2 posi in mm: {(140 - posi2 * 140)}")
@@ -218,7 +216,7 @@ def main():
                         return (gp_value, frame_num)
 
                     # Sort by lowest gpown value
-                    jpg_files.sort(key=extract_sort_key)
+                    jpg_files.sort(key=extract_sort_key, reverse=True)
 
                     # Get the files we want to delete (keep first 25)
                     files_to_delete = jpg_files[25:]
@@ -270,8 +268,8 @@ def main():
                 
                 thread_rev_randmov_1.join(), thread_rev_randmov_2.join()
 
-                thread_lower_1 = threading.Thread(target=move_arm_thread1, args=(base1, base_cyclic1, 0, 0, 0.05, 0, 0, 0))
-                thread_lower_2 = threading.Thread(target=move_arm_thread2, args=(base1, base_cyclic1, 0, 0, 0.05, 0, 0, 0))
+                thread_lower_1 = threading.Thread(target=move_arm_thread1, args=(base1, base_cyclic1, 0, 0, -0.05, 0, 0, 0))
+                thread_lower_2 = threading.Thread(target=move_arm_thread2, args=(base2, base_cyclic2, 0, 0, -0.05, 0, 0, 0))
 
                 thread_lower_1.start(), thread_lower_2.start()
                 thread_lower_1.join(), thread_lower_2.join()

@@ -23,7 +23,7 @@ def main():
     # That way we can instantiate multiple objects, according to /dev/videoX
     # dev_id will be the X in videoX
     # For 2f-140 gripper
-    dev2 = gsdevice.Camera("GelSight Mini", 4) # second arg should be X in videoX 
+    dev2 = gsdevice.Camera("GelSight Mini", 2) # second arg should be X in videoX 
     # # For 2f-85 gripper
     # dev1 = gsdevice.Camera("Gelsight Mini", 2) # second arg should be X in videoX
 
