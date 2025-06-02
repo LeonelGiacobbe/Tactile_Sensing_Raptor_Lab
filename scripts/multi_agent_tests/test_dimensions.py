@@ -1,4 +1,4 @@
-import torch, random
+import torch, random, time
 from multi_agent_functions import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -36,9 +36,9 @@ print("own gripper pos size: ", own_gripper_p.size())
 print("own gripper v size: ", own_gripper_v.size())
 print("other gripper pos size: ", other_gripper_p.size())
 print("other gripper v size: ", other_gripper_v.size())
-raise KeyError
 
+start = time.time()
 mpc_output = mpc_layer(encoding1, encoding2, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
-
-print(mpc_output)
+end = time.time()
+print(end - start)
 

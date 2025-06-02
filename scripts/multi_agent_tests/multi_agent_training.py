@@ -91,7 +91,7 @@ def read_empty_data(data_path):
                 rand_num = 1*(random.random()-0.5)
                 other_output_p.append(28.5+rand_num)
                 other_selected_all_names.append(path_list[i]+img) # I don't think there's a need to differentiate between  
-                other_grip_posi_num.append(eval(own_grip_posi[i]))
+                other_grip_posi_num.append(eval(other_grip_posi[i]))
                 other_index.append(j)
                 
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
@@ -151,20 +151,13 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                     img = all_names[i][j]
                     loc1 = img.find('gp_')
                     loc2 = img.find('_fr')
-                    fr_sloc = img.find('frame')
-                    fr_eloc = img.find('.jpg')
-                    frame_no = img[(fr_sloc + 5): fr_eloc]
-                    matching_img_path = glob.glob(os.path.join(path_list[i], f'2_*_frame{frame_no}.jpg'))
-                    filename_list = [os.path.basename(path) for path in matching_img_path]
-                    filename = filename_list[0]
-                    
-                    
                     img[(loc1 + 3): loc2]
                     
                     if img.startswith('1_'): # Own gripper image
                         # Populate 'own' info
                         own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
                         own_output_p.append(label_dict[trials[i]][0]+offset)
+                        
                         own_selected_all_names.append(path_list[i]+img)
                         own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
                         rand_vel = 2*(random.random()-0.5)
@@ -248,10 +241,13 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         optimizer.zero_grad()
         own_output = cnn_encoder(X_own)
         other_output = cnn_encoder(X_other) 
+        
         output = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) 
+        
         y_own= y_own.unsqueeze(1).expand(X_own.size(0), output.size(1))
         final_y = y_own[:,(output.size(1)-1)]*3
         final_output = output[:,(output.size(1)-1)]*3
+        
         loss = F.mse_loss(output,y_own.float()) + F.mse_loss(final_y,final_output)
         losses.append(loss.item())
 
@@ -345,14 +341,13 @@ for i, val in enumerate(dataset_list):
             other_selected_all_names_.extend(other_selected_all_names)
             own_output_p_.extend(own_output_p)
             other_output_p_.extend(other_output_p)
-            other_output_p_.extend(other_output_p)
             own_grip_posi_num.extend(own_grip_posi_num)
             other_grip_posi_num.extend(other_grip_posi_num)
             own_grip_vel_num.extend(own_grip_vel_num)
             other_grip_vel_num.extend(other_grip_vel_num)
         else:
             if 'gel' in val or 'hard_rubber' in val:
-                own_index,other_index,own_total,own_selected_all_names, other_selected_all_names, own_output_p,other_output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy',up_limit = 11.5)
+                own_index,other_index,own_total,other_total,own_selected_all_names, other_selected_all_names, own_output_p,other_output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy',up_limit = 11.5)
             else:
                 own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num,own_grip_vel_num,other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
             own_index_.extend(own_index)
@@ -383,10 +378,11 @@ other_all_y_list = (other_output_p_)
 own_train_list, own_test_list, own_train_label, own_test_label = train_test_split(own_all_x_list, own_all_y_list, test_size=0.2, random_state=42)
 other_train_list, other_test_list, other_train_label, other_test_label = train_test_split(other_all_x_list, other_all_y_list, test_size=0.2, random_state=42)
 
-own_train_set, own_valid_set = Dataset_LeTac(own_train_list, own_train_label, np.arange(1, 50, 1).tolist(), transform=transform), \
-                       Dataset_LeTac(own_test_list, own_test_label, np.arange(1, 50, 1).tolist(), transform=transform)
-other_train_set, other_valid_set = Dataset_LeTac(other_train_list, other_train_label, np.arange(1, 50, 1).tolist(), transform=transform), \
-                       Dataset_LeTac(other_test_list, other_test_label, np.arange(1, 50, 1).tolist(), transform=transform)
+own_train_set, own_valid_set = Dataset_LeTac(own_train_list, own_train_label, np.arange(1, 25, 1).tolist(), transform=transform), \
+                       Dataset_LeTac(own_test_list, own_test_label, np.arange(1, 25, 1).tolist(), transform=transform)
+other_train_set, other_valid_set = Dataset_LeTac(other_train_list, other_train_label, np.arange(1, 25, 1).tolist(), transform=transform), \
+                       Dataset_LeTac(other_test_list, other_test_label, np.arange(1, 25, 1).tolist(), transform=transform)
+
 # Changed 10 to 50 in Dataset_LeTac, although that list is never used?
 
 own_train_loader = data.DataLoader(own_train_set, **params)

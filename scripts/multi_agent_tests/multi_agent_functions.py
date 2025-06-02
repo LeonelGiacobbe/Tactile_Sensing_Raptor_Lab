@@ -247,14 +247,12 @@ class MPClayer(nn.Module):
         other_effect_batch = torch.zeros(nBatch, nHiddenExpand, 1).cuda()
 
         # Process batch elements
-        for i in range(nBatch):
-            # Compute influences for element
-            hidden_effect = torch.mm(self.Cf, other_gripper_v[i].unsqueeze(0).t())
-            state_effect = torch.mm(self.Cp, other_gripper_v[i].unsqueeze(0).t())
-            
-            # Combine
-            other_effect_batch[i, :self.nHidden, 0] = hidden_effect.squeeze()
-            other_effect_batch[i, self.nHidden + 2:, 0] = state_effect.squeeze()
+        hidden_effect = (other_gripper_v @ self.Cf.t()).unsqueeze(-1)  # (nBatch, 1) @ (1, nHidden) -> (nBatch, nHidden, 1)
+        state_effect = (other_gripper_v @ self.Cp.t()).unsqueeze(-1)    # (nBatch, 1) @ (1, nHidden) -> (nBatch, nHidden, 1)
+
+        other_effect_batch = torch.zeros(nBatch, nHiddenExpand, 1).cuda()
+        other_effect_batch[:, :self.nHidden, :] = hidden_effect
+        other_effect_batch[:, self.nHidden + 2:, :] = state_effect
 
         # Now use other_effect_batch directly
         x_with_effect = x_combined + other_effect_batch.transpose(1, 2)
