@@ -1,4 +1,4 @@
-import os
+import os, glob
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 
 # EncoderCNN architecture
 CNN_hidden1, CNN_hidden2 = 128, 128 
-CNN_embed_dim = 25  
+CNN_embed_dim = 20  
 res_size = 224       
 dropout_p = 0.15  
 
@@ -59,33 +59,45 @@ def read_empty_data(data_path):
         path_list.append(data_path+'/'+f+'/')
         sub_fnames = os.listdir(data_path+'/'+f)
         all_names.append(sub_fnames)
-    selected_all_names = []
+    own_selected_all_names = []
+    other_selected_all_names = []
     own_output_p = []
+    other_output_p = []
     own_grip_posi_num = []
     other_grip_posi_num = []
-    total = []
-    index = []
+    own_total = []
+    other_total = []
+    own_index = []
+    other_index = []
     own_grip_vel_num = []
     other_grip_vel_num = []
     for i in range(len(ys)):
-        for j in range(10):
-            own_grip_posi_num.append(eval(own_grip_posi[i]))
-            other_grip_posi_num.append(eval(other_grip_posi[i]))
-            total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
+        for j in range(50): # because there's 50 images per subtrial (25 pairs)
             img = all_names[i][j]
-            selected_all_names.append(path_list[i]+img) # I don't think there's a need to differentiate between
-            # Gripper 1 and gripper 2 images? Not sure
-            index.append(j)
-            rand_num = 1*(random.random()-0.5)
-            own_output_p.append(28.5+rand_num)
-            own_grip_vel_num.append((28.5+rand_num-30)/3)
-            other_grip_vel_num.append((28.5+rand_num-30)/3)
-    # For empty data, I think it's a good idea to keep own and other output_p equal. Maybe talk to Dr. Sun about this?
-    other_output_p = own_output_p
-    return index,total,selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
+
+            if img.startswith('1_'): # Own gripper image
+                own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
+                own_output_p.append(28.5+rand_num)
+                own_selected_all_names.append(path_list[i]+img) # I don't think there's a need to differentiate between  
+                own_grip_posi_num.append(eval(own_grip_posi[i]))
+                rand_num = 1*(random.random()-0.5)
+                own_grip_vel_num.append((28.5+rand_num-30)/3)
+                # Velocities of both grippers should be related since they're
+                # Acting on the same object, right? Maybe ask Dr. Sun?
+                other_grip_vel_num.append((28.5+rand_num-30)/3)
+                own_index.append(j)
+            else: # Other griper image
+                other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
+                rand_num = 1*(random.random()-0.5)
+                other_output_p.append(28.5+rand_num)
+                other_selected_all_names.append(path_list[i]+img) # I don't think there's a need to differentiate between  
+                other_grip_posi_num.append(eval(own_grip_posi[i]))
+                other_index.append(j)
+                
+    return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
 def read_data(data_path,label_path,up_limit = 30,offset=0):
-    # up_limit acts as a filer for trials where final gripper opening
+    # up_limit acts as a filter for trials where final gripper opening
     # was greater than up_limit. Those trials are ignored
     all_names = []
     trials = []
@@ -126,6 +138,7 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
     other_index = []
     own_grip_vel_num = []
     other_grip_vel_num = []
+    
     for i in range(len(ys)):
         if trials[i] in label_dict.keys():
             # print("label_dict[trials[i]][0] : ", label_dict[trials[i]][0])
@@ -138,9 +151,18 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                     img = all_names[i][j]
                     loc1 = img.find('gp_')
                     loc2 = img.find('_fr')
+                    fr_sloc = img.find('frame')
+                    fr_eloc = img.find('.jpg')
+                    frame_no = img[(fr_sloc + 5): fr_eloc]
+                    matching_img_path = glob.glob(os.path.join(path_list[i], f'2_*_frame{frame_no}.jpg'))
+                    filename_list = [os.path.basename(path) for path in matching_img_path]
+                    filename = filename_list[0]
+                    
+                    
                     img[(loc1 + 3): loc2]
                     
                     if img.startswith('1_'): # Own gripper image
+                        # Populate 'own' info
                         own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
                         own_output_p.append(label_dict[trials[i]][0]+offset)
                         own_selected_all_names.append(path_list[i]+img)
@@ -151,12 +173,22 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                         own_grip_vel_num.append(rand_vel)
                         other_grip_vel_num.append(rand_vel)
                         own_index.append(j)
-                    else:
+
+                        # Find matching frame to populate 'other' info
+                        fr_sloc = img.find('frame')
+                        fr_eloc = img.find('.jpg')
+                        frame_no = img[(fr_sloc + 5): fr_eloc]
+                        matching_img_path = glob.glob(os.path.join(path_list[i], f'2_*_frame{frame_no}.jpg'))
+                        filename_list = [os.path.basename(path) for path in matching_img_path]
+                        other_img = filename_list[0]
+                        other_loc1 = other_img.find('gp_')
+                        other_loc2 = other_img.find('_fr')
                         other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
                         other_output_p.append(label_dict[trials[i]][1]+offset)
-                        other_selected_all_names.append(path_list[i]+img)
-                        other_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
-                        other_index.append(j)    
+                        other_selected_all_names.append(path_list[i]+other_img)
+                        other_grip_posi_num.append(eval(other_img[(other_loc1 + 3): other_loc2]))
+                        other_index.append(j)
+   
                     
     own_linear_regressor = LinearRegression()
     own_linear_regressor.fit(np.array(own_total).reshape(-1, 1),np.array(own_output_p).reshape(-1, 1))
@@ -190,7 +222,8 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                 
                 own_output_p.append(own_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
                 other_output_p.append(other_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
-    return own_index,other_index, own_total,other_total,own_selected_all_names,other_selected_all_names, own_output_p,other_output_p, own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
+    
+    return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names, own_output_p,other_output_p, own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
 def train(model, device, own_train_loader, other_train_loader, optimizer, epoch):
     # set model as training mode
@@ -201,32 +234,36 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
     scores = []
 
     N_count = 0 
-    for batch_idx, (X, y) in enumerate(own_train_loader):
+    epoch_count = 0
+    for (X_own, y_own), (X_other, y_other) in zip(own_train_loader, other_train_loader):
         # distribute data to device
-        own_gripper_p = X[1][0].to(device)
-        own_gripper_v = X[1][1].to(device)
-        other_gripper_p = X[1][0].to(device) # NEEDS MODIFYING, PLACEHOLDER
-        other_gripper_v = X[1][1].to(device) # NEEDS MODIFYING, PLACEHOLDER
+        own_gripper_p = X_own[1][0].to(device)
+        own_gripper_v = X_own[1][1].to(device)
+        other_gripper_p = X_other[1][0].to(device)
+        other_gripper_v = X_other[1][1].to(device) 
         # other_gripper_v = X[1][2].to(device)
-        X, y = X[0].to(device), y.to(device).view(-1, )
-        N_count += X.size(0)
+        X_own, y_own = X_own[0].to(device), y_own.to(device).view(-1, )
+        X_other, y_other = X_other[0].to(device), y_other.to(device).view(-1, )
+        N_count += X_own.size(0)
         optimizer.zero_grad()
-        own_output = cnn_encoder(X)
-        other_output = cnn_encoder(X) # NEEDS MODIFYING, PLACEHOLDER
-        output = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) # Need to add other agent's velocity 
-        y= y.unsqueeze(1).expand(X.size(0), output.size(1))
-        final_y = y[:,(output.size(1)-1)]*3
+        own_output = cnn_encoder(X_own)
+        other_output = cnn_encoder(X_other) 
+        output = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) 
+        y_own= y_own.unsqueeze(1).expand(X_own.size(0), output.size(1))
+        final_y = y_own[:,(output.size(1)-1)]*3
         final_output = output[:,(output.size(1)-1)]*3
-        loss = F.mse_loss(output,y.float()) + F.mse_loss(final_y,final_output)
+        loss = F.mse_loss(output,y_own.float()) + F.mse_loss(final_y,final_output)
         losses.append(loss.item())
 
         loss.backward()
+        
+        
         optimizer.step()
+        epoch_count += 1
 
         # show information
-        if (batch_idx + 1) % 20 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch + 1, N_count, len(own_train_loader.dataset), 100. * (batch_idx + 1) / len(own_train_loader), loss.item()))
+        print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+            epoch + 1, N_count, len(own_train_loader.dataset), 100. * (epoch_count + 1) / len(own_train_loader), loss.item()))
 
 def validation(model, device, optimizer, own_test_loader, other_test_loader):
     cnn_encoder, MPC_layer= model
@@ -244,18 +281,21 @@ def validation(model, device, optimizer, own_test_loader, other_test_loader):
 
             other_gripper_p = X_other[1][0].to(device)
             other_gripper_v = X_other[1][1].to(device)
-            # other_gripper_v = X[1][2].to(device)
+            
             X_own, y_own = X_own[0].to(device), y_own.to(device).view(-1, )
             X_other, y_other = X_other[0].to(device), y_other.to(device).view(-1, )
+
             own_output = cnn_encoder(X_own)
-            other_output = cnn_encoder(X_other) # NEEDS MODIFYING, PLACEHOLDER
+            other_output = cnn_encoder(X_other) 
             # print("own_output size: ", own_output.size())
             # print("other_output size: ", other_output.size())
             # print("own gripper pos size: ", own_gripper_p.size())
             # print("own gripper v size: ", own_gripper_v.size())
             # print("other gripper pos size: ", other_gripper_p.size())
             # print("other gripper v size: ", other_gripper_v.size())
-            output = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) 
+            
+            output = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
+            
             y_own= y_own.unsqueeze(1).expand(X_own.size(0), output.size(1))
             final_y = y_own[:,(output.size(1)-1)]*3
             final_output = output[:,(output.size(1)-1)]*3
@@ -296,7 +336,7 @@ other_grip_vel_num = []
 for i, val in enumerate(dataset_list):
     if 'npy' not in val:
         if val == 'empty':
-            own_index, other_index,own_total,other_total,own_selected_all_names,other_selected_all_names, own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_empty_data(data_path+'/'+val)
+            own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num,own_grip_vel_num, other_grip_vel_num = read_empty_data(data_path+'/'+val)
             own_index_.extend(own_index)
             other_index_.extend(other_index)
             own_total_.extend(own_total)
@@ -314,7 +354,7 @@ for i, val in enumerate(dataset_list):
             if 'gel' in val or 'hard_rubber' in val:
                 own_index,other_index,own_total,own_selected_all_names, other_selected_all_names, own_output_p,other_output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy',up_limit = 11.5)
             else:
-                own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names, own_output_p,other_output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
+                own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num,own_grip_vel_num,other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
             own_index_.extend(own_index)
             other_index_.extend(other_index)
             own_total_.extend(own_total)
@@ -327,14 +367,6 @@ for i, val in enumerate(dataset_list):
             other_grip_posi_num.extend(other_grip_posi_num)
             own_grip_vel_num.extend(own_grip_vel_num)
             other_grip_vel_num.extend(other_grip_vel_num)
-'''
-Now, selected_all_names contains all images (of both sensors), and index_
-contains the total amount of pairs (0 to 49) * num of subtrials (3 * num of trials)
-Since we're separating own and other posi and vel, it might be smart to separate
-selected_all_names and maybe index_(?) and have two versions, one for each gripper?
-We'll need the info because of the new MPC Layer architecture
-
-'''
 
 own_pv_pair_list = zip(own_grip_posi_num,own_grip_vel_num)
 own_frame_pair_list = zip(own_selected_all_names_,own_index_)
@@ -345,6 +377,7 @@ other_pv_pair_list = zip(other_grip_posi_num, other_grip_vel_num)
 other_frame_pair_list = zip(other_selected_all_names_,other_index_)
 other_all_x_list = list(zip(other_frame_pair_list, other_pv_pair_list))        
 other_all_y_list = (other_output_p_)
+
 
 # train, test split
 own_train_list, own_test_list, own_train_label, own_test_label = train_test_split(own_all_x_list, own_all_y_list, test_size=0.2, random_state=42)
@@ -374,4 +407,11 @@ optimizer = torch.optim.Adam(letac_params, lr=learning_rate)
 for epoch in range(epochs):
     validation([cnn_encoder, MPC_layer], device, optimizer, own_valid_loader, other_valid_loader)
     train([cnn_encoder, MPC_layer], device, own_train_loader, other_train_loader, optimizer, epoch)
-    
+
+# Save the model after training
+torch.save({
+    'cnn_encoder_state_dict': cnn_encoder.state_dict(),
+    'mpc_layer_state_dict': MPC_layer.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+    'epoch': epoch,
+}, './trained_model.pth')

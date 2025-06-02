@@ -18,9 +18,11 @@ for material_dir in os.listdir(data_path):
             gpown = float(parts[parts.index('gpown') + 1])
             gpother = float(parts[parts.index('gpother') + 1])
             label_dict[trial_num] = (gpown, gpother)  # Single value instead of dict
-            print("Successfully loaded data into .npy file")
+            
             
         except (ValueError, IndexError):
-            continue
+            print("Error: ")
+    
+    print("Successfully loaded data into .npy file")
     
     np.save(os.path.join(data_path, f"{material_dir}.npy"), label_dict)
