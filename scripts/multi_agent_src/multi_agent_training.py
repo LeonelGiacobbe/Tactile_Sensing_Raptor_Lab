@@ -194,7 +194,6 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                         other_grip_posi_num.append(eval(other_img[(other_loc1 + 3): other_loc2]))
                         other_index.append(j)
    
-                    
     own_linear_regressor = LinearRegression()
     own_linear_regressor.fit(np.array(own_total).reshape(-1, 1),np.array(own_output_p).reshape(-1, 1))
     # Same regressor but for 'other' gripper
@@ -227,7 +226,6 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                 
                 own_output_p.append(own_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
                 other_output_p.append(other_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
-    
     
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names, own_output_p,other_output_p, own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
@@ -297,6 +295,7 @@ def validation(model, device, optimizer, own_test_loader, other_test_loader):
 
             own_output = cnn_encoder(X_own)
             other_output = cnn_encoder(X_other) 
+            
             # print("own_output size: ", own_output.size())
             # print("other_output size: ", other_output.size())
             # print("own gripper pos size: ", own_gripper_p.size())
