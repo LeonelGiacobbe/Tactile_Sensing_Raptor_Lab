@@ -5,7 +5,7 @@ from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
 from kortex_api.autogen.messages import Base_pb2
 from kortex_api.autogen.messages import BaseCyclic_pb2
 from movement_functions import *
-    
+
 def get_next_trial_number(base_dir):
     # List all directories in the given base directory
     folders = [f for f in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, f))]
@@ -54,14 +54,15 @@ def main():
         full_dir = cwd + "/empty"
         
 
-        for _ in range(9):
+        for _ in range(1):
             trial_cnt = get_next_trial_number(full_dir)
             subcnt = 1
+            counter = 1
             for i in range(3):
                 for j in range(25):
-                    capture_image(30, j + 1, dev1, 1)
-                    capture_image(30, j + 1, dev2, 2)
-
+                    capture_image(30, counter, dev1, 1)
+                    capture_image(30, counter, dev2, 2)
+                    counter += 1
                 print("Finished trial, moving images to folder...")
                 
                 trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_empty_y_0_z_0_gpown_30_gpother_30"
