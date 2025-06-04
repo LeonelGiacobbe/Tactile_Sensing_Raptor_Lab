@@ -306,7 +306,6 @@ class MPClayer(nn.Module):
         
         """
         x_predict = x_predict[:, : (self.nStep * (self.nHidden + 2)), :]
-        print("x_predict size: ", x_predict.size())
         
         embb_output = Variable(torch.zeros(1,self.nHidden).cuda())
         state_output = Variable(torch.eye(1).cuda())

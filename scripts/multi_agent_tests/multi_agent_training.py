@@ -52,10 +52,10 @@ def read_empty_data(data_path):
         loc4 = f.find('_z_')
         loc5 = f.find('_gpown_')
         loc6 = f.find('_gpother')
-        ys.append(f[(loc3 + 2): loc4])
+        ys.append(f[(loc3 + 4): loc4])
         zs.append(f[(loc4 + 3): loc5])
-        own_grip_posi.append(f[(loc5 + 3): loc6])
-        other_grip_posi.append(f[(loc6+4):len(f)])
+        own_grip_posi.append(f[(loc5 + 7): loc6])
+        other_grip_posi.append(f[(loc6+9):len(f)])
         path_list.append(data_path+'/'+f+'/')
         sub_fnames = os.listdir(data_path+'/'+f)
         all_names.append(sub_fnames)
@@ -74,26 +74,35 @@ def read_empty_data(data_path):
     for i in range(len(ys)):
         for j in range(50): # because there's 50 images per subtrial (25 pairs)
             img = all_names[i][j]
-
+            loc1 = img.find('gp_')
+            loc2 = img.find('_fr')
+            img[(loc1 + 3): loc2]
+            
             if img.startswith('1_'): # Own gripper image
+                rand_num = 1*(random.random()-0.5)
                 own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
                 own_output_p.append(28.5+rand_num)
                 own_selected_all_names.append(path_list[i]+img) # I don't think there's a need to differentiate between  
                 own_grip_posi_num.append(eval(own_grip_posi[i]))
-                rand_num = 1*(random.random()-0.5)
                 own_grip_vel_num.append((28.5+rand_num-30)/3)
                 # Velocities of both grippers should be related since they're
                 # Acting on the same object, right? Maybe ask Dr. Sun?
-                other_grip_vel_num.append((28.5+rand_num-30)/3)
                 own_index.append(j)
-            else: # Other griper image
+
+                # Find matching frame to populate 'other' info
+                fr_sloc = img.find('frame')
+                fr_eloc = img.find('.jpg')
+                frame_no = img[(fr_sloc + 5): fr_eloc]
+                matching_img_path = glob.glob(os.path.join(path_list[i], f'2_*_frame{frame_no}.jpg'))
+                filename_list = [os.path.basename(path) for path in matching_img_path]
+                other_img = filename_list[0]
                 other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                rand_num = 1*(random.random()-0.5)
                 other_output_p.append(28.5+rand_num)
-                other_selected_all_names.append(path_list[i]+img) # I don't think there's a need to differentiate between  
+                other_selected_all_names.append(path_list[i]+other_img)
                 other_grip_posi_num.append(eval(other_grip_posi[i]))
+                other_grip_vel_num.append((28.5+rand_num-30)/3)
                 other_index.append(j)
-                
+    
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
 def read_data(data_path,label_path,up_limit = 30,offset=0):
@@ -216,6 +225,7 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                 own_output_p.append(own_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
                 other_output_p.append(other_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
     
+    
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names, own_output_p,other_output_p, own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
 def train(model, device, own_train_loader, other_train_loader, optimizer, epoch):
@@ -326,10 +336,10 @@ own_selected_all_names_ = []
 other_selected_all_names_ = []
 own_output_p_ = []
 other_output_p_ = []
-own_grip_posi_num = []
-other_grip_posi_num = []
-own_grip_vel_num = []
-other_grip_vel_num = []
+own_grip_posi_num_ = []
+other_grip_posi_num_ = []
+own_grip_vel_num_ = []
+other_grip_vel_num_ = []
 
 for i, val in enumerate(dataset_list):
     if 'npy' not in val:
@@ -343,13 +353,13 @@ for i, val in enumerate(dataset_list):
             other_selected_all_names_.extend(other_selected_all_names)
             own_output_p_.extend(own_output_p)
             other_output_p_.extend(other_output_p)
-            own_grip_posi_num.extend(own_grip_posi_num)
-            other_grip_posi_num.extend(other_grip_posi_num)
-            own_grip_vel_num.extend(own_grip_vel_num)
-            other_grip_vel_num.extend(other_grip_vel_num)
+            own_grip_posi_num_.extend(own_grip_posi_num)
+            other_grip_posi_num_.extend(other_grip_posi_num)
+            own_grip_vel_num_.extend(own_grip_vel_num)
+            other_grip_vel_num_.extend(other_grip_vel_num)
         else:
             if 'gel' in val or 'hard_rubber' in val:
-                own_index,other_index,own_total,other_total,own_selected_all_names, other_selected_all_names, own_output_p,other_output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy',up_limit = 11.5)
+                own_index,other_index,own_total,other_total,own_selected_all_names, other_selected_all_names, own_output_p,other_output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
             else:
                 own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num,own_grip_vel_num,other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
             own_index_.extend(own_index)
@@ -360,17 +370,30 @@ for i, val in enumerate(dataset_list):
             other_selected_all_names_.extend(other_selected_all_names)
             own_output_p_.extend(own_output_p)
             other_output_p_.extend(other_output_p)
-            own_grip_posi_num.extend(own_grip_posi_num)
-            other_grip_posi_num.extend(other_grip_posi_num)
-            own_grip_vel_num.extend(own_grip_vel_num)
-            other_grip_vel_num.extend(other_grip_vel_num)
+            own_grip_posi_num_.extend(own_grip_posi_num)
+            other_grip_posi_num_.extend(other_grip_posi_num)
+            own_grip_vel_num_.extend(own_grip_vel_num)
+            other_grip_vel_num_.extend(other_grip_vel_num)
 
-own_pv_pair_list = zip(own_grip_posi_num,own_grip_vel_num)
+# print("own_index length:", len(own_index_))
+# print("other_index length:", len(other_index_))
+# print("own_total length:", len(own_total_))
+# print("other_total length:", len(other_total_))
+# print("own_selected_all_names length:", len(own_selected_all_names_))
+# print("other_selected_all_names length:", len(other_selected_all_names_))
+# print("own_output_p length:", len(own_output_p_))
+# print("other_output_p length:", len(other_output_p_))
+# print("own_grip_posi_num length:", len(own_grip_posi_num_))
+# print("other_grip_posi_num length:", len(other_grip_posi_num_))
+# print("own_grip_vel_num length:", len(own_grip_vel_num_))
+# print("other_grip_vel_num length:", len(other_grip_vel_num_))
+# raise KeyError
+own_pv_pair_list = zip(own_grip_posi_num_,own_grip_vel_num_)
 own_frame_pair_list = zip(own_selected_all_names_,own_index_)
 own_all_x_list = list(zip(own_frame_pair_list, own_pv_pair_list))        
 own_all_y_list = (own_output_p_) 
 
-other_pv_pair_list = zip(other_grip_posi_num, other_grip_vel_num)
+other_pv_pair_list = zip(other_grip_posi_num_, other_grip_vel_num_)
 other_frame_pair_list = zip(other_selected_all_names_,other_index_)
 other_all_x_list = list(zip(other_frame_pair_list, other_pv_pair_list))        
 other_all_y_list = (other_output_p_)

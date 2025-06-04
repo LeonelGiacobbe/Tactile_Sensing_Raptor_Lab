@@ -66,8 +66,8 @@ def move_start_pos2(base, base_cyclic):
     cartesian_pose.y = 0.219 # (meters)
     cartesian_pose.z = 0.15   # (meters)
     cartesian_pose.theta_x = 0.0 # (degrees)
-    cartesian_pose.theta_y = -180.0 # (degrees)
-    cartesian_pose.theta_z = 0.0 # (degrees)
+    cartesian_pose.theta_y = 180.0 # (degrees)
+    cartesian_pose.theta_z = 180.0 # (degrees)
 
     e = threading.Event() # Callback to tell us status of action topic, when it starts and stops moving
     notification_handle = base.OnNotificationActionTopic(
@@ -112,8 +112,8 @@ def main():
         base2 = BaseClient(router2)
         base_cyclic2 = BaseCyclicClient(router2)
 
-        #success &= move_start_pos1(base1, base_cyclic1)
-        success &= move_start_pos2(base2, base_cyclic2)
+        success &= move_start_pos1(base1, base_cyclic1)
+        #success &= move_start_pos2(base2, base_cyclic2)
 
 
 if __name__ == "__main__":
