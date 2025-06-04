@@ -124,7 +124,7 @@ def main():
         try:
             subcnt = 1
             cwd = os.getcwd()
-            full_dir = cwd + "/new_wood_block"
+            full_dir = cwd + "/soft_foam"
             trial_cnt = get_next_trial_number(full_dir)
 
             ymov = random.uniform(-0.035, 0.035) # 35 mm
@@ -195,7 +195,7 @@ def main():
 
                 print("Finished trial, moving images to folder...")
                 
-                trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_wood_block_y_{ymov * 1000}_z_{zmov * 1000}_gpown_{str(P_SLIP_1)}_gpother_{str((P_SLIP_2))}"
+                trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_soft_foam_y_{ymov * 1000}_z_{zmov * 1000}_gpown_{str(P_SLIP_1)}_gpother_{str((P_SLIP_2))}"
                 os.mkdir(trial_dir_name)
                 images = glob.glob(os.path.join(os.getcwd(), '*.jpg'), recursive=True)
                 for image in images:

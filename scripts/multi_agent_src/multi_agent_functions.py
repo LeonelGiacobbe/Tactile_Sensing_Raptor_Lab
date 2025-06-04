@@ -292,7 +292,7 @@ class MPClayer(nn.Module):
         x_predict = torch.bmm(S_batch, u.reshape(nBatch, 2 * self.nStep, 1)) + torch.bmm(T_batch, x_combined.reshape(nBatch, nHiddenExpand, 1)) + other_effect_expanded
         
         """
-        After all of the math, x_predict will have size of [nBatch, self.nStep * nHiddenExpand, 1]
+        After all of the math, x_predict will have size of [nBatch, 1, self.nStep * nHiddenExpand]
         this contains the predictions of both "own" (0-440) and "other" (441-880)
 
         We do all the math keeping both agent's information in mind, but after the math, we only care about
@@ -305,17 +305,28 @@ class MPClayer(nn.Module):
         Without resizing, the losses are ~6000!
         
         """
-        x_predict = x_predict[:, : (self.nStep * (self.nHidden + 2)), :]
+        x_predict_1 = x_predict[:, : (self.nStep * (self.nHidden + 2)), :]
+        x_predict_2 = x_predict[:, (self.nStep * (self.nHidden + 2)) : , :]
         
-        embb_output = Variable(torch.zeros(1,self.nHidden).cuda())
-        state_output = Variable(torch.eye(1).cuda())
-        output_single = torch.hstack((embb_output,state_output))
-        output_single = torch.hstack((output_single,torch.zeros(1,1).cuda()))
-        output_stack = output_single.unsqueeze(0).expand(self.nStep, 1, self.nHidden+2)
-        output_dia =  torch.block_diag(*output_stack).cuda()
-        output_batch = output_dia.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(self.nHidden+2))
-        posi_predict = torch.bmm(output_batch,x_predict).resize(nBatch,self.nStep)
+        embb_output_1 = Variable(torch.zeros(1,self.nHidden).cuda())
+        state_output_1 = Variable(torch.eye(1).cuda())
+        output_single_1 = torch.hstack((embb_output_1,state_output_1))
+        output_single_1 = torch.hstack((output_single_1,torch.zeros(1,1).cuda()))
+        output_stack_1 = output_single_1.unsqueeze(0).expand(self.nStep, 1, self.nHidden+2)
+        output_dia_1 =  torch.block_diag(*output_stack_1).cuda()
+        output_batch_1 = output_dia_1.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(self.nHidden+2))
+        posi_predict_1 = torch.bmm(output_batch_1,x_predict_1).resize(nBatch,self.nStep)
+
+        embb_output_2 = Variable(torch.zeros(1,self.nHidden).cuda())
+        state_output_2 = Variable(torch.eye(1).cuda())
+        output_single_2 = torch.hstack((embb_output_2,state_output_2))
+        output_single_2 = torch.hstack((output_single_2,torch.zeros(1,1).cuda()))
+        output_stack_2 = output_single_2.unsqueeze(0).expand(self.nStep, 1, self.nHidden+2)
+        output_dia_2 =  torch.block_diag(*output_stack_2).cuda()
+        output_batch_2 = output_dia_2.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(self.nHidden+2))
+        posi_predict_2 = torch.bmm(output_batch_2,x_predict_2).resize(nBatch,self.nStep)
+
+        return posi_predict_1, posi_predict_2
         
-        x = posi_predict    
-        return x
+        
 

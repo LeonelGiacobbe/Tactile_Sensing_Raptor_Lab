@@ -228,7 +228,7 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                 other_output_p.append(other_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
     
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names, own_output_p,other_output_p, own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
-
+        
 def train(model, device, own_train_loader, other_train_loader, optimizer, epoch):
     # set model as training mode
     cnn_encoder, MPC_layer= model
@@ -253,15 +253,20 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         own_output = cnn_encoder(X_own)
         other_output = cnn_encoder(X_other) 
         
-        output = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) 
+        output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) 
         
-        y_own= y_own.unsqueeze(1).expand(X_own.size(0), output.size(1))
-        final_y = y_own[:,(output.size(1)-1)]*3
-        final_output = output[:,(output.size(1)-1)]*3
-        
-        loss = F.mse_loss(output,y_own.float()) + F.mse_loss(final_y,final_output)
-        losses.append(loss.item())
+        y_own= y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1))
+        final_y_own = y_own[:,(output_1.size(1)-1)]*3
+        final_output_own = output_1[:,(output_1.size(1)-1)]*3
 
+        y_other= y_other.unsqueeze(1).expand(X_other.size(0), output_2.size(1))
+        final_y_other = y_other[:,(output_2.size(1)-1)]*3
+        final_output_other = output_2[:,(output_2.size(1)-1)]*3
+        
+        loss = F.mse_loss(output_1,y_own.float()) + F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_own,final_output_own) + F.mse_loss(final_y_other,final_output_other)
+        losses.append(loss.item())
+        print("Agent 1 loss: ", F.mse_loss(output_1,y_own.float()) + F.mse_loss(final_y_own,final_output_own))
+        print("Agent 2 loss: ", F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_other,final_output_other))
         loss.backward()
         
         
@@ -272,14 +277,16 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
             epoch + 1, N_count, len(own_train_loader.dataset), 100. * (epoch_count + 1) / len(own_train_loader), loss.item()))
 
-def validation(model, device, optimizer, own_test_loader, other_test_loader):
+def validation(model, device, own_test_loader, other_test_loader):
     cnn_encoder, MPC_layer= model
     cnn_encoder.eval()
     MPC_layer.eval()
     test_loss = 0
     loss_list = []
-    all_y = []
-    all_y_pred = []
+    all_y_own = []
+    all_y_other = []
+    all_y_pred_own = []
+    all_y_pred_other = []
     with torch.no_grad():
         for (X_own, y_own), (X_other, y_other) in zip(own_test_loader, other_test_loader):
             # distribute data to device
@@ -303,23 +310,81 @@ def validation(model, device, optimizer, own_test_loader, other_test_loader):
             # print("other gripper pos size: ", other_gripper_p.size())
             # print("other gripper v size: ", other_gripper_v.size())
             
-            output = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
+            output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
             
-            y_own= y_own.unsqueeze(1).expand(X_own.size(0), output.size(1))
-            final_y = y_own[:,(output.size(1)-1)]*3
-            final_output = output[:,(output.size(1)-1)]*3
+            y_own = y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1))
+            final_y_own = y_own[:,(output_1.size(1)-1)]*3
+            final_output_own = output_1[:,(output_1.size(1)-1)]*3
+
+            y_other = y_other.unsqueeze(1).expand(X_other.size(0), output_2.size(1))
+            final_y_other = y_other[:,(output_2.size(1)-1)]*3
+            final_output_other = output_2[:,(output_2.size(1)-1)]*3
                  
-            loss = F.mse_loss(output,y_own.float()) + F.mse_loss(final_y,final_output)
+            loss = F.mse_loss(output_1,y_own.float()) + F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_own,final_output_own) + F.mse_loss(final_y_other,final_output_other)
             loss_list.append(loss.item())
-            test_loss += F.mse_loss(output,y_own.float()).item()      
-            y_pred = output.max(1, keepdim=True)[1] 
-            all_y.extend(y_own)
-            all_y_pred.extend(y_pred)
+            test_loss += F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(output_2,y_other.float()).item()     
+            y_pred_own = output_1.max(1, keepdim=True)[1] 
+            y_pred_other = output_2.max(1, keepdim=True)[1] 
+            all_y_own.extend(y_own)
+            all_y_other.extend(y_other)
+
+            all_y_pred_own.extend(y_pred_own)
+            all_y_pred_other.extend(y_pred_other)
 
     test_loss = np.mean(loss_list)
-    all_y = torch.stack(all_y, dim=0)
-    all_y_pred = torch.stack(all_y_pred, dim=0)
-    print('\nTest set ({:d} samples): Average loss: {:.4f}\n'.format(len(all_y), test_loss))
+    all_y_own = torch.stack(all_y_own, dim=0)
+    all_y_other = torch.stack(all_y_other, dim=0)
+    all_y_pred_own = torch.stack(all_y_pred_own, dim=0)
+    all_y_pred_other = torch.stack(all_y_pred_other, dim=0)
+    print('\nTest set ({:d} samples): Average loss: {:.4f}\n'.format(len(all_y_own), test_loss))
+
+def modified_validation(model, device, own_test_loader, other_test_loader):
+    cnn_encoder, MPC_layer = model
+    cnn_encoder.eval()
+    MPC_layer.eval()
+    loss_list = []
+    all_y = []
+    all_y_pred = []
+    
+    with torch.no_grad():
+        for (X_own, y_own), (X_other, y_other) in zip(own_test_loader, other_test_loader):
+            own_gripper_p = X_own[1][0].to(device)
+            own_gripper_v = X_own[1][1].to(device)
+            other_gripper_p = X_other[1][0].to(device)
+            other_gripper_v = X_other[1][1].to(device)
+
+            X_own, y_own = X_own[0].to(device), y_own.to(device).view(-1)
+            X_other, y_other = X_other[0].to(device), y_other.to(device).view(-1)
+
+            own_output = cnn_encoder(X_own)
+            other_output = cnn_encoder(X_other)
+            output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
+
+            y_own = y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1))
+            final_y_own = y_own[:, -1] * 3
+            final_output_own = output_1[:, -1] * 3
+
+            y_other = y_other.unsqueeze(1).expand(X_other.size(0), output_2.size(1))
+            final_y_other = y_other[:, -1] * 3
+            final_output_other = output_2[:, -1] * 3
+
+            loss = (
+                F.mse_loss(output_1, y_own.float()) +
+                F.mse_loss(output_2, y_other.float()) +
+                F.mse_loss(final_y_own, final_output_own) +
+                F.mse_loss(final_y_other, final_output_other)
+            )
+            loss_list.append(loss.item())
+
+            all_y.append(final_y_own)
+            all_y_pred.append(final_output_own)
+
+    test_loss = np.mean(loss_list)
+    all_y = torch.cat(all_y, dim=0).view(-1)
+    all_y_pred = torch.cat(all_y_pred, dim=0).view(-1)
+
+    print('\nTest set ({} samples): Average loss: {:.4f}\n'.format(len(all_y), test_loss))
+
 
 
 use_cuda = torch.cuda.is_available()                  
@@ -428,7 +493,7 @@ optimizer = torch.optim.Adam(letac_params, lr=learning_rate)
 
 # start training
 for epoch in range(epochs):
-    validation([cnn_encoder, MPC_layer], device, optimizer, own_valid_loader, other_valid_loader)
+    validation([cnn_encoder, MPC_layer], device, own_valid_loader, other_valid_loader)
     train([cnn_encoder, MPC_layer], device, own_train_loader, other_train_loader, optimizer, epoch)
 
 # Save the model after training
