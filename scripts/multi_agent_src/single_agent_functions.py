@@ -18,7 +18,7 @@ def zeors_hstack_help(vec, n, size_row, size_col):
     return combo
 
 # Dataloader 
-class Dataset_LeTac(data.Dataset):
+class SingleDataset_LeTac(data.Dataset):
     def __init__(self, folders_pv_pair, labels, frames, transform=None):
         self.labels = labels
         self.folders = list(np.array(tuple(folders_pv_pair),dtype=object)[:,0])
@@ -44,10 +44,10 @@ class Dataset_LeTac(data.Dataset):
         return x, y
 
 # 2D CNN encoder using ResNet-152 pretrained.
-class ResCNNEncoder(nn.Module):
+class SingleResCNNEncoder(nn.Module):
     def __init__(self, hidden1=512, hidden2=512, dropP=0.3, outputDim=300):
         """Load the pretrained ResNet-152 and replace top fc layer."""
-        super(ResCNNEncoder, self).__init__()
+        super(SingleResCNNEncoder, self).__init__()
 
         self.hidden1, self.hidden2 = hidden1, hidden2
         self.dropP = dropP
@@ -76,9 +76,9 @@ class ResCNNEncoder(nn.Module):
 
 
 # Differentiable MPC layer
-class MPClayer(nn.Module):
+class SingleMPClayer(nn.Module):
     def __init__(self,nHidden = 25, eps = 1e-4, nStep = 20, del_t = 1/60):
-        super(MPClayer, self).__init__()
+        super(SingleMPClayer, self).__init__()
 
         self.Pq = 5
         self.Qv = 200

@@ -310,7 +310,7 @@ def validation(model, device, own_test_loader, other_test_loader):
             # print("other gripper pos size: ", other_gripper_p.size())
             # print("other gripper v size: ", other_gripper_v.size())
             
-            output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
+            output_1, output_2 = MPC_layer(other_output, other_output, other_gripper_p, other_gripper_v, other_gripper_p, other_gripper_v)
             
             y_own = y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1))
             final_y_own = y_own[:,(output_1.size(1)-1)]*3
@@ -337,55 +337,6 @@ def validation(model, device, own_test_loader, other_test_loader):
     all_y_pred_own = torch.stack(all_y_pred_own, dim=0)
     all_y_pred_other = torch.stack(all_y_pred_other, dim=0)
     print('\nTest set ({:d} samples): Average loss: {:.4f}\n'.format(len(all_y_own), test_loss))
-
-def modified_validation(model, device, own_test_loader, other_test_loader):
-    cnn_encoder, MPC_layer = model
-    cnn_encoder.eval()
-    MPC_layer.eval()
-    loss_list = []
-    all_y = []
-    all_y_pred = []
-    
-    with torch.no_grad():
-        for (X_own, y_own), (X_other, y_other) in zip(own_test_loader, other_test_loader):
-            own_gripper_p = X_own[1][0].to(device)
-            own_gripper_v = X_own[1][1].to(device)
-            other_gripper_p = X_other[1][0].to(device)
-            other_gripper_v = X_other[1][1].to(device)
-
-            X_own, y_own = X_own[0].to(device), y_own.to(device).view(-1)
-            X_other, y_other = X_other[0].to(device), y_other.to(device).view(-1)
-
-            own_output = cnn_encoder(X_own)
-            other_output = cnn_encoder(X_other)
-            output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
-
-            y_own = y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1))
-            final_y_own = y_own[:, -1] * 3
-            final_output_own = output_1[:, -1] * 3
-
-            y_other = y_other.unsqueeze(1).expand(X_other.size(0), output_2.size(1))
-            final_y_other = y_other[:, -1] * 3
-            final_output_other = output_2[:, -1] * 3
-
-            loss = (
-                F.mse_loss(output_1, y_own.float()) +
-                F.mse_loss(output_2, y_other.float()) +
-                F.mse_loss(final_y_own, final_output_own) +
-                F.mse_loss(final_y_other, final_output_other)
-            )
-            loss_list.append(loss.item())
-
-            all_y.append(final_y_own)
-            all_y_pred.append(final_output_own)
-
-    test_loss = np.mean(loss_list)
-    all_y = torch.cat(all_y, dim=0).view(-1)
-    all_y_pred = torch.cat(all_y_pred, dim=0).view(-1)
-
-    print('\nTest set ({} samples): Average loss: {:.4f}\n'.format(len(all_y), test_loss))
-
-
 
 use_cuda = torch.cuda.is_available()                  
 device = torch.device("cuda" if use_cuda else "cpu")   

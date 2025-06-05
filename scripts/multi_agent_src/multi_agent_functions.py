@@ -139,6 +139,10 @@ class MPClayer(nn.Module):
         self.G = Variable(torch.zeros(2 * self.nStep,2 * self.nStep).cuda())
         self.h = Variable(torch.zeros(2 * self.nStep,1).cuda())
 
+        # Stacked R
+        R0_stack = self.R0.unsqueeze(0).expand(2 * self.nStep, 1, 1) # Qa stack
+        self.R_dia =  torch.block_diag(*R0_stack).cuda() #Qa diagonal
+
 
     def forward(self, x1, x2, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v):
         """
@@ -172,10 +176,6 @@ class MPClayer(nn.Module):
         Q0_final = self.Pq*Q0_combined.unsqueeze(0).expand(1, nHiddenExpand, nHiddenExpand)
         Q0_stack = torch.vstack((Q0_stack,Q0_final))
         Q_dia =  torch.block_diag(*Q0_stack).cuda() # Contains Q0_combined (or Qf in paper) for each time step
-        
-        # Stacked R
-        R0_stack = self.R0.unsqueeze(0).expand(2 * self.nStep, 1, 1) # Qa stack
-        R_dia =  torch.block_diag(*R0_stack).cuda() #Qa diagonal
 
         # Model computing of own dynamics 
         A0 = torch.vstack((torch.hstack((torch.hstack((self.A_eye,self.Af_zero)),self.Af)),self.Ap_right))
@@ -202,23 +202,36 @@ class MPClayer(nn.Module):
         for i in range(self.nStep-1):
             temp = torch.mm(temp,A0)
             T_ = torch.vstack((T_,temp))
-        I = Variable(torch.eye(nHiddenExpand).cuda())
-        row_single = zeors_hstack_help(I, self.nStep, nHiddenExpand, nHiddenExpand)
-        AN_ = row_single
-        for i in range(self.nStep-1):
-            AN = I
-            row_single = I
-            for j in range(i+1):
-                AN = torch.mm(A0,AN)
-                row_single = torch.hstack((AN,row_single))
-            row_single = zeors_hstack_help(row_single, self.nStep-i-1, nHiddenExpand, nHiddenExpand)
-            AN_=torch.vstack((AN_, row_single))
+
+        # Precompute identity matrix and powers of A0
+        I = torch.eye(nHiddenExpand, device='cuda')
+        A_powers = [I]
+        for i in range(1, self.nStep):
+            A_powers.append(torch.mm(A0, A_powers[-1]))
+        # Now A_powers contains  [I, A0, A0^2...]
+        # Precompute each row of the final matrix
+        rows = []
+        for i in range(self.nStep):
+            # Build the row with decreasing powers
+            row_blocks = [A_powers[j] for j in range(i, -1, -1)]
+            
+            # Pad with zeros if needed
+            if self.nStep - i - 1 > 0:
+                zero_blocks = [torch.zeros_like(I) for _ in range(self.nStep - i - 1)]
+                row_blocks += zero_blocks
+            
+            # Concatenate horizontally
+            row = torch.hstack(row_blocks)
+            rows.append(row)
+
+        # Stack rows to build final matrix
+        AN_ = torch.vstack(rows)
         B0_stack = self.B0.unsqueeze(0).expand(self.nStep, nHiddenExpand, 2)
         B_dia =  torch.block_diag(*B0_stack)
         S_ = torch.mm(AN_,B_dia)
         
         
-        Q_final = 2*(R_dia+(torch.mm(S_.t(),Q_dia)).mm(S_))+ self.eps*Variable(torch.eye(2 * self.nStep)).cuda() # f_k^T @ Qf @ f_k
+        Q_final = 2*(self.R_dia+(torch.mm(S_.t(),Q_dia)).mm(S_))+ self.eps*Variable(torch.eye(2 * self.nStep)).cuda() # f_k^T @ Qf @ f_k
         Q_batch = Q_final.unsqueeze(0).expand(nBatch, 2 * self.nStep, 2 * self.nStep)
         p_final = 2*torch.mm(T_.t(),torch.mm(Q_dia,S_)) # f_n^T @ Q_f @ 
         p_batch = p_final.unsqueeze(0).expand(nBatch, nHiddenExpand, 2 * self.nStep)
