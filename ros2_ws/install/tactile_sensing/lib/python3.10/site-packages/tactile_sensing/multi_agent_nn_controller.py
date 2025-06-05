@@ -165,7 +165,7 @@ class ModelBasedMPCNode(Node):
                 image_tensor = self.current_image.unsqueeze(0)
                 # Kinova uses a custom scale (see gripper posi callback for details), here we convert to mm
                 gripper_p = torch.tensor([gripper_posi_to_mm(self.gripper_posi_)]).to(self.device)
-                gripper_v = torch.tensor(self.gripper_vel_ + 0.5).to(self.device)
+                gripper_v = torch.tensor(self.gripper_vel_).to(self.device)
                 tactile_embeddings = self.nn_encoder(image_tensor) # 0.16s spent here
                 start_time = time.time() # Ignore, used to diagnose performance before
                 self.get_logger().info(f"Position value passed to mpc layer: {gripper_p}")

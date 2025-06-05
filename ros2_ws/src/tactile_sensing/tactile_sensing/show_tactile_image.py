@@ -27,14 +27,17 @@ class CameraPublisher(Node):
 
         # This node publishes the position of an object every 3 seconds.
         # Maximum queue size of 10.
-        self.publisher_position_cam_frame = self.create_publisher(Image, '/gsmini_rawimg_0', 10)
+        self.frame_publisher_1 = self.create_publisher(Image, '/gsmini_rawimg_1', 10)
+        self.frame_publisher_2 = self.create_publisher(Image, '/gsmini_rawimg_2', 10)
 
         # 3 seconds
         timer_period = 0.05
         self.timer = self.create_timer(timer_period, self.get_image)
         self.i = 0  # Initialize a counter variable
 
-        self.vs0 = WebcamVideoStream(src=2  ).start()
+        self.vs0 = WebcamVideoStream(src=2).start()
+        self.vs1 = WebcamVideoStream(src=4).start()
+
         self.cvbridge = CvBridge()
 
     def get_image(self):
@@ -43,21 +46,25 @@ class CameraPublisher(Node):
         This function gets called every 3 seconds.
         We locate an object using the camera and then publish its coordinates to ROS2 topics.
         """
-        img = self.vs0.read()
+        img_1 = self.vs0.read()
+        img_2 = self.vs1.read()
         # Publish the coordinates to the topic
-        self.publish_coordinates(img)
+        self.publish_coordinates(img_1, img_2)
 
         # Increment counter variable
         self.i += 1
 
-    def publish_coordinates(self, img):
+    def publish_coordinates(self, img_1, img_2):
         """
         Publish the coordinates of the object to ROS2 topics
         :param: The position of the object in centimeter coordinates [x , y]
         """
         # msg = Image()  # Create a message of this type
-        msg = self.cvbridge.cv2_to_imgmsg(img, encoding="rgb8")  # Store the x and y coordinates of the object
-        self.publisher_position_cam_frame.publish(msg)  # Publish the position to the topic
+        msg_1 = self.cvbridge.cv2_to_imgmsg(img_1)  # Store the x and y coordinates of the object
+        self.frame_publisher_1.publish(msg_1)  # Publish the position to the topic
+
+        msg_2 = self.cvbridge.cv2_to_imgmsg(img_2)  # Store the x and y coordinates of the object
+        self.frame_publisher_2.publish(msg_2)  # Publish the position to the topic
 
 
 
@@ -104,12 +111,6 @@ class WebcamVideoStream :
         self.stream.release()
 
 
-def chop_border_resize(img):
-    img = img[chop_border_size:imgh - chop_border_size, chop_border_size:imgw - chop_border_size]
-    img = cv2.resize(img, (imgw, imgh))
-    return img
-
-
 def main(args=None):
 
 
@@ -126,37 +127,6 @@ def main(args=None):
     gs['gsmini_pub'] = [0] * 2
     gs['vs'] = [0] * 2
     gs['img_msg'] = [0] * 2
-
-    # for i in range(NUM_SENSORS):
-    #     # gs['gsmini_pub'][i] = rospy.Publisher("/gsmini_rawimg_{}".format(i), Image, queue_size=1)
-    #     gs['gsmini_pub'][i] = create_publisher(Image, '/pos_in_cam_frame', 10)
-    #     gs['vs'][i] = WebcamVideoStream(src=2*i + 2).start() # make sure the id numbers of the cameras are ones recognized by the computer. Default, 2 and 4
-    #
-    # r = rospy.Rate(25)  # 10hz
-    # while not rospy.is_shutdown():
-    #
-    #     for i in range(NUM_SENSORS):
-    #         gs['img'][i] = gs['vs'][i].read()
-    #         gs['img'][i] = cv2.resize(gs['img'][i], (imgw,imgh))
-    #         gs['img'][i] = chop_border_resize(gs['img'][i])
-    #         cv2.imshow('gsmini{}'.format(i), gs['img'][i])
-    #
-    #     print ('.. hit ESC to exit! .. ')
-    #     if cv2.waitKey(1) == 27 :
-    #         break
-    #
-    #     ''' publish imgae to ros '''
-    #     for i in range(NUM_SENSORS):
-    #         gs['img_msg'][i] = cvbridge.cv2_to_imgmsg(gs['img'][i], encoding="passthrough")
-    #         gs['img_msg'][i].header.stamp = rospy.Time.now()
-    #         gs['img_msg'][i].header.frame_id = 'map'
-    #         gs['gsmini_pub'][i].publish(gs['img_msg'][i])
-    #
-    #     r.sleep()
-    #
-    #
-    # for i in range(NUM_SENSORS): gs['vs'][i].stop()
-    # cv2.destroyAllWindows()
 
     # Initialize the rclpy library
     rclpy.init(args=args)
