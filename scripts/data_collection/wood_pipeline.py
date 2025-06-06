@@ -104,11 +104,10 @@ def main():
                 gripper1.Goto(0.18)
 
                 # Since we're not using impedance, add small variability to P_SLIP
-                rand_slip_1 = random.uniform(0.0, 0.35)
-                rand_slip_2 = random.uniform (0.0, 0.35)
+                rand_slip = random.uniform(0.0, 0.35)
                 
-                P_SLIP_1 = 24.3 + rand_slip_1 # Must be a value in mm (not percentage of gripper opening)
-                P_SLIP_2 = 24.3 + rand_slip_2 # Must be a value in mm (not percentage of gripper opening)
+                P_SLIP_1 = 24.3 + rand_slip # Must be a value in mm (not percentage of gripper opening)
+                P_SLIP_2 = 24.3 + rand_slip # Must be a value in mm (not percentage of gripper opening)
 
                 rand_goto = random.uniform(0.0,0.005)
                 gripper1.Goto(0.74 + rand_goto)
