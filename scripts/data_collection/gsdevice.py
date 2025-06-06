@@ -81,14 +81,14 @@ class Camera:
         self.cam = cv2.VideoCapture(self.dev_id)
         if self.cam is None or not self.cam.isOpened():
             print('Warning: unable to open video source: ', self.dev_id)
+
+        
         self.imgw = 224
         self.imgh = 224
 
         return self.cam
 
     def get_raw_image(self):
-        for i in range(10): ## flush out fist 100 frames to remove black frames
-            ret, f0 = self.cam.read()
         ret, f0 = self.cam.read()
         if ret:
             f0 = resize_crop_mini(f0,self.imgh,self.imgw)

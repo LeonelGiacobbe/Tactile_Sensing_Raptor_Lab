@@ -6,10 +6,13 @@ from kortex_api.autogen.messages import Base_pb2
 from kortex_api.autogen.messages import BaseCyclic_pb2
 from movement_functions import *
 
-def capture_image(dev):
+def capture_image(dev, dev2):
     f0 = dev.get_raw_image()
-    if f0 is not None:
+    f1 = dev2.get_raw_image()
+    if f0 is not None and f1 is not None:
         cv2.imwrite(f'image.jpg', f0)
+        # cv2.imwrite(f'image2.jpg', f1)
+        return f0
         # print("Image saved")
     else:
         print("Error: No image captured")
@@ -18,21 +21,15 @@ def main():
     # Counter for captured frame identification
     counter1 = 1
     counter2 = 1
-    # Gelsight connection
-    # To define multiple connections, edit gsdevice to accept dev_id as a constructor argument
-    # That way we can instantiate multiple objects, according to /dev/videoX
-    # dev_id will be the X in videoX
-    # For 2f-140 gripper
-    dev2 = gsdevice.Camera("GelSight Mini", 2) # second arg should be X in videoX 
-    # # For 2f-85 gripper
-    # dev1 = gsdevice.Camera("Gelsight Mini", 2) # second arg should be X in videoX
+    
+    dev = gsdevice.Camera("GelSight Mini", 2)
+    dev2 = gsdevice.Camera("GelSight Mini", 4)
 
     # dev1.connect()
+    dev.connect()
     dev2.connect()
 
-    capture_image(dev2)
-
-    print("Done capturing image")
+    capture_image(dev, dev2)
         
 
 if __name__ == "__main__":

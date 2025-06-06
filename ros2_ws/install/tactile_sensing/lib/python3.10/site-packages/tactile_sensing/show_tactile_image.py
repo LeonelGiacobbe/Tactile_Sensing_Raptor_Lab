@@ -63,7 +63,7 @@ class CameraPublisher(Node):
         msg_1 = self.cvbridge.cv2_to_imgmsg(img_1)  # Store the x and y coordinates of the object
         self.frame_publisher_1.publish(msg_1)  # Publish the position to the topic
 
-        msg_2 = self.cvbridge.cv2_to_imgmsg(img_2, encoding="rgb8")  # Store the x and y coordinates of the object
+        msg_2 = self.cvbridge.cv2_to_imgmsg(img_2)  # Store the x and y coordinates of the object
         self.frame_publisher_2.publish(msg_2)  # Publish the position to the topic
 
 

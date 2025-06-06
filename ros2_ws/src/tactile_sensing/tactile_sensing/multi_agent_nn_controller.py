@@ -17,23 +17,34 @@ from cv_bridge import CvBridge
 import os, time
 from ament_index_python.packages import get_package_share_directory
 
-CONVERSION_RATE = 0.005715 # Kinova unit to mm
+CONVERSION_RATE_140_MM = 0.00571429 # Kinova unit to mm
+CONVERSION_RATE_85_MM = 0.00941176 # Kinova unit to mm
 
-def gripper_posi_to_mm(gripper_posi):
+def gripper_posi_to_mm_140(gripper_posi):
     opening = 0.8 - gripper_posi
-    return opening / CONVERSION_RATE
+    return opening / CONVERSION_RATE_140_MM
 
-def mm_to_gripper_posi(millimeters):
+def mm_to_gripper_posi_140(millimeters):
     opening = 140 - millimeters
-    return opening * CONVERSION_RATE
+    return opening * CONVERSION_RATE_140_MM
+
+def gripper_posi_to_mm_85(gripper_posi):
+    opening = 0.8 - gripper_posi
+    return opening / CONVERSION_RATE_85_MM
+
+def mm_to_gripper_posi_85(millimeters):
+    opening = 85 - millimeters
+    return opening * CONVERSION_RATE_85_MM
 
 
 class ModelBasedMPCNode(Node):
     def __init__(self):
         super().__init__('model_based_mpc_node')
         
-        self.gripper_posi_ = 0.0
-        self.gripper_vel_ = 0.0
+        self.gripper_posi_1 = 0.0
+        self.gripper_vel_1 = 0.0
+        self.gripper_posi_2 = 0.0
+        self.gripper_vel_2 = 0.0
         self.processing_executor = ThreadPoolExecutor(max_workers=1)
         self.contact_area_lock = threading.Lock()
         self.frequency = 10
@@ -47,6 +58,7 @@ class ModelBasedMPCNode(Node):
             self.stream = torch.cuda.Stream()
         self.nn_encoder.eval()
         self.mpc_layer.eval()
+
         # Warmup pass
         dummy_input = torch.randn(1, 3, 224, 224, device=self.device)
         _ = self.nn_encoder(dummy_input)
@@ -69,7 +81,9 @@ class ModelBasedMPCNode(Node):
         # To convert GelSight images from ROS Image to CV Image
         self.bridge = CvBridge()
 
-        self.current_image = None
+        # Gelsight image vars
+        self.current_image_1 = None
+        self.current_image_2 = None
 
         self.rate = self.create_rate(self.frequency)
 
@@ -84,14 +98,23 @@ class ModelBasedMPCNode(Node):
         )   
 
         # Using Kinova arm, and we send gripper posi commands through Action Server
+        # WILL NEED TO DO THIS TWICE
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
         self.callback_group = ReentrantCallbackGroup()
 
         # Receives image from tactile sensor
-        self.contact_area_sub = self.create_subscription(
+        self.contact_area_sub_1 = self.create_subscription(
             ROSImage, 
-            '/gsmini_rawimg_0', 
-            self.contact_area_cb,
+            '/gsmini_rawimg_1', 
+            self.contact_area_cb_1,
+            gs_qos_profile, 
+            callback_group=self.callback_group
+        )
+
+        self.contact_area_sub_2 = self.create_subscription(
+            ROSImage, 
+            '/gsmini_rawimg_2', 
+            self.contact_area_cb_2,
             gs_qos_profile, 
             callback_group=self.callback_group
         )
@@ -103,6 +126,7 @@ class ModelBasedMPCNode(Node):
             durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
         )
         
+        # WILL NEED TO DO THIS TWICE
         self.joint_state_sub = self.create_subscription(
             JointState,
             '/joint_states',
@@ -121,11 +145,11 @@ class ModelBasedMPCNode(Node):
                 index = msg.name.index('robotiq_85_left_knuckle_joint')
                 gripper_position = msg.position[index]
 
-                self.gripper_posi_ = gripper_position
+                self.gripper_posi_1 = gripper_position
                 # self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
                 
                 gripper_vel = msg.velocity[index]
-                self.gripper_vel_ = gripper_vel
+                self.gripper_vel_1 = gripper_vel
                 # self.get_logger().info(f"Current gripper vel: {gripper_vel:.4f}")  # Debug velocity
             else:
                 self.get_logger().warn("Gripper joint not found in JointState message")
@@ -138,17 +162,34 @@ class ModelBasedMPCNode(Node):
     def dis_sum_cb(self, msg):
         self.dis_sum_ = msg.data        
         
-    def contact_area_cb(self, msg):
+    def contact_area_cb_1(self, msg):
         start = time.time()
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')   
+            cv_image = self.bridge.imgmsg_to_cv2(msg)   
             # cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)  
             pil_image = Image.fromarray(cv_image)        
             # Convert to tensor and process single image
             tensor = self.transform(pil_image).to(self.device)
             
             with self.contact_area_lock:
-                self.current_image = tensor  # Store single image
+                self.current_image_1 = tensor  # Store single image
+            stop = time.time()
+            # self.get_logger().info(f"Image processing runtime: {stop - start}")
+
+        except Exception as e:
+            self.get_logger().error(f'Tactile processing failed: {str(e)}')
+
+    def contact_area_cb_2(self, msg):
+        start = time.time()
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(msg)   
+            # cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)  
+            pil_image = Image.fromarray(cv_image)        
+            # Convert to tensor and process single image
+            tensor = self.transform(pil_image).to(self.device)
+            
+            with self.contact_area_lock:
+                self.current_image_2 = tensor  # Store single image
             stop = time.time()
             # self.get_logger().info(f"Image processing runtime: {stop - start}")
 
@@ -156,26 +197,30 @@ class ModelBasedMPCNode(Node):
             self.get_logger().error(f'Tactile processing failed: {str(e)}')
         
     def run(self):
-        if self.current_image is None:
+        if self.current_image_1 is None or self.current_image_2 is None:
             return  # Not enough data
 
         try:
             # Prepare tensors
             with torch.no_grad():
-                image_tensor = self.current_image.unsqueeze(0)
+                image_tensor_1 = self.current_image_1.unsqueeze(0)
+                image_tensor_2 = self.current_image_2.unsqueeze(0)
                 # Kinova uses a custom scale (see gripper posi callback for details), here we convert to mm
-                gripper_p = torch.tensor([gripper_posi_to_mm(self.gripper_posi_)]).to(self.device)
-                gripper_v = torch.tensor(self.gripper_vel_).to(self.device)
-                tactile_embeddings = self.nn_encoder(image_tensor) # 0.16s spent here
-                start_time = time.time() # Ignore, used to diagnose performance before
-                self.get_logger().info(f"Position value passed to mpc layer: {gripper_p}")
-                self.get_logger().info(f"Position value passed to mpc layer: {gripper_v}")
-                pos_sequences = self.mpc_layer(tactile_embeddings, gripper_p, gripper_v) # 0.6s here
-                stop_time = time.time()
+                own_gripper_p = torch.tensor([gripper_posi_to_mm_140(self.gripper_posi_1)]).to(self.device)
+                own_gripper_v = torch.tensor(self.gripper_vel_1).to(self.device)
+
+                other_gripper_p = torch.tensor([gripper_posi_to_mm_85(self.gripper_posi_2)]).to(self.device)
+                other_gripper_v = torch.tensor(self.gripper_vel_2).to(self.device)
+
+                own_tactile_embeddings = self.nn_encoder(image_tensor_1) # 0.16s spent here
+                other_tactile_embeddings = self.nn_encoder(image_tensor_2)
+                
+                pos_sequences = self.mpc_layer(own_tactile_embeddings, own_gripper_p, own_gripper_v) # 0.6s here
+                # own_output, other_output = self.mpc_layer(own_embeddings, other_embeddings, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v, )
 
             # Take the first action in the horizon
             target_pos = pos_sequences[:, 0].item() # Now in mm
-            target_pos = mm_to_gripper_posi(target_pos) # Now converted to kinova scale
+            target_pos = mm_to_gripper_posi_140(target_pos) # Now converted to kinova scale
             
             self.get_logger().info(f"Target pos sequence: {pos_sequences}")
             
