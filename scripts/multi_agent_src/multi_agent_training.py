@@ -310,7 +310,7 @@ def validation(model, device, own_test_loader, other_test_loader):
             # print("other gripper pos size: ", other_gripper_p.size())
             # print("other gripper v size: ", other_gripper_v.size())
             
-            output_1, output_2 = MPC_layer(other_output, other_output, other_gripper_p, other_gripper_v, other_gripper_p, other_gripper_v)
+            output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
             
             y_own = y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1))
             final_y_own = y_own[:,(output_1.size(1)-1)]*3
