@@ -32,7 +32,7 @@ sa_mpc_layer.eval()
 
 ma_overall_time = 0.
 sa_overall_time = 0.
-samples = 1000
+samples = 10
 for _ in range(samples):
     x1, x2 = generate_image_data()
     #print("x1 size: ", x1.size())

@@ -106,12 +106,12 @@ def main():
                 # Since we're not using impedance, add small variability to P_SLIP
                 rand_slip = random.uniform (0.0, 0.35)
                 
-                P_SLIP_1 = 24.1 + rand_slip # Must be a value in mm (not percentage of gripper opening)
-                P_SLIP_2 = 24.1 + rand_slip # Must be a value in mm (not percentage of gripper opening)
+                P_SLIP_1 = 24.2 + rand_slip # Must be a value in mm (not percentage of gripper opening)
+                P_SLIP_2 = 24.2 + rand_slip # Must be a value in mm (not percentage of gripper opening)
 
                 rand_goto = random.uniform(0.0,0.005)
-                gripper1.Goto(0.745 + rand_goto)
-                gripper2.Goto(0.855 + rand_goto)
+                gripper1.Goto(0.747 + rand_goto)
+                gripper2.Goto(0.857 + rand_goto)
                 
                 posi1 = gripper1.GetGripperPosi()
                 posi2 = gripper2.GetGripperPosi()
@@ -135,30 +135,25 @@ def main():
                 time.sleep(1)
 
                 # Below condition is basically "While object has not slipped"
-                while (140 - posi2 * 140) < P_SLIP_2: # values in mm
-                    if (85 - posi1 * 85) < P_SLIP_1: # values in mm
-                        mm_posi2 = (140 - posi2 * 140)
-                        mm_posi1 = (85 - posi1 * 85) # current opening (percentage) times max opening (85 mm)
+                move_gr1 = True
+                while (140 - posi2 * 140) < P_SLIP_2 and (85 - posi1 * 85) < P_SLIP_1:
+                    mm_posi2 = (140 - posi2 * 140)
+                    mm_posi1 = (85 - posi1 * 85)  # current opening (percentage) times max opening (85 mm)
+
+                    for _ in range(3):
                         capture_image(mm_posi1, counter, dev1, 1)
                         capture_image(mm_posi2, counter, dev2, 2)
-                        gripper1.Goto(posi1 - .003)
-                        posi1 = gripper1.GetGripperPosi()
-                        
-                        # print(f"gripper1 opening in mm: {85 - posi1 * 85}")
                         counter += 1
-                    else:
-                        # print("Moving stationary gripper")
-                        gripper2.Goto(posi2 - .003)
-                        posi2 = gripper2.GetGripperPosi()
-                        
-                        # Only close gripper 1 if the trial has not ended:
-                        if (140 - posi2 * 140) < P_SLIP_2:
-                            gripper1.Goto(start1)
-                        
-                        
+                    if move_gr1:
+                        gripper1.Goto(posi1 - 0.001)
                         posi1 = gripper1.GetGripperPosi()
-                        # print(f"gripper2 posi in mm: {(140 - posi2 * 140)}")
-                gripper1.Goto(posi1 - 0.1)
+                        move_gr1 = False
+                    else:
+                        gripper2.Goto(posi2 - 0.001)
+                        posi2 = gripper2.GetGripperPosi()
+                        move_gr1 = True
+
+                #gripper1.Goto(posi1 - 0.1)
                 print("Finished trial, moving images to folder...")
                 
                 trial_dir_name = f"tr_{trial_cnt}_dp_{subcnt}_hard_rubber_y_{ymov * 1000}_z_{zmov * 1000}_gpown_{str(P_SLIP_1)}_gpother_{str((P_SLIP_2))}"
@@ -168,50 +163,50 @@ def main():
                     dst_path = os.path.join(trial_dir_name, os.path.basename(image))
                     shutil.move(image, dst_path)
 
-                jpg_files = glob.glob(os.path.join(trial_dir_name, "1_*.jpg"))
+                jpg_files = glob.glob(os.path.join(trial_dir_name, "[12]_*.jpg"))
 
-                if len(jpg_files) > 25:
-                    print(f"Removed {2 * (len(jpg_files) - 25)} images")
-                    # Sort by gpown_ value extracted from filename
-                    def extract_sort_key(filename):
-                        basename = os.path.basename(filename)
+                # Create a dictionary: key = frame number, value = [1_ file, 2_ file]
+                frame_to_pair = {}
+                for f in jpg_files:
+                    frame_num_match = re.search(r"frame(\d+)\.jpg", os.path.basename(f))
+                    if frame_num_match:
+                        frame_num = frame_num_match.group(1)
+                        if frame_num not in frame_to_pair:
+                            frame_to_pair[frame_num] = []
+                        frame_to_pair[frame_num].append(f)
+
+                # Only keep pairs (both 1_ and 2_ exist)
+                paired_frames = {k: v for k, v in frame_to_pair.items() if len(v) == 2}
+
+                if len(paired_frames) > 25:
+                    print(f"Removed {2 * (len(paired_frames) - 25)} images")
+
+                    # Sort frames by gp_ value
+                    def extract_gp_sort_key(files):
+                        # Use the 1_ file for gp_ extraction if available, else 2_ file
+                        primary_file = next((f for f in files if "1_" in f), files[0])
+                        basename = os.path.basename(primary_file)
                         gp_match = re.search(r"gp_(.*?)_", basename)
-                        frame_match = re.search(r"frame(\d+)\.jpg", basename)
                         gp_value = float(gp_match.group(1)) if gp_match else float("inf")
-                        frame_num = frame_match.group(1) if frame_match else None
-                        return (gp_value, frame_num)
+                        return gp_value
 
-                    # Sort by lowest gpown value
-                    jpg_files.sort(key=extract_sort_key, reverse=True)
+                    # Sort frame numbers by gp value (lowest gp kept)
+                    sorted_frame_nums = sorted(paired_frames.keys(),
+                                                key=lambda k: extract_gp_sort_key(paired_frames[k]),
+                                                reverse=True)
 
-                    # Get the files we want to delete (keep first 25)
-                    files_to_delete = jpg_files[25:]
-                    
-                    # Delete each file and its pair
-                    for file_to_delete in files_to_delete:
-                        # Extract frame number
-                        frame_num = re.search(r"frame(\d+)\.jpg", os.path.basename(file_to_delete)).group(1)
-                        
-                        # Build pair filename pattern
-                        pair_pattern = os.path.join(trial_dir_name, f"2_*frame{frame_num}.jpg")
-                        paired_files = glob.glob(pair_pattern)
-                        
-                        # Delete both files
-                        os.remove(file_to_delete)
-                        if paired_files:  # Ensure pair exists before deletion
-                            os.remove(paired_files[0])
-                elif len(jpg_files) == 25:
-                    # Verify pairs exist for all 25
-                    missing_pairs = 0
-                    for f in jpg_files:
-                        frame_num = re.search(r"frame(\d+)\.jpg", os.path.basename(f)).group(1)
-                        pair_pattern = os.path.join(trial_dir_name, f"2_*frame{frame_num}.jpg")
-                        if not glob.glob(pair_pattern):
-                            missing_pairs += 1
-                    if missing_pairs:
-                        print(f"WARNING: {missing_pairs} pairs are incomplete!")
+                    # Determine frames to delete
+                    frames_to_delete = sorted_frame_nums[25:]
+
+                    # Delete the pairs
+                    for frame_num in frames_to_delete:
+                        for f in paired_frames[frame_num]:
+                            os.remove(f)
+
+                elif len(paired_frames) == 25:
+                    print("Exactly 25 pairs found.")
                 else:
-                    print("WARNING!!!!!!!!!!!! Not enough pictures in trial!!!!!!!!!!")
+                    print("WARNING!!!!!!!!!!!! Not enough complete pairs in trial!!!!!!!!!!")
 
                 # After deletion, verify we have exactly 25 pairs
                 remaining_1 = glob.glob(os.path.join(trial_dir_name, "1_*.jpg"))

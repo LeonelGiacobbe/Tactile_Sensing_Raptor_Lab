@@ -108,7 +108,7 @@ def read_empty_data(data_path):
     
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
-def read_data(data_path,label_path,up_limit = 30,offset=0):
+def read_data(data_path,label_path,up_limit = 50,offset=0):
     # up_limit acts as a filter for trials where final gripper opening
     # was greater than up_limit. Those trials are ignored
     all_names = []
@@ -193,7 +193,6 @@ def read_data(data_path,label_path,up_limit = 30,offset=0):
                         other_selected_all_names.append(path_list[i]+other_img)
                         other_grip_posi_num.append(eval(other_img[(other_loc1 + 3): other_loc2]))
                         other_index.append(j)
-   
     own_linear_regressor = LinearRegression()
     own_linear_regressor.fit(np.array(own_total).reshape(-1, 1),np.array(own_output_p).reshape(-1, 1))
     # Same regressor but for 'other' gripper
@@ -265,10 +264,9 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         
         loss = F.mse_loss(output_1,y_own.float()) + F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_own,final_output_own) + F.mse_loss(final_y_other,final_output_other)
         losses.append(loss.item())
-        print("Agent 1 loss: ", F.mse_loss(output_1,y_own.float()) + F.mse_loss(final_y_own,final_output_own))
-        print("Agent 2 loss: ", F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_other,final_output_other))
+        # print("Agent 1 loss: ", F.mse_loss(output_1,y_own.float()) + F.mse_loss(final_y_own,final_output_own))
+        # print("Agent 2 loss: ", F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_other,final_output_other))
         loss.backward()
-        
         
         optimizer.step()
         epoch_count += 1
@@ -376,10 +374,7 @@ for i, val in enumerate(dataset_list):
             own_grip_vel_num_.extend(own_grip_vel_num)
             other_grip_vel_num_.extend(other_grip_vel_num)
         else:
-            if 'gel' in val or 'hard_rubber' in val:
-                own_index,other_index,own_total,other_total,own_selected_all_names, other_selected_all_names, own_output_p,other_output_p,own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
-            else:
-                own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num,own_grip_vel_num,other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
+            own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num,own_grip_vel_num,other_grip_vel_num = read_data(data_path+'/'+val,data_path+'/'+val+'.npy')
             own_index_.extend(own_index)
             other_index_.extend(other_index)
             own_total_.extend(own_total)

@@ -295,7 +295,6 @@ class MPClayer(nn.Module):
 
         u = QPFunction(verbose=-1)(Q_batch, p_x0_batch, G, h, e, e)
         
-
         S_batch = S_.unsqueeze(0).expand(nBatch, self.nStep*(nHiddenExpand), 2 * self.nStep)
         
         T_batch = T_.unsqueeze(0).expand(nBatch, self.nStep*(nHiddenExpand), nHiddenExpand)
