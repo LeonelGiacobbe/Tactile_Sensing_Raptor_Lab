@@ -1,0 +1,34 @@
+[0.043s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_control_test_assets': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]2s\[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_control_test_assets -- -j12 -l12
+[0.483s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_control_test_assets' returned '0': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]2s\[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_control_test_assets -- -j12 -l12
+[0.497s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_control_test_assets': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]2s\[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_control_test_assets
+[0.518s] -- Install configuration: "Release"
+[0.518s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/include
+[0.519s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/include/ros2_control_test_assets
+[0.519s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/include/ros2_control_test_assets/descriptions.hpp
+[0.519s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/include/ros2_control_test_assets/components_urdfs.hpp
+[0.519s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/urdf/test_hardware_components.urdf
+[0.520s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ament_index/resource_index/package_run_dependencies/ros2_control_test_assets
+[0.520s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ament_index/resource_index/parent_prefix_path/ros2_control_test_assets
+[0.520s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/environment/ament_prefix_path.sh
+[0.521s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/environment/ament_prefix_path.dsv
+[0.521s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/environment/path.sh
+[0.521s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/environment/path.dsv
+[0.521s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/local_setup.bash
+[0.521s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/local_setup.sh
+[0.521s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/local_setup.zsh
+[0.522s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/local_setup.dsv
+[0.523s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/package.dsv
+[0.523s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ament_index/resource_index/packages/ros2_control_test_assets
+[0.523s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/cmake/ament_cmake_export_include_directories-extras.cmake
+[0.523s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/cmake/ros2_control_test_assetsConfig.cmake
+[0.523s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/cmake/ros2_control_test_assetsConfig-version.cmake
+[0.523s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets/share/ros2_control_test_assets/package.xml
+[0.578s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_control_test_assets' returned '0': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]2s\[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_control_test_assets

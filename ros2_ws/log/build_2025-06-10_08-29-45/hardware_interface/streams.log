@@ -1,0 +1,96 @@
+[0.030s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/hardware_interface': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]4h42m18s\[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/hardware_interface -- -j12 -l12
+[0.095s] [35m[1mConsolidate compiler generated dependencies of target gmock_main[0m
+[0.095s] [35m[1mConsolidate compiler generated dependencies of target gmock[0m
+[0.117s] [  2%] Built target ament_generate_version_header__hardware_interface
+[0.127s] [  8%] Built target gmock_main
+[0.133s] [ 17%] Built target gmock
+[0.153s] [35m[1mConsolidate compiler generated dependencies of target hardware_interface[0m
+[0.160s] [35m[1mConsolidate compiler generated dependencies of target test_macros[0m
+[0.206s] [ 22%] Built target test_macros
+[0.227s] [ 42%] Built target hardware_interface
+[0.276s] [35m[1mConsolidate compiler generated dependencies of target mock_components[0m
+[0.278s] [35m[1mConsolidate compiler generated dependencies of target test_inst_hardwares[0m
+[0.279s] [35m[1mConsolidate compiler generated dependencies of target fake_components[0m
+[0.290s] [35m[1mConsolidate compiler generated dependencies of target test_joint_handle[0m
+[0.293s] [35m[1mConsolidate compiler generated dependencies of target test_component_parser[0m
+[0.298s] [35m[1mConsolidate compiler generated dependencies of target test_component_interfaces[0m
+[0.318s] [35m[1mConsolidate compiler generated dependencies of target test_hardware_components[0m
+[0.323s] [35m[1mConsolidate compiler generated dependencies of target test_generic_system[0m
+[0.346s] [ 48%] Built target mock_components
+[0.351s] [ 57%] Built target fake_components
+[0.351s] [ 62%] Built target test_component_interfaces
+[0.352s] [ 68%] Built target test_component_parser
+[0.352s] [ 74%] Built target test_inst_hardwares
+[0.354s] [ 80%] Built target test_joint_handle
+[0.376s] [ 85%] Built target test_generic_system
+[0.379s] [100%] Built target test_hardware_components
+[0.892s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/hardware_interface' returned '0': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]4h42m18s\[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/hardware_interface -- -j12 -l12
+[0.896s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/hardware_interface': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]4h42m18s\[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/hardware_interface
+[0.924s] -- Install configuration: "Release"
+[0.924s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/mock_components_plugin_description.xml
+[0.925s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/fake_components_plugin_description.xml
+[0.925s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include
+[0.925s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface
+[0.928s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/sensor.hpp
+[0.928s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/resource_manager.hpp
+[0.929s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/actuator.hpp
+[0.929s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/hardware_component_info.hpp
+[0.929s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/system.hpp
+[0.930s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/hardware_info.hpp
+[0.930s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/actuator_interface.hpp
+[0.930s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/sensor_interface.hpp
+[0.930s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/visibility_control.h
+[0.934s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/handle.hpp
+[0.934s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/system_interface.hpp
+[0.938s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/types
+[0.938s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/types/hardware_interface_type_values.hpp
+[0.939s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/types/lifecycle_state_names.hpp
+[0.939s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/types/hardware_interface_return_values.hpp
+[0.941s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/loaned_command_interface.hpp
+[0.941s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/lexical_casts.hpp
+[0.941s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/macros.hpp
+[0.941s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/component_parser.hpp
+[0.941s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/loaned_state_interface.hpp
+[0.941s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/controller_info.hpp
+[0.942s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/fake_components
+[0.942s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/fake_components/generic_system.hpp
+[0.942s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/fake_components/visibility_control.h
+[0.942s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/mock_components
+[0.942s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/mock_components/generic_system.hpp
+[0.943s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/mock_components/visibility_control.h
+[0.944s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib/libfake_components.so
+[0.945s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib/libmock_components.so
+[0.945s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib/libhardware_interface.so
+[0.945s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib/libtest_hardware_components.so
+[0.946s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/test/test_hardware_components/test_hardware_components.xml
+[0.946s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/environment/library_path.sh
+[0.946s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/environment/library_path.dsv
+[0.951s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/ament_index/resource_index/package_run_dependencies/hardware_interface
+[0.951s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/ament_index/resource_index/parent_prefix_path/hardware_interface
+[0.952s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/environment/ament_prefix_path.sh
+[0.952s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/environment/ament_prefix_path.dsv
+[0.952s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/environment/path.sh
+[0.952s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/environment/path.dsv
+[0.952s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/local_setup.bash
+[0.952s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/local_setup.sh
+[0.953s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/local_setup.zsh
+[0.953s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/local_setup.dsv
+[0.953s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/package.dsv
+[0.954s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/ament_index/resource_index/packages/hardware_interface
+[0.954s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/ament_index/resource_index/hardware_interface__pluginlib__plugin/hardware_interface
+[0.954s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/cmake/ament_cmake_export_include_directories-extras.cmake
+[0.954s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/cmake/ament_cmake_export_libraries-extras.cmake
+[0.954s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/cmake/ament_cmake_export_dependencies-extras.cmake
+[0.955s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/cmake/hardware_interfaceConfig.cmake
+[0.955s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/cmake/hardware_interfaceConfig-version.cmake
+[0.955s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/package.xml
+[0.955s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/include/hardware_interface/hardware_interface/version.h
+[0.978s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/hardware_interface' returned '0': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]4h42m18s\[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/hardware_interface

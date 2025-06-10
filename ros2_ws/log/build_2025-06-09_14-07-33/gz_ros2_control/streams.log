@@ -1,0 +1,37 @@
+[0.027s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/gz_ros2_control': CMAKE_PREFIX_PATH=/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/gz_ros2_control/gz_ros2_control -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/gz_ros2_control
+[0.126s] -- The C compiler identification is GNU 11.4.0
+[0.218s] -- The CXX compiler identification is GNU 11.4.0
+[0.230s] -- Detecting C compiler ABI info
+[0.311s] -- Detecting C compiler ABI info - done
+[0.319s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.320s] -- Detecting C compile features
+[0.321s] -- Detecting C compile features - done
+[0.324s] -- Detecting CXX compiler ABI info
+[0.415s] -- Detecting CXX compiler ABI info - done
+[0.423s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.424s] -- Detecting CXX compile features
+[0.424s] -- Detecting CXX compile features - done
+[0.441s] [31mCMake Error at CMakeLists.txt:4 (find_package):
+[0.441s]   By not providing "Findros2_control_cmake.cmake" in CMAKE_MODULE_PATH this
+[0.441s]   project has asked CMake to find a package configuration file provided by
+[0.441s]   "ros2_control_cmake", but CMake did not find one.
+[0.441s] 
+[0.442s]   Could not find a package configuration file provided by
+[0.442s]   "ros2_control_cmake" with any of the following names:
+[0.442s] 
+[0.442s]     ros2_control_cmakeConfig.cmake
+[0.442s]     ros2_control_cmake-config.cmake
+[0.442s] 
+[0.442s]   Add the installation prefix of "ros2_control_cmake" to CMAKE_PREFIX_PATH or
+[0.442s]   set "ros2_control_cmake_DIR" to a directory containing one of the above
+[0.442s]   files.  If "ros2_control_cmake" provides a separate development package or
+[0.442s]   SDK, be sure it has been installed.
+[0.442s] 
+[0.442s] [0m
+[0.442s] -- Configuring incomplete, errors occurred!
+[0.442s] See also "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/gz_ros2_control/CMakeFiles/CMakeOutput.log".
+[0.445s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/gz_ros2_control' returned '1': CMAKE_PREFIX_PATH=/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/gz_ros2_control/gz_ros2_control -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/gz_ros2_control

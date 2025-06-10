@@ -1,0 +1,21 @@
+{
+  "package_name": "ros_ign_interfaces",
+  "non_idl_tuples": [
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/Contact.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/Contacts.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/Entity.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/EntityFactory.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/GuiCamera.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/JointWrench.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/Light.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/StringVec.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/TrackVisual.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/VideoRecord.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/WorldControl.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:msg/WorldReset.msg",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:srv/ControlWorld.srv",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:srv/DeleteEntity.srv",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:srv/SetEntityPose.srv",
+    "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros_gz/ros_ign_interfaces:srv/SpawnEntity.srv"
+  ]
+}

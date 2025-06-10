@@ -1,0 +1,25 @@
+[0.040s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/joint_limits': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros2_control/joint_limits -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/joint_limits
+[0.064s] -- Found ament_cmake: 1.3.10 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.362s] -- Found rclcpp: 16.0.10 (/opt/ros/humble/share/rclcpp/cmake)
+[0.442s] -- Found rosidl_generator_c: 3.1.5 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[0.448s] -- Found rosidl_adapter: 3.1.5 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[0.466s] -- Found rosidl_generator_cpp: 3.1.5 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[0.492s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.526s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.610s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[0.613s] -- Found rmw_fastrtps_cpp: 6.2.7 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[0.899s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[0.981s] -- Found rclcpp_lifecycle: 16.0.10 (/opt/ros/humble/share/rclcpp_lifecycle/cmake)
+[1.007s] -- Found urdf: 2.6.1 (/opt/ros/humble/share/urdf/cmake)
+[1.047s] -- Found ament_cmake_gtest: 1.3.10 (/opt/ros/humble/share/ament_cmake_gtest/cmake)
+[1.048s] -- Found launch_testing_ament_cmake: 1.0.6 (/opt/ros/humble/share/launch_testing_ament_cmake/cmake)
+[1.048s] -- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+[1.085s] -- Using PYTHON_EXECUTABLE: /home/leo/.local/share/virtualenvs/Tactile_Sensing_Raptor_Lab-fBIDry_x/bin/python3
+[1.085s] -- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+[1.085s] -- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so
+[1.088s] -- Found gtest sources under '/opt/ros/humble/src/gtest_vendor': C++ tests using 'Google Test' will be built
+[1.241s] -- Configuring done
+[1.277s] -- Generating done
+[1.292s] -- Build files have been written to: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/joint_limits

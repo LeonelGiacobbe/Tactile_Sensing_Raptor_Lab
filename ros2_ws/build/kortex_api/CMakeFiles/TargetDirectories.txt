@@ -1,0 +1,9 @@
+/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_api/CMakeFiles/uninstall.dir
+/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_api/CMakeFiles/kortex_api_uninstall.dir
+/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_api/CMakeFiles/test.dir
+/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_api/CMakeFiles/edit_cache.dir
+/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_api/CMakeFiles/rebuild_cache.dir
+/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_api/CMakeFiles/list_install_components.dir
+/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_api/CMakeFiles/install.dir
+/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_api/CMakeFiles/install/local.dir
+/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_api/CMakeFiles/install/strip.dir

@@ -1,0 +1,44 @@
+[0.050s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/serial': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/serial -- -j12 -l12
+[0.728s] [100%] Built target serial
+[0.827s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/serial' returned '0': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/serial -- -j12 -l12
+[0.828s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/serial': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/serial
+[0.982s] -- Install configuration: "Release"
+[0.995s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/lib/libserial.a
+[0.995s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include
+[0.995s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial
+[0.998s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial/serial.h
+[0.999s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial/v8stdint.h
+[0.999s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial/impl
+[0.999s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial/impl/unix.h
+[1.000s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial/impl/win.h
+[1.000s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/library_path.sh
+[1.001s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/library_path.dsv
+[1.001s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/ament_index/resource_index/package_run_dependencies/serial
+[1.001s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/ament_index/resource_index/parent_prefix_path/serial
+[1.001s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/ament_prefix_path.sh
+[1.001s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/ament_prefix_path.dsv
+[1.002s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/path.sh
+[1.006s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/path.dsv
+[1.006s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/local_setup.bash
+[1.006s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/local_setup.sh
+[1.007s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/local_setup.zsh
+[1.007s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/local_setup.dsv
+[1.007s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/package.dsv
+[1.007s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/ament_index/resource_index/packages/serial
+[1.007s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/export_serialExport.cmake
+[1.007s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/export_serialExport-release.cmake
+[1.008s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/ament_cmake_export_include_directories-extras.cmake
+[1.008s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/ament_cmake_export_libraries-extras.cmake
+[1.008s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/ament_cmake_export_targets-extras.cmake
+[1.008s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/serialConfig.cmake
+[1.008s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/serialConfig-version.cmake
+[1.009s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/package.xml
+[1.161s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/serial' returned '0': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/serial

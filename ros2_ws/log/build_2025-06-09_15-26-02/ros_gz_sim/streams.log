@@ -1,0 +1,43 @@
+[0.088s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros_gz_sim': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros_gz_sim -- -j12 -l12
+[0.618s] [ 20%] Built target create
+[0.619s] [ 40%] Built target ros_gz_sim
+[0.619s] [ 60%] Built target gtest
+[0.619s] [ 80%] Built target gtest_main
+[0.619s] [100%] Built target test_stopwatch
+[0.680s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros_gz_sim' returned '0': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros_gz_sim -- -j12 -l12
+[0.691s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros_gz_sim': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros_gz_sim
+[0.712s] -- Install configuration: "Release"
+[0.712s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/include/ros_gz_sim
+[0.737s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/include/ros_gz_sim/Stopwatch.hpp
+[0.745s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/launch/gz_sim.launch.py
+[0.745s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/lib/ros_gz_sim/create
+[0.745s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/lib/libros_gz_sim.so
+[0.746s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/lib/ros_gz_sim/test_stopwatch
+[0.746s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ament_index/resource_index/package_run_dependencies/ros_gz_sim
+[0.746s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ament_index/resource_index/parent_prefix_path/ros_gz_sim
+[0.746s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/environment/ament_prefix_path.sh
+[0.746s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/environment/ament_prefix_path.dsv
+[0.747s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/environment/path.sh
+[0.747s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/environment/path.dsv
+[0.747s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/local_setup.bash
+[0.747s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/local_setup.sh
+[0.747s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/local_setup.zsh
+[0.748s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/local_setup.dsv
+[0.748s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/package.dsv
+[0.756s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ament_index/resource_index/packages/ros_gz_sim
+[0.757s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/cmake/ros_gz_simExport.cmake
+[0.757s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/cmake/ros_gz_simExport-release.cmake
+[0.757s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/cmake/ament_cmake_export_targets-extras.cmake
+[0.757s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/cmake/ament_cmake_export_dependencies-extras.cmake
+[0.757s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/cmake/ros_gz_simConfig.cmake
+[0.757s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/cmake/ros_gz_simConfig-version.cmake
+[0.757s] -- Up-to-date: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_sim/share/ros_gz_sim/package.xml
+[0.859s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros_gz_sim' returned '0': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros_gz_sim

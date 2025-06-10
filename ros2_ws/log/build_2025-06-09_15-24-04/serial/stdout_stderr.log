@@ -1,0 +1,33 @@
+[35m[1mConsolidate compiler generated dependencies of target serial[0m
+[100%] Built target serial
+-- Install configuration: "Release"
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/lib/libserial.a
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial/serial.h
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial/v8stdint.h
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial/impl
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial/impl/unix.h
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/include/serial/impl/win.h
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/library_path.sh
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/library_path.dsv
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/ament_index/resource_index/package_run_dependencies/serial
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/ament_index/resource_index/parent_prefix_path/serial
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/ament_prefix_path.sh
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/ament_prefix_path.dsv
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/path.sh
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/environment/path.dsv
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/local_setup.bash
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/local_setup.sh
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/local_setup.zsh
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/local_setup.dsv
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/package.dsv
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/ament_index/resource_index/packages/serial
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/export_serialExport.cmake
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/export_serialExport-release.cmake
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/ament_cmake_export_libraries-extras.cmake
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/ament_cmake_export_targets-extras.cmake
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/serialConfig.cmake
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/cmake/serialConfig-version.cmake
+-- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/serial/share/serial/package.xml

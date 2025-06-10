@@ -112,8 +112,8 @@ def main():
         base2 = BaseClient(router2)
         base_cyclic2 = BaseCyclicClient(router2)
 
-        #success &= move_start_pos1(base1, base_cyclic1)
-        success &= move_start_pos2(base2, base_cyclic2)
+        success &= move_start_pos1(base1, base_cyclic1)
+        #success &= move_start_pos2(base2, base_cyclic2)
 
 
 if __name__ == "__main__":

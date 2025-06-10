@@ -49,29 +49,29 @@ class ModelBasedMPCNode(Node):
         self.contact_area_lock = threading.Lock()
         self.frequency = 10
 
-        # Neural network stuff
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.get_logger().info(f"Using {self.device} in controller node")
-        self.nn_encoder = ResCNNEncoder().to(self.device)
-        self.mpc_layer = MPClayer().to(self.device)
-        if self.device.type == 'cuda':
-            self.stream = torch.cuda.Stream()
-        self.nn_encoder.eval()
-        self.mpc_layer.eval()
+        # # Neural network stuff
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # self.get_logger().info(f"Using {self.device} in controller node")
+        # self.nn_encoder = ResCNNEncoder().to(self.device)
+        # self.mpc_layer = MPClayer().to(self.device)
+        # if self.device.type == 'cuda':
+        #     self.stream = torch.cuda.Stream()
+        # self.nn_encoder.eval()
+        # self.mpc_layer.eval()
 
-        # Warmup pass
-        dummy_input = torch.randn(1, 3, 224, 224, device=self.device)
-        _ = self.nn_encoder(dummy_input)
-        if self.device.type == 'cuda':
-            torch.cuda.synchronize()
+        # # Warmup pass
+        # dummy_input = torch.randn(1, 3, 224, 224, device=self.device)
+        # _ = self.nn_encoder(dummy_input)
+        # if self.device.type == 'cuda':
+        #     torch.cuda.synchronize()
 
-        # Load weights
-        package_dir = get_package_share_directory('tactile_sensing')
-        model_path = os.path.join(package_dir, 'models', 'letac_mpc_model.pth')
-        checkpoint = torch.load(model_path, map_location=torch.device(self.device))
-        self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
-        self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
-        self.get_logger().info("Loaded MPC weights")
+        # # Load weights
+        # package_dir = get_package_share_directory('tactile_sensing')
+        # model_path = os.path.join(package_dir, 'models', 'letac_mpc_model.pth')
+        # checkpoint = torch.load(model_path, map_location=torch.device(self.device))
+        # self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
+        # self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
+        # self.get_logger().info("Loaded MPC weights")
 
         # Image preprocessing (using the same transform as in training of the CNN encoder)
         self.transform = transforms.Compose([transforms.Resize([224, 224]),
@@ -142,16 +142,26 @@ class ModelBasedMPCNode(Node):
         try:
             self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
             
-            if 'robotiq_85_left_knuckle_joint' in msg.name:
-                index = msg.name.index('robotiq_85_left_knuckle_joint')
+            if 'arm_1_robotiq_85_left_knuckle_joint' in msg.name:
+                index = msg.name.index('arm_1_robotiq_85_left_knuckle_joint')
                 gripper_position = msg.position[index]
 
                 self.gripper_posi_1 = gripper_position
-                # self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+                self.get_logger().info(f"Current arm 1 gripper position: {gripper_position:.4f}")
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_1 = gripper_vel
                 # self.get_logger().info(f"Current gripper vel: {gripper_vel:.4f}")  # Debug velocity
+            elif 'arm_2_robotiq_85_left_knuckle_joint' in msg.name:
+                index = msg.name.index('arm_2_robotiq_85_left_knuckle_joint')
+                gripper_position = msg.position[index]
+
+                self.gripper_posi_2 = gripper_position
+                self.get_logger().info(f"Current arm 2 gripper position: {gripper_position:.4f}")
+                
+                gripper_vel = msg.velocity[index]
+                self.gripper_vel_2 = gripper_vel
+                
             else:
                 self.get_logger().warn("Gripper joint not found in JointState message")
                 

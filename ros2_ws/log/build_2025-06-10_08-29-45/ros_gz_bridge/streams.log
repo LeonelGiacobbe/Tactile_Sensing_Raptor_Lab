@@ -1,0 +1,44 @@
+[0.051s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros_gz_bridge': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_interfaces:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_interfaces:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_interfaces/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]4h42m18s\[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros_gz_interfaces/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros_gz_bridge -- -j12 -l12
+[0.136s] [35m[1mConsolidate compiler generated dependencies of target gtest_main[0m
+[0.136s] [35m[1mConsolidate compiler generated dependencies of target gtest[0m
+[0.137s] [35m[1mConsolidate compiler generated dependencies of target bridge_node[0m
+[0.164s] [  2%] Built target gtest_main
+[0.164s] [  4%] Built target gtest
+[0.177s] [  6%] Built target bridge_node
+[0.214s] [  7%] [32mBuilding CXX object CMakeFiles/test_rcl_interfaces.dir/src/convert/rcl_interfaces_TEST.cpp.o[0m
+[0.215s] [  8%] [32mBuilding CXX object CMakeFiles/test_utils.dir/test/utils/ros_test_msg.cpp.o[0m
+[0.217s] [35m[1mConsolidate compiler generated dependencies of target ros_gz_bridge[0m
+[0.220s] [  9%] [32mBuilding CXX object CMakeFiles/test_rcl_interfaces.dir/src/convert/rcl_interfaces.cpp.o[0m
+[0.228s] [ 10%] [32mBuilding CXX object CMakeFiles/test_utils.dir/test/utils/gz_test_msg.cpp.o[0m
+[0.529s] [ 12%] [32mBuilding CXX object CMakeFiles/ros_gz_bridge.dir/generated/factories/geometry_msgs.cpp.o[0m
+[6.066s] [ 13%] [32m[1mLinking CXX executable test_rcl_interfaces[0m
+[6.335s] [ 13%] Built target test_rcl_interfaces
+[23.569s] [ 14%] [32m[1mLinking CXX static library libtest_utils.a[0m
+[23.676s] [ 14%] Built target test_utils
+[23.695s] [ 15%] [34m[1mGenerating test helpers[0m
+[23.697s] [ 16%] [34m[1mGenerating test helpers[0m
+[23.697s] [ 17%] [34m[1mGenerating test helpers[0m
+[23.703s] [ 18%] [34m[1mGenerating test helpers[0m
+[23.722s] [ 20%] [32mBuilding CXX object CMakeFiles/test_ros_client.dir/test/serverclient/ros_client.cpp.o[0m
+[23.722s] [ 20%] [32mBuilding CXX object CMakeFiles/test_gz_server.dir/test/serverclient/gz_server.cpp.o[0m
+[24.061s] [ 21%] [32mBuilding CXX object CMakeFiles/test_ros_publisher.dir/generated/test/ros_publisher.cpp.o[0m
+[24.131s] [ 23%] [32mBuilding CXX object CMakeFiles/test_ros_subscriber.dir/generated/test/geometry_msgs_subscriber.cpp.o[0m
+[24.132s] [ 24%] [32mBuilding CXX object CMakeFiles/test_ros_subscriber.dir/generated/test/actuator_msgs_subscriber.cpp.o[0m
+[24.132s] [ 25%] [32mBuilding CXX object CMakeFiles/test_ros_subscriber.dir/generated/test/gps_msgs_subscriber.cpp.o[0m
+[24.140s] [ 26%] [32mBuilding CXX object CMakeFiles/test_ros_subscriber.dir/test/subscribers/ros_subscriber.cpp.o[0m
+[24.141s] [ 27%] [32mBuilding CXX object CMakeFiles/test_ros_subscriber.dir/generated/test/builtin_interfaces_subscriber.cpp.o[0m
+[24.141s] [ 28%] [32mBuilding CXX object CMakeFiles/test_gz_subscriber.dir/generated/test/gz_subscriber.cpp.o[0m
+[24.146s] [ 29%] [32mBuilding CXX object CMakeFiles/test_gz_publisher.dir/generated/test/gz_publisher.cpp.o[0m
+[24.146s] [ 30%] [32mBuilding CXX object CMakeFiles/test_ros_subscriber.dir/generated/test/nav_msgs_subscriber.cpp.o[0m
+[36.874s] [ 31%] [32m[1mLinking CXX executable test_ros_client[0m
+[37.667s] [ 31%] Built target test_ros_client
+[37.722s] [ 32%] [32mBuilding CXX object CMakeFiles/test_ros_subscriber.dir/generated/test/rcl_interfaces_subscriber.cpp.o[0m
+[50.705s] [ 34%] [32m[1mLinking CXX executable test_gz_publisher[0m
+[52.802s] [ 35%] [32m[1mLinking CXX executable test_gz_server[0m
+[52.815s] [ 35%] Built target test_gz_publisher
+[52.848s] [ 36%] [32mBuilding CXX object CMakeFiles/test_ros_subscriber.dir/generated/test/ros_gz_interfaces_subscriber.cpp.o[0m
+[53.635s] [ 36%] Built target test_gz_server
+[53.674s] [ 37%] [32mBuilding CXX object CMakeFiles/test_ros_subscriber.dir/generated/test/rosgraph_msgs_subscriber.cpp.o[0m
+[55.249s] [ 38%] [32mBuilding CXX object CMakeFiles/test_ros_subscriber.dir/generated/test/sensor_msgs_subscriber.cpp.o[0m

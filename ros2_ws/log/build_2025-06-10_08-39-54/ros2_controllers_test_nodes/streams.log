@@ -1,0 +1,34 @@
+[4.861s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros2_controllers/ros2_controllers_test_nodes': PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_controllers_test_nodes/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/ros2_controllers_test_nodes build --build-base /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_controllers_test_nodes/build install --record /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_controllers_test_nodes/install.log --single-version-externally-managed install_data
+[5.468s] /home/leo/.local/lib/python3.10/site-packages/setuptools/_distutils/dist.py:261: UserWarning: Unknown distribution option: 'tests_require'
+[5.468s]   warnings.warn(msg)
+[6.021s] running egg_info
+[6.165s] writing ../../../build/ros2_controllers_test_nodes/ros2_controllers_test_nodes.egg-info/PKG-INFO
+[6.167s] writing dependency_links to ../../../build/ros2_controllers_test_nodes/ros2_controllers_test_nodes.egg-info/dependency_links.txt
+[6.170s] writing entry points to ../../../build/ros2_controllers_test_nodes/ros2_controllers_test_nodes.egg-info/entry_points.txt
+[6.172s] writing requirements to ../../../build/ros2_controllers_test_nodes/ros2_controllers_test_nodes.egg-info/requires.txt
+[6.173s] writing top-level names to ../../../build/ros2_controllers_test_nodes/ros2_controllers_test_nodes.egg-info/top_level.txt
+[6.431s] reading manifest file '../../../build/ros2_controllers_test_nodes/ros2_controllers_test_nodes.egg-info/SOURCES.txt'
+[6.441s] writing manifest file '../../../build/ros2_controllers_test_nodes/ros2_controllers_test_nodes.egg-info/SOURCES.txt'
+[6.442s] running build
+[6.443s] running build_py
+[6.445s] copying ros2_controllers_test_nodes/__init__.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_controllers_test_nodes/build/lib/ros2_controllers_test_nodes
+[6.448s] copying ros2_controllers_test_nodes/publisher_joint_trajectory_controller.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_controllers_test_nodes/build/lib/ros2_controllers_test_nodes
+[6.450s] copying ros2_controllers_test_nodes/publisher_forward_position_controller.py -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_controllers_test_nodes/build/lib/ros2_controllers_test_nodes
+[6.451s] running install
+[6.473s] running install_lib
+[6.552s] byte-compiling /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/lib/python3.10/site-packages/ros2_controllers_test_nodes/__init__.py to __init__.cpython-310.pyc
+[6.553s] byte-compiling /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/lib/python3.10/site-packages/ros2_controllers_test_nodes/publisher_joint_trajectory_controller.py to publisher_joint_trajectory_controller.cpython-310.pyc
+[6.562s] byte-compiling /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/lib/python3.10/site-packages/ros2_controllers_test_nodes/publisher_forward_position_controller.py to publisher_forward_position_controller.cpython-310.pyc
+[6.570s] running install_data
+[6.577s] copying resource/ros2_controllers_test_nodes -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/share/ament_index/resource_index/packages
+[6.577s] copying package.xml -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/share/ros2_controllers_test_nodes
+[6.586s] copying test/rrbot_forward_position_publisher.yaml -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/share/ros2_controllers_test_nodes/test
+[6.586s] copying test/rrbot_joint_trajectory_publisher.yaml -> /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/share/ros2_controllers_test_nodes/test
+[6.586s] running install_egg_info
+[6.689s] removing '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/lib/python3.10/site-packages/ros2_controllers_test_nodes-2.47.0-py3.10.egg-info' (and everything under it)
+[6.690s] Copying ../../../build/ros2_controllers_test_nodes/ros2_controllers_test_nodes.egg-info to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/lib/python3.10/site-packages/ros2_controllers_test_nodes-2.47.0-py3.10.egg-info
+[6.697s] running install_scripts
+[7.748s] Installing publisher_forward_position_controller script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/lib/ros2_controllers_test_nodes
+[7.751s] Installing publisher_joint_trajectory_controller script to /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/lib/ros2_controllers_test_nodes
+[7.752s] writing list of installed files to '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_controllers_test_nodes/install.log'
+[7.848s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros2_controllers/ros2_controllers_test_nodes' returned '0': PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_controllers_test_nodes/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_controllers_test_nodes/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/ros2_controllers_test_nodes build --build-base /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_controllers_test_nodes/build install --record /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/ros2_controllers_test_nodes/install.log --single-version-externally-managed install_data

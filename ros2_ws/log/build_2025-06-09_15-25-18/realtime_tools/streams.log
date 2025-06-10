@@ -1,0 +1,85 @@
+[0.042s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/realtime_tools': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]2s\[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/realtime_tools -- -j12 -l12
+[0.125s] [35m[1mConsolidate compiler generated dependencies of target thread_priority[0m
+[0.128s] [35m[1mConsolidate compiler generated dependencies of target realtime_tools[0m
+[0.133s] [35m[1mConsolidate compiler generated dependencies of target gmock_main[0m
+[0.135s] [35m[1mConsolidate compiler generated dependencies of target gmock[0m
+[0.162s] [  6%] Built target thread_priority
+[0.186s] [ 23%] Built target realtime_tools
+[0.187s] [ 23%] Built target gmock_main
+[0.187s] [ 33%] Built target gmock
+[0.214s] [35m[1mConsolidate compiler generated dependencies of target realtime_box_tests[0m
+[0.221s] [35m[1mConsolidate compiler generated dependencies of target thread_priority_tests[0m
+[0.228s] [35m[1mConsolidate compiler generated dependencies of target realtime_buffer_tests[0m
+[0.230s] [35m[1mConsolidate compiler generated dependencies of target realtime_publisher_tests[0m
+[0.232s] [35m[1mConsolidate compiler generated dependencies of target realtime_clock_tests[0m
+[0.239s] [35m[1mConsolidate compiler generated dependencies of target realtime_box_best_effort_tests[0m
+[0.239s] [35m[1mConsolidate compiler generated dependencies of target lock_free_queue_tests[0m
+[0.243s] [35m[1mConsolidate compiler generated dependencies of target realtime_server_goal_handle_tests[0m
+[0.244s] [35m[1mConsolidate compiler generated dependencies of target realtime_mutex_tests[0m
+[0.263s] [ 40%] Built target realtime_box_tests
+[0.267s] [35m[1mConsolidate compiler generated dependencies of target test_async_function_handler[0m
+[0.271s] [ 46%] Built target thread_priority_tests
+[0.274s] [ 53%] Built target realtime_buffer_tests
+[0.286s] [ 60%] Built target realtime_publisher_tests
+[0.290s] [ 66%] Built target realtime_box_best_effort_tests
+[0.291s] [ 73%] Built target realtime_clock_tests
+[0.292s] [ 80%] Built target realtime_server_goal_handle_tests
+[0.299s] [ 86%] Built target lock_free_queue_tests
+[0.300s] [ 93%] Built target realtime_mutex_tests
+[0.314s] [100%] Built target test_async_function_handler
+[0.511s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/realtime_tools' returned '0': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]2s\[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/realtime_tools -- -j12 -l12
+[0.538s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/realtime_tools': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]2s\[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/realtime_tools
+[0.571s] -- Install configuration: "Release"
+[0.571s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools
+[0.571s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools
+[0.571s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_box_best_effort.h
+[0.571s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_buffer.h
+[0.572s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_box.hpp
+[0.572s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/thread_priority.hpp
+[0.572s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_box_best_effort.hpp
+[0.572s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/async_function_handler.hpp
+[0.572s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/mutex.hpp
+[0.572s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_box.h
+[0.572s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_clock.h
+[0.572s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_server_goal_handle.h
+[0.572s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/lock_free_queue.hpp
+[0.573s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_buffer.hpp
+[0.573s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_publisher.h
+[0.573s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_server_goal_handle.hpp
+[0.573s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_clock.hpp
+[0.573s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_helpers.hpp
+[0.573s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/include/realtime_tools/realtime_tools/realtime_publisher.hpp
+[0.573s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/lib/librealtime_tools.so
+[0.573s] -- Set runtime path of "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/lib/librealtime_tools.so" to ""
+[0.574s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/lib/libthread_priority.so
+[0.574s] -- Set runtime path of "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/lib/libthread_priority.so" to ""
+[0.574s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/environment/library_path.sh
+[0.574s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/environment/library_path.dsv
+[0.575s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/ament_index/resource_index/package_run_dependencies/realtime_tools
+[0.575s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/ament_index/resource_index/parent_prefix_path/realtime_tools
+[0.575s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/environment/ament_prefix_path.sh
+[0.576s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/environment/ament_prefix_path.dsv
+[0.576s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/environment/path.sh
+[0.576s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/environment/path.dsv
+[0.576s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/local_setup.bash
+[0.576s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/local_setup.sh
+[0.576s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/local_setup.zsh
+[0.576s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/local_setup.dsv
+[0.576s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/package.dsv
+[0.576s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/ament_index/resource_index/packages/realtime_tools
+[0.577s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/cmake/export_realtime_toolsExport.cmake
+[0.577s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/cmake/export_realtime_toolsExport-release.cmake
+[0.577s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/cmake/ament_cmake_export_targets-extras.cmake
+[0.577s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/cmake/ament_cmake_export_dependencies-extras.cmake
+[0.578s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/cmake/realtime_toolsConfig.cmake
+[0.578s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/cmake/realtime_toolsConfig-version.cmake
+[0.578s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/realtime_tools/share/realtime_tools/package.xml
+[0.697s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/realtime_tools' returned '0': CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]took \[[1;33m\]2s\[[0m\]
+\[[1;32m\]❯\[[0m\] /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/realtime_tools

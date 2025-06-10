@@ -11,6 +11,7 @@ setup.py
 launch/mpc_controller.launch.py
 launch/multi_agent_mpc_controller.launch.py
 launch/multi_agent_nn_controller.launch.py
+launch/multi_arm.launch.py
 launch/nn_controller.launch.py
 resource/tactile_sensing
 tactile_sensing/__init__.py

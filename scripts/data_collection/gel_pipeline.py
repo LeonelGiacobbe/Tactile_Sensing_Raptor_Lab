@@ -144,7 +144,7 @@ def main():
                 P_SLIP_2 = 35.8 + rand_slip # Must be a value in mm (not percentage of gripper opening)
 
                 rand_goto = random.uniform(0.0,0.005)
-                gripper1.Goto(0.645 + rand_goto)
+                gripper1.Goto(0.638 + rand_goto)
                 gripper2.Goto(0.78 + rand_goto)
                 
                 posi1 = gripper1.GetGripperPosi()

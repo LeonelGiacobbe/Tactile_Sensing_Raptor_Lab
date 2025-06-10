@@ -1,0 +1,90 @@
+[0.046s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros2_kortex/kortex_driver -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver
+[6.773s] -- The C compiler identification is GNU 11.4.0
+[6.907s] -- The CXX compiler identification is GNU 11.4.0
+[6.926s] -- Detecting C compiler ABI info
+[7.095s] -- Detecting C compiler ABI info - done
+[7.115s] -- Check for working C compiler: /usr/bin/cc - skipped
+[7.115s] -- Detecting C compile features
+[7.116s] -- Detecting C compile features - done
+[7.123s] -- Detecting CXX compiler ABI info
+[7.316s] -- Detecting CXX compiler ABI info - done
+[7.337s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[7.337s] -- Detecting CXX compile features
+[7.338s] -- Detecting CXX compile features - done
+[7.347s] -- Found ament_cmake: 1.3.10 (/opt/ros/humble/share/ament_cmake/cmake)
+[8.473s] -- Found Python3: /home/leo/.local/share/virtualenvs/Tactile_Sensing_Raptor_Lab-fBIDry_x/bin/python3 (found version "3.10.12") found components: Interpreter 
+[8.710s] -- Found hardware_interface: 2.51.0 (/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/cmake)
+[8.827s] -- Found rosidl_generator_c: 3.1.5 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[8.844s] -- Found rosidl_adapter: 3.1.5 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[8.867s] -- Found rosidl_generator_cpp: 3.1.5 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[8.901s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[8.949s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[9.463s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[9.470s] -- Found rmw_fastrtps_cpp: 6.2.7 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[9.532s] -- Found TinyXML2 via Config file: TinyXML2_DIR-NOTFOUND
+[9.671s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[9.676s] -- Found TinyXML2 via Config file: TinyXML2_DIR-NOTFOUND
+[9.716s] -- Found FastRTPS: /opt/ros/humble/include  
+[9.723s] -- Found TinyXML2 via Config file: TinyXML2_DIR-NOTFOUND
+[9.742s] -- Found TinyXML2 via Config file: TinyXML2_DIR-NOTFOUND
+[9.768s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[9.790s] -- Looking for pthread.h
+[9.959s] -- Looking for pthread.h - found
+[9.959s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[10.134s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[10.137s] -- Found Threads: TRUE  
+[10.273s] -- Found kortex_api: 0.2.3 (/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api/share/kortex_api/cmake)
+[10.479s] -- Configuring done
+[10.547s] -- Generating done
+[10.560s] -- Build files have been written to: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver
+[10.586s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver' returned '0': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros2_kortex/kortex_driver -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver
+[10.590s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver -- -j12 -l12
+[10.710s] [ 33%] [32mBuilding CXX object CMakeFiles/kortex_driver.dir/src/hardware_interface.cpp.o[0m
+[23.454s] [ 66%] [32mBuilding CXX object CMakeFiles/kortex_driver.dir/src/kortex_math_util.cpp.o[0m
+[24.313s] [100%] [32m[1mLinking CXX shared library libkortex_driver.so[0m
+[25.460s] [100%] Built target kortex_driver
+[25.489s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver' returned '0': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver -- -j12 -l12
+[25.493s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver
+[25.510s] -- Install configuration: "Release"
+[25.511s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/hardware_interface_plugin.xml
+[25.511s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/lib/libkortex_driver.so
+[25.538s] -- Set runtime path of "/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/lib/libkortex_driver.so" to ""
+[25.539s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/include
+[25.539s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/include/kortex_driver
+[25.539s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/include/kortex_driver/visibility_control.h
+[25.540s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/include/kortex_driver/kortex_math_util.hpp
+[25.540s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/include/kortex_driver/hardware_interface.hpp
+[25.540s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/environment/library_path.sh
+[25.541s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/environment/library_path.dsv
+[25.541s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/ament_index/resource_index/package_run_dependencies/kortex_driver
+[25.542s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/ament_index/resource_index/parent_prefix_path/kortex_driver
+[25.542s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/environment/ament_prefix_path.sh
+[25.543s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/environment/ament_prefix_path.dsv
+[25.543s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/environment/path.sh
+[25.543s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/environment/path.dsv
+[25.544s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/local_setup.bash
+[25.544s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/local_setup.sh
+[25.545s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/local_setup.zsh
+[25.545s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/local_setup.dsv
+[25.545s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/package.dsv
+[25.546s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/ament_index/resource_index/packages/kortex_driver
+[25.546s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/ament_index/resource_index/hardware_interface__pluginlib__plugin/kortex_driver
+[25.547s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/cmake/ament_cmake_export_include_directories-extras.cmake
+[25.547s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/cmake/ament_cmake_export_libraries-extras.cmake
+[25.548s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/cmake/ament_cmake_export_dependencies-extras.cmake
+[25.548s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/cmake/kortex_driverConfig.cmake
+[25.548s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/cmake/kortex_driverConfig-version.cmake
+[25.549s] -- Installing: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_driver/share/kortex_driver/package.xml
+[25.555s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver' returned '0': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/kortex_api:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake --install /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/kortex_driver

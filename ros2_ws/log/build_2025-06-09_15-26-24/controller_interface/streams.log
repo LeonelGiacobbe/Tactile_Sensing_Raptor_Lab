@@ -1,0 +1,85 @@
+[0.061s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/controller_interface': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros2_control/controller_interface -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/controller_interface
+[0.221s] -- The C compiler identification is GNU 11.4.0
+[0.356s] -- The CXX compiler identification is GNU 11.4.0
+[0.374s] -- Detecting C compiler ABI info
+[0.525s] -- Detecting C compiler ABI info - done
+[0.545s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.546s] -- Detecting C compile features
+[0.547s] -- Detecting C compile features - done
+[0.554s] -- Detecting CXX compiler ABI info
+[0.729s] -- Detecting CXX compiler ABI info - done
+[0.751s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.751s] -- Detecting CXX compile features
+[0.753s] -- Detecting CXX compile features - done
+[0.761s] -- Found ament_cmake: 1.3.10 (/opt/ros/humble/share/ament_cmake/cmake)
+[1.753s] -- Found Python3: /home/leo/.local/share/virtualenvs/Tactile_Sensing_Raptor_Lab-fBIDry_x/bin/python3 (found version "3.10.12") found components: Interpreter 
+[1.931s] -- Found hardware_interface: 2.51.0 (/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/share/hardware_interface/cmake)
+[2.031s] -- Found rosidl_generator_c: 3.1.5 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[2.042s] -- Found rosidl_adapter: 3.1.5 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[2.058s] -- Found rosidl_generator_cpp: 3.1.5 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[2.084s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[2.127s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[2.549s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[2.554s] -- Found rmw_fastrtps_cpp: 6.2.7 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[2.599s] -- Found TinyXML2 via Config file: TinyXML2_DIR-NOTFOUND
+[2.698s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[2.703s] -- Found TinyXML2 via Config file: TinyXML2_DIR-NOTFOUND
+[2.734s] -- Found FastRTPS: /opt/ros/humble/include  
+[2.738s] -- Found TinyXML2 via Config file: TinyXML2_DIR-NOTFOUND
+[2.753s] -- Found TinyXML2 via Config file: TinyXML2_DIR-NOTFOUND
+[2.772s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[2.789s] -- Looking for pthread.h
+[2.921s] -- Looking for pthread.h - found
+[2.922s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[3.066s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[3.067s] -- Found Threads: TRUE  
+[3.165s] -- Found ament_cmake_gmock: 1.3.10 (/opt/ros/humble/share/ament_cmake_gmock/cmake)
+[3.170s] -- Found gmock sources under '/opt/ros/humble/src/gmock_vendor': C++ tests using 'Google Mock' will be built
+[3.180s] -- Found ament_cmake_gtest: 1.3.10 (/opt/ros/humble/share/ament_cmake_gtest/cmake)
+[3.183s] -- Found gtest sources under '/opt/ros/humble/src/gtest_vendor': C++ tests using 'Google Test' will be built
+[3.420s] -- Configuring done
+[3.687s] -- Generating done
+[3.723s] -- Build files have been written to: /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/controller_interface
+[3.745s] Invoked command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/controller_interface' returned '0': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/ros2_control/controller_interface -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/controller_interface
+[3.748s] Invoking command in '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/controller_interface': AMENT_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/ros2_control_test_assets:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/tactile_sensing:/opt/ros/humble LD_LIBRARY_PATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/hardware_interface/lib:/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib:${LD_LIBRARY_PATH} PS1=
+\[[1;36m\]Tactile_Sensing_Raptor_Lab/ros2_ws\[[0m\] on \[[1;35m\] main\[[0m\] \[[1;31m\][!?]\[[0m\] via \[[1;33m\]🐍 v3.10.12 (Tactile_Sensing_Raptor_Lab) \[[0m\]
+\[[1;31m\]❯\[[0m\] PYTHONPATH=/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/install/control_msgs/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/cmake --build /home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/build/controller_interface -- -j12 -l12
+[3.831s] [  4%] [34m[1mGenerating controller_interface/version.h[0m
+[3.870s] [  4%] Built target ament_generate_version_header__controller_interface
+[3.906s] [  8%] [32mBuilding CXX object gmock/CMakeFiles/gmock.dir/opt/ros/humble/src/gtest_vendor/src/gtest-all.cc.o[0m
+[17.130s] [ 12%] [32mBuilding CXX object gmock/CMakeFiles/gmock.dir/src/gmock-all.cc.o[0m
+[22.533s] [ 16%] [32m[1mLinking CXX static library libgmock.a[0m
+[22.769s] [ 16%] Built target gmock
+[22.823s] [ 20%] [32mBuilding CXX object CMakeFiles/controller_interface.dir/src/controller_interface_base.cpp.o[0m
+[29.359s] [ 25%] [32mBuilding CXX object CMakeFiles/controller_interface.dir/src/chainable_controller_interface.cpp.o[0m
+[33.672s] [ 29%] [32mBuilding CXX object CMakeFiles/controller_interface.dir/src/controller_interface.cpp.o[0m
+[37.665s] [ 33%] [32m[1mLinking CXX shared library libcontroller_interface.so[0m
+[37.869s] [ 33%] Built target controller_interface
+[37.903s] [ 37%] [32mBuilding CXX object gmock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o[0m
+[39.704s] [ 41%] [32m[1mLinking CXX static library libgmock_main.a[0m
+[39.833s] [ 41%] Built target gmock_main
+[39.870s] [ 45%] [32mBuilding CXX object CMakeFiles/test_controller_interface.dir/test/test_controller_interface.cpp.o[0m
+[46.943s] [ 50%] [32m[1mLinking CXX executable test_controller_interface[0m
+[47.198s] [ 50%] Built target test_controller_interface
+[47.234s] [ 54%] [32mBuilding CXX object CMakeFiles/test_pose_sensor.dir/test/test_pose_sensor.cpp.o[0m
+[50.867s] [ 58%] [32m[1mLinking CXX executable test_pose_sensor[0m
+[51.257s] [ 58%] Built target test_pose_sensor
+[51.293s] [ 62%] [32mBuilding CXX object CMakeFiles/test_imu_sensor.dir/test/test_imu_sensor.cpp.o[0m
+[54.709s] [ 66%] [32m[1mLinking CXX executable test_imu_sensor[0m
+[55.029s] [ 66%] Built target test_imu_sensor
+[55.059s] [ 70%] [32mBuilding CXX object CMakeFiles/test_force_torque_sensor.dir/test/test_force_torque_sensor.cpp.o[0m
+[58.390s] [ 75%] [32m[1mLinking CXX executable test_force_torque_sensor[0m
+[58.713s] [ 75%] Built target test_force_torque_sensor
+[58.745s] [ 79%] [32mBuilding CXX object CMakeFiles/test_semantic_component_interface.dir/test/test_semantic_component_interface.cpp.o[0m
+[61.550s] [ 83%] [32m[1mLinking CXX executable test_semantic_component_interface[0m
+[61.834s] [ 83%] Built target test_semantic_component_interface
+[61.861s] [ 87%] [32mBuilding CXX object CMakeFiles/test_chainable_controller_interface.dir/test/test_chainable_controller_interface.cpp.o[0m
+[66.987s] [ 91%] [32m[1mLinking CXX executable test_chainable_controller_interface[0m
+[67.146s] [ 91%] Built target test_chainable_controller_interface
+[67.174s] [ 95%] [32mBuilding CXX object CMakeFiles/test_controller_with_options.dir/test/test_controller_with_options.cpp.o[0m
+[70.868s] [100%] [32m[1mLinking CXX executable test_controller_with_options[0m
+[71.029s] [100%] Built target test_controller_with_options
