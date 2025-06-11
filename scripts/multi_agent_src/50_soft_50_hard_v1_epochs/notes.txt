@@ -1,0 +1,73 @@
+V1 used 4500 wood images. 4500 hard rubber images,
+3000 gel, 3000 soft foam, and 3000 no-contact data.
+18,000 images in total
+learning rate was 1e-4
+dropout_p was 0.15
+---------------------------------------------------
+Epoch 1:
+---------------------------------------------------
+Test set (1800 samples): Average loss: 456.9853
+
+Train Epoch: 1 [256/7200 (7%)]	Loss: 477.270996
+Train Epoch: 1 [512/7200 (10%)]	Loss: 456.937469
+Train Epoch: 1 [768/7200 (14%)]	Loss: 420.940399
+Train Epoch: 1 [1024/7200 (17%)]	Loss: 416.842010
+Train Epoch: 1 [1280/7200 (21%)]	Loss: 427.520874
+Train Epoch: 1 [1536/7200 (24%)]	Loss: 478.064087
+Train Epoch: 1 [1792/7200 (28%)]	Loss: 457.997833
+Train Epoch: 1 [2048/7200 (31%)]	Loss: 410.855469
+Train Epoch: 1 [2304/7200 (34%)]	Loss: 457.214447
+Train Epoch: 1 [2560/7200 (38%)]	Loss: 399.616547
+Train Epoch: 1 [2816/7200 (41%)]	Loss: 469.104034
+Train Epoch: 1 [3072/7200 (45%)]	Loss: 446.695496
+Train Epoch: 1 [3328/7200 (48%)]	Loss: 454.562988
+Train Epoch: 1 [3584/7200 (52%)]	Loss: 453.333649
+Train Epoch: 1 [3840/7200 (55%)]	Loss: 399.313293
+Train Epoch: 1 [4096/7200 (59%)]	Loss: 450.479736
+Train Epoch: 1 [4352/7200 (62%)]	Loss: 482.319794
+Train Epoch: 1 [4608/7200 (66%)]	Loss: 482.006805
+Train Epoch: 1 [4864/7200 (69%)]	Loss: 405.661102
+Train Epoch: 1 [5120/7200 (72%)]	Loss: 457.754852
+Train Epoch: 1 [5376/7200 (76%)]	Loss: 457.901215
+Train Epoch: 1 [5632/7200 (79%)]	Loss: 431.781799
+Train Epoch: 1 [5888/7200 (83%)]	Loss: 448.550690
+Train Epoch: 1 [6144/7200 (86%)]	Loss: 427.857788
+Train Epoch: 1 [6400/7200 (90%)]	Loss: 421.581543
+Train Epoch: 1 [6656/7200 (93%)]	Loss: 466.324280
+Train Epoch: 1 [6912/7200 (97%)]	Loss: 446.396851
+Train Epoch: 1 [7168/7200 (100%)]	Loss: 501.501343
+Train Epoch: 1 [7200/7200 (103%)]	Loss: 436.424622
+---------------------------------------------------
+Test set (1800 samples): Average loss: 311.3249
+
+Train Epoch: 100 [256/7200 (7%)]	Loss: 221.015732
+Train Epoch: 100 [512/7200 (10%)]	Loss: 224.553162
+Train Epoch: 100 [768/7200 (14%)]	Loss: 233.440094
+Train Epoch: 100 [1024/7200 (17%)]	Loss: 234.632660
+Train Epoch: 100 [1280/7200 (21%)]	Loss: 231.262863
+Train Epoch: 100 [1536/7200 (24%)]	Loss: 234.545990
+Train Epoch: 100 [1792/7200 (28%)]	Loss: 239.591156
+Train Epoch: 100 [2048/7200 (31%)]	Loss: 215.497559
+Train Epoch: 100 [2304/7200 (34%)]	Loss: 220.633514
+Train Epoch: 100 [2560/7200 (38%)]	Loss: 220.088486
+Train Epoch: 100 [2816/7200 (41%)]	Loss: 229.050476
+Train Epoch: 100 [3072/7200 (45%)]	Loss: 235.545715
+Train Epoch: 100 [3328/7200 (48%)]	Loss: 241.588562
+Train Epoch: 100 [3584/7200 (52%)]	Loss: 239.309235
+Train Epoch: 100 [3840/7200 (55%)]	Loss: 229.392288
+Train Epoch: 100 [4096/7200 (59%)]	Loss: 222.359436
+Train Epoch: 100 [4352/7200 (62%)]	Loss: 213.423660
+Train Epoch: 100 [4608/7200 (66%)]	Loss: 233.147629
+Train Epoch: 100 [4864/7200 (69%)]	Loss: 248.495544
+Train Epoch: 100 [5120/7200 (72%)]	Loss: 230.667114
+Train Epoch: 100 [5376/7200 (76%)]	Loss: 222.927460
+Train Epoch: 100 [5632/7200 (79%)]	Loss: 221.000000
+Train Epoch: 100 [5888/7200 (83%)]	Loss: 224.116318
+Train Epoch: 100 [6144/7200 (86%)]	Loss: 239.998734
+Train Epoch: 100 [6400/7200 (90%)]	Loss: 227.911804
+Train Epoch: 100 [6656/7200 (93%)]	Loss: 209.339981
+Train Epoch: 100 [6912/7200 (97%)]	Loss: 241.719528
+Train Epoch: 100 [7168/7200 (100%)]	Loss: 226.870804
+Train Epoch: 100 [7200/7200 (103%)]	Loss: 363.517670
+---------------------------------------------------
+Manually stopped at 50 epochs since losses were not going down

@@ -1,4 +1,4 @@
-import os, glob
+import os, glob, csv
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -16,7 +16,7 @@ res_size = 224
 dropout_p = 0.15  
 
 # Training parameters
-epochs = 50 
+epochs = 100
 batch_size = 256
 learning_rate = 1e-4
 eps = 1e-4
@@ -266,6 +266,12 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         # print("Agent 1 loss: ", F.mse_loss(output_1,y_own.float()) + F.mse_loss(final_y_own,final_output_own))
         # print("Agent 2 loss: ", F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_other,final_output_other))
         loss.backward()
+
+        for name, param in MPC_layer.named_parameters():
+            if param.grad is not None:
+                pass
+            else:
+                print(f"{name} is not being learned")
         
         optimizer.step()
         epoch_count += 1
@@ -273,6 +279,8 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         # show information
         print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
             epoch + 1, N_count, len(own_train_loader.dataset), 100. * (epoch_count + 1) / len(own_train_loader), loss.item()))
+    # Return last loss in epoch (to match loss amount in validation)
+    return np.mean(losses)
 
 def validation(model, device, own_test_loader, other_test_loader):
     cnn_encoder, MPC_layer= model
@@ -334,6 +342,7 @@ def validation(model, device, own_test_loader, other_test_loader):
     all_y_pred_own = torch.stack(all_y_pred_own, dim=0)
     all_y_pred_other = torch.stack(all_y_pred_other, dim=0)
     print('\nTest set ({:d} samples): Average loss: {:.4f}\n'.format(len(all_y_own), test_loss))
+    return test_loss
 
 use_cuda = torch.cuda.is_available()                  
 device = torch.device("cuda" if use_cuda else "cpu")   
@@ -438,13 +447,19 @@ optimizer = torch.optim.Adam(letac_params, lr=learning_rate)
 
 # start training
 for epoch in range(epochs):
-    validation([cnn_encoder, MPC_layer], device, own_valid_loader, other_valid_loader)
-    train([cnn_encoder, MPC_layer], device, own_train_loader, other_train_loader, optimizer, epoch)
+    with open("loss_log.csv", mode='a') as f:
+        valid_loss = validation([cnn_encoder, MPC_layer], device, own_valid_loader, other_valid_loader)
+        training_loss = train([cnn_encoder, MPC_layer], device, own_train_loader, other_train_loader, optimizer, epoch)
+        writer = csv.writer(f)
+        writer.writerow([epoch+1, valid_loss, training_loss])
+        # Save checkpoint every 10 epochs
+        if (epoch + 1) % 10 == 0:
+            checkpoint_path = f'./only_rubber_wood_v2_checkpoint_epoch_{epoch+1}.pth'
+            torch.save({
+                'cnn_encoder_state_dict': cnn_encoder.state_dict(),
+                'mpc_layer_state_dict': MPC_layer.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'epoch': epoch,
+            }, checkpoint_path)
+            print(f"Checkpoint saved at epoch {epoch+1}")
 
-# Save the model after training
-torch.save({
-    'cnn_encoder_state_dict': cnn_encoder.state_dict(),
-    'mpc_layer_state_dict': MPC_layer.state_dict(),
-    'optimizer_state_dict': optimizer.state_dict(),
-    'epoch': epoch,
-}, './trained_model.pth')
