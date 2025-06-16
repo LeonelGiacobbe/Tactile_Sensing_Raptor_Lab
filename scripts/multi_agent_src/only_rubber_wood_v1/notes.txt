@@ -1,0 +1,25 @@
+V1 used 1500 wood images and 1500 hard rubber images,
+no gel, soft foam, or no-contact data.
+3000 images in total
+learning rate was 1e-2
+dropout_p was 0.15
+---------------------------------------------------
+Epoch 1:
+---------------------------------------------------
+Test set (300 samples): Average loss: 50.9965
+
+Train Epoch: 1 [256/1200 (40%)]	Loss: 50.284882
+Train Epoch: 1 [512/1200 (60%)]	Loss: 53.154480
+Train Epoch: 1 [768/1200 (80%)]	Loss: 42.417946
+Train Epoch: 1 [1024/1200 (100%)]	Loss: 44.209343
+Train Epoch: 1 [1200/1200 (120%)]	Loss: 47.473309
+---------------------------------------------------
+Test set (300 samples): Average loss: 13.9818
+
+Train Epoch: 50 [256/1200 (40%)]	Loss: 4.401967
+Train Epoch: 50 [512/1200 (60%)]	Loss: 4.259228
+Train Epoch: 50 [768/1200 (80%)]	Loss: 4.040760
+Train Epoch: 50 [1024/1200 (100%)]	Loss: 4.245208
+Train Epoch: 50 [1200/1200 (120%)]	Loss: 3.962181
+---------------------------------------------------
+Manually stopped at 50 epochs since losses were not going down
