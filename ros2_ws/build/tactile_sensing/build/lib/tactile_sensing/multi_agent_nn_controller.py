@@ -128,16 +128,24 @@ class ModelBasedMPCNode(Node):
         )
         
         # WILL NEED TO DO THIS TWICE
-        self.joint_state_sub = self.create_subscription(
+        self.arm_1_joint_state_sub = self.create_subscription(
             JointState,
-            '/joint_states',
-            self.joint_state_cb,
+            '/arm_1_/joint_states',
+            self.arm_1_joint_state_cb,
+            posi_qos_profile,
+            callback_group=self.callback_group
+        )
+
+        self.arm_2_joint_state_sub = self.create_subscription(
+            JointState,
+            '/arm_2_/joint_states',
+            self.arm_2_joint_state_cb,
             posi_qos_profile,
             callback_group=self.callback_group
         )
 
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed        
-    def joint_state_cb(self, msg: JointState):
+    def arm_1_joint_state_cb(self, msg: JointState):
         # self.get_logger().debug("Entered joint_state_cb")  # Debug entry
         try:
             self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
@@ -152,8 +160,20 @@ class ModelBasedMPCNode(Node):
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_1 = gripper_vel
                 # self.get_logger().info(f"Current gripper vel: {gripper_vel:.4f}")  # Debug velocity
-            elif 'arm_2_robotiq_85_left_knuckle_joint' in msg.name:
-                index = msg.name.index('arm_2_robotiq_85_left_knuckle_joint')
+                
+            else:
+                self.get_logger().warn("Gripper joint not found in JointState message")
+                
+        except Exception as e:
+            self.get_logger().error(f"joint_state_cb error: {str(e)}", throttle_duration_sec=5)
+
+    def arm_2_joint_state_cb(self, msg: JointState):
+        # self.get_logger().debug("Entered joint_state_cb")  # Debug entry
+        try:
+            self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
+            
+            if 'arm_2_robotiq_140_left_knuckle_joint' in msg.name:
+                index = msg.name.index('arm_2_robotiq_140_left_knuckle_joint')
                 gripper_position = msg.position[index]
 
                 self.gripper_posi_2 = gripper_position
@@ -161,6 +181,7 @@ class ModelBasedMPCNode(Node):
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_2 = gripper_vel
+                # self.get_logger().info(f"Current gripper vel: {gripper_vel:.4f}")  # Debug velocity
                 
             else:
                 self.get_logger().warn("Gripper joint not found in JointState message")
@@ -208,6 +229,8 @@ class ModelBasedMPCNode(Node):
             self.get_logger().error(f'Tactile processing failed: {str(e)}')
         
     def run(self):
+        pass
+
         if self.current_image_1 is None or self.current_image_2 is None:
             return  # Not enough data
 

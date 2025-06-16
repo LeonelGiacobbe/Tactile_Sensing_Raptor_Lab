@@ -98,9 +98,8 @@ class ModelBasedMPCNode(Node):
         )   
 
         # Using Kinova arm, and we send gripper posi commands through Action Server
-        # WILL NEED TO DO THIS TWICE
-        self._own_action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
-        # self._other_action_client = ...
+        self._action_client_1 = ActionClient(self, GripperCommand, '/arm_1_/robotiq_gripper_controller/gripper_cmd')
+        self._action_client_2 = ActionClient(self, GripperCommand, '/arm_2_/robotiq_gripper_controller/gripper_cmd')
         self.callback_group = ReentrantCallbackGroup()
 
         # Receives image from tactile sensor
@@ -128,16 +127,24 @@ class ModelBasedMPCNode(Node):
         )
         
         # WILL NEED TO DO THIS TWICE
-        self.joint_state_sub = self.create_subscription(
+        self.arm_1_joint_state_sub = self.create_subscription(
             JointState,
-            '/joint_states',
-            self.joint_state_cb,
+            '/arm_1_/joint_states',
+            self.arm_1_joint_state_cb,
+            posi_qos_profile,
+            callback_group=self.callback_group
+        )
+
+        self.arm_2_joint_state_sub = self.create_subscription(
+            JointState,
+            '/arm_2_/joint_states',
+            self.arm_2_joint_state_cb,
             posi_qos_profile,
             callback_group=self.callback_group
         )
 
     # Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed        
-    def joint_state_cb(self, msg: JointState):
+    def arm_1_joint_state_cb(self, msg: JointState):
         # self.get_logger().debug("Entered joint_state_cb")  # Debug entry
         try:
             self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
@@ -147,20 +154,33 @@ class ModelBasedMPCNode(Node):
                 gripper_position = msg.position[index]
 
                 self.gripper_posi_1 = gripper_position
-                self.get_logger().info(f"Current arm 1 gripper position: {gripper_position:.4f}")
+                # self.get_logger().info(f"Current arm 1 gripper position: {gripper_position:.4f}")
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_1 = gripper_vel
                 # self.get_logger().info(f"Current gripper vel: {gripper_vel:.4f}")  # Debug velocity
-            elif 'arm_2_robotiq_85_left_knuckle_joint' in msg.name:
-                index = msg.name.index('arm_2_robotiq_85_left_knuckle_joint')
+                
+            else:
+                self.get_logger().warn("Gripper joint not found in JointState message")
+                
+        except Exception as e:
+            self.get_logger().error(f"joint_state_cb error: {str(e)}", throttle_duration_sec=5)
+
+    def arm_2_joint_state_cb(self, msg: JointState):
+        # self.get_logger().debug("Entered joint_state_cb")  # Debug entry
+        try:
+            self.get_logger().debug(f"Received joints: {msg.name}")  # Debug joint names
+            
+            if 'arm_2_robotiq_140_left_knuckle_joint' in msg.name:
+                index = msg.name.index('arm_2_robotiq_140_left_knuckle_joint')
                 gripper_position = msg.position[index]
 
                 self.gripper_posi_2 = gripper_position
-                self.get_logger().info(f"Current arm 2 gripper position: {gripper_position:.4f}")
+                # self.get_logger().info(f"Current arm 2 gripper position: {gripper_position:.4f}")
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_2 = gripper_vel
+                # self.get_logger().info(f"Current gripper vel: {gripper_vel:.4f}")  # Debug velocity
                 
             else:
                 self.get_logger().warn("Gripper joint not found in JointState message")
@@ -208,95 +228,97 @@ class ModelBasedMPCNode(Node):
             self.get_logger().error(f'Tactile processing failed: {str(e)}')
         
     def run(self):
+        pass
+
         if self.current_image_1 is None or self.current_image_2 is None:
             return  # Not enough data
 
         try:
             # Prepare tensors
             with torch.no_grad():
-                own_image_tensor = self.current_image_1.unsqueeze(0)
-                other_image_tensor = self.current_image_2.unsqueeze(0)
+                image_tensor_1 = self.current_image_1.unsqueeze(0)
+                image_tensor_2 = self.current_image_2.unsqueeze(0)
                 # Kinova uses a custom scale (see gripper posi callback for details), here we convert to mm
-                own_gripper_p = torch.tensor([gripper_posi_to_mm_140(self.gripper_posi_1)]).to(self.device)
-                own_gripper_v = torch.tensor(self.gripper_vel_1).to(self.device)
+                gripper_posi_1 = torch.tensor([gripper_posi_to_mm_140(self.gripper_posi_1)]).to(self.device)
+                gripper_vel_1 = torch.tensor(self.gripper_vel_1).to(self.device)
 
-                other_gripper_p = torch.tensor([gripper_posi_to_mm_85(self.gripper_posi_2)]).to(self.device)
-                other_gripper_v = torch.tensor(self.gripper_vel_2).to(self.device)
+                gripper_posi_2 = torch.tensor([gripper_posi_to_mm_85(self.gripper_posi_2)]).to(self.device)
+                gripper_vel_2 = torch.tensor(self.gripper_vel_2).to(self.device)
 
-                own_tactile_embeddings = self.nn_encoder(own_image_tensor) # 0.16s spent here
-                other_tactile_embeddings = self.nn_encoder(other_image_tensor)
+                tactile_embeddings_1 = self.nn_encoder(image_tensor_1) # 0.16s spent here
+                tactile_embeddings_2 = self.nn_encoder(image_tensor_2)
                 
-                pos_sequences = self.mpc_layer(own_tactile_embeddings, own_gripper_p, own_gripper_v) # 0.6s here
-                # own_output, other_output = self.mpc_layer(own_embeddings, other_embeddings, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v, )
+                pos_sequences_1 = self.mpc_layer(tactile_embeddings_1, gripper_posi_1, gripper_vel_1) # 0.6s here
+                # pos_sequences_1, pos_sequences_2 = self.mpc_layer(tactile_embeddings_1, tactile_embeddings_2, gripper_posi_1, gripper_vel_1, gripper_posi_2, gripper_vel_2)
 
             # Take the first action in the horizon
-            own_target_pos = pos_sequences[:, 0].item() # Now in mm
-            own_target_pos = mm_to_gripper_posi_140(own_target_pos) # Now converted to kinova scale
+            target_pos_1 = pos_sequences_1[:, 0].item() # Now in mm
+            target_pos_1 = mm_to_gripper_posi_140(target_pos_1) # Now converted to kinova scale
 
-            # other_target_pos = other_output[:, 0].item()
-            # other_target_pos = mm_to_gripper_posi_85(other_target_pos)
+            # target_pos_2 = pos_sequences_2[:, 0].item()
+            # target_pos_2 = mm_to_gripper_posi_85(target_pos_2)
             
-            self.get_logger().info(f"Target pos sequence: {pos_sequences}")
+            self.get_logger().info(f"Target pos sequence 1: {pos_sequences_1}")
+            # self.get_logger().info(f"Target pos sequence 2: {pos_sequences_2}")
             
-            # Send own command
-            self.own_goal = GripperCommand.Goal()
-            self.own_goal.command.position = own_target_pos
-            self.own_goal.command.max_effort = 100.0
-            self.get_logger().info(f"Sending own goal: {self.own_goal.command.position:.4f}")
-            self._own_send_goal(self.own_goal)
+            # Send command for arm 1
+            self.goal_1 = GripperCommand.Goal()
+            self.goal_1.command.position = target_pos_1
+            self.goal_1.command.max_effort = 100.0
+            self.get_logger().info(f"Sending arm 1 goal: {self.goal_1.command.position:.4f}")
+            self._send_goal_1(self.goal_1)
 
-            # Send own command
-            # self.other_goal = GripperCommand.Goal()
-            # self.other_goal.command.position = other_target_pos
-            # self.other_goal.command.max_effort = 100.0
-            # self.get_logger().info(f"Sending other goal: {self.other_goal.command.position:.4f}")
-            # self._other_send_goal(self.other_goal)
-            # # self.get_logger().info(f"Current gripper posi: {self.gripper_posi_}")
+            # Send command for arm 2
+            # self.goal_2 = GripperCommand.Goal()
+            # self.goal_2.command.position = target_pos_2
+            # self.goal_2.command.max_effort = 100.0
+            # self.get_logger().info(f"Sending arm 2 goal: {self.goal_2.command.position:.4f}")
+            # self._send_goal_2(self.goal_2)
             # self.rate.sleep()
 
 
         except Exception as e:
             self.get_logger().error(f'Control loop failed: {str(e)}')
 
-    def _own_send_goal(self, goal):
-        if not self._own_action_client.wait_for_server(timeout_sec=2.0):
+    def _send_goal_1(self, goal):
+        if not self._action_client_1.wait_for_server(timeout_sec=2.0):
             self.get_logger().error("Action server not available after waiting")
             return
         self.get_logger().info("Got life check from server")
-        self._own_send_goal_future = self._own_action_client.send_goal_async(goal)
-        self._own_send_goal_future.add_done_callback(self._own_goal_response_callback)
+        self._send_goal_future_1 = self._action_client_1.send_goal_async(goal)
+        self._send_goal_future_1.add_done_callback(self.goal_response_callback_1)
 
-    def _other_send_goal(self, goal):
-        if not self._own_action_client.wait_for_server(timeout_sec=2.0):
+    def _send_goal_2(self, goal):
+        if not self._action_client_2.wait_for_server(timeout_sec=2.0):
             self.get_logger().error("Action server not available after waiting")
             return
         self.get_logger().info("Got life check from server")
-        self._other_send_goal_future = self._other_action_client.send_goal_async(goal)
-        self._other_send_goal_future.add_done_callback(self._other_goal_response_callback)
+        self._send_goal_future_2 = self._action_client_2.send_goal_async(goal)
+        self._send_goal_future_2.add_done_callback(self.goal_response_callback_2)
 
-    def _own_goal_response_callback(self, future):
-        own_goal_handle = future.result()
-        if not own_goal_handle.accepted:
-            self.get_logger().info('Own Goal rejected :(')
+    def goal_response_callback_1(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().info('Arm 1 Goal rejected :(')
             return
         # self.get_logger().info('Goal accepted :)')
-        self._own_get_result_future = own_goal_handle.get_result_async()
-        self._own_get_result_future.add_done_callback(self._own_get_result_callback)
+        self.get_result_future_1 = goal_handle.get_result_async()
+        self.get_result_future_1.add_done_callback(self.get_result_callback_1)
 
-    def _other_goal_response_callback(self, future):
-        other_goal_handle = future.result()
-        if not other_goal_handle.accepted:
-            self.get_logger().info('Other Goal rejected :(')
+    def goal_response_callback_2(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().info('Arm 2 Goal rejected :(')
             return
         # self.get_logger().info('Goal accepted :)')
-        self._other_get_result_future = other_goal_handle.get_result_async()
-        self._other_get_result_future.add_done_callback(self._other_get_result_callback)
+        self.get_result_future_2 = goal_handle.get_result_async()
+        self.get_result_future_2.add_done_callback(self.get_result_callback_2)
 
-    def _own_get_result_callback(self, future):
+    def get_result_callback_1(self, future):
         result = future.result().result
         # self.get_logger().info(f'Result: {result}')
 
-    def _other_get_result_callback(self, future):
+    def get_result_callback_2(self, future):
         result = future.result().result
         # self.get_logger().info(f'Result: {result}')
 
