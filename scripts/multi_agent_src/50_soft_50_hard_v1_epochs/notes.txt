@@ -3,6 +3,7 @@ V1 used 4500 wood images. 4500 hard rubber images,
 18,000 images in total
 learning rate was 1e-4
 dropout_p was 0.15
+batch size was 256
 ---------------------------------------------------
 Epoch 1:
 ---------------------------------------------------
@@ -70,4 +71,3 @@ Train Epoch: 100 [6912/7200 (97%)]	Loss: 241.719528
 Train Epoch: 100 [7168/7200 (100%)]	Loss: 226.870804
 Train Epoch: 100 [7200/7200 (103%)]	Loss: 363.517670
 ---------------------------------------------------
-Manually stopped at 50 epochs since losses were not going down

@@ -5,7 +5,7 @@ epoch_num = []
 val_losses = []
 train_losses = []
 
-with open('./50_soft_50_hard_v1_epochs/loss_log.csv', 'r') as f:
+with open('./loss_log.csv', 'r') as f:
     reader = csv.reader(f)
 
     for row in reader:

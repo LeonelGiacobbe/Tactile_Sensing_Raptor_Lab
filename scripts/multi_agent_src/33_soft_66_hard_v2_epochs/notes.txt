@@ -1,0 +1,73 @@
+V1 used 9000 wood images. 9000 hard rubber images,
+3000 gel, 3000 soft foam, and 3000 no-contact data.
+27,000 images in total
+learning rate was 1e-3
+dropout_p was 0.15
+batch size was 256
+I reduced nStep from 20 to 15 in training, back to what it was
+in single-agent case
+Also, the *3 scaling was removed from terminal cost calculation
+
+In training, og loss uses F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(final_y_own,final_output_own).item()
+in training, new loss uses
+---------------------------------------------------
+Epoch 1:
+---------------------------------------------------
+Test set (2700 samples): Average OG loss: 65.8705
+ (*3 scaling removed)
+Agent 1 OG loss (*3 scaling removed):  51.3091983795166
+Agent 2 OG loss:  20.85079574584961
+Train Epoch: 1 [256/10800 (5%)]	Loss: 72.159996
+Agent 1 OG loss (*3 scaling removed):  47.39944076538086
+Agent 2 OG loss:  21.269764184951782
+Train Epoch: 1 [512/10800 (7%)]	Loss: 68.669205
+Agent 1 OG loss (*3 scaling removed):  50.15749168395996
+Agent 2 OG loss:  20.03906774520874
+Train Epoch: 1 [768/10800 (9%)]	Loss: 70.196556
+Agent 1 OG loss (*3 scaling removed):  44.51080513000488
+Agent 2 OG loss:  22.056602954864502
+Train Epoch: 1 [1024/10800 (12%)]	Loss: 66.567406
+Agent 1 OG loss (*3 scaling removed):  49.456647872924805
+Agent 2 OG loss:  20.312589645385742
+Train Epoch: 1 [1280/10800 (14%)]	Loss: 69.769234
+Agent 1 OG loss (*3 scaling removed):  37.91244411468506
+Agent 2 OG loss:  18.577369928359985
+Train Epoch: 1 [1536/10800 (16%)]	Loss: 56.489815
+Agent 1 OG loss (*3 scaling removed):  42.36749744415283
+Agent 2 OG loss:  20.047229766845703
+Train Epoch: 1 [1792/10800 (19%)]	Loss: 62.414726
+Agent 1 OG loss (*3 scaling removed):  40.75864124298096
+Agent 2 OG loss:  16.56950807571411
+---------------------------------------------------
+Test set (1800 samples): Average loss: 311.3249
+
+Train Epoch: 100 [256/7200 (7%)]	Loss: 221.015732
+Train Epoch: 100 [512/7200 (10%)]	Loss: 224.553162
+Train Epoch: 100 [768/7200 (14%)]	Loss: 233.440094
+Train Epoch: 100 [1024/7200 (17%)]	Loss: 234.632660
+Train Epoch: 100 [1280/7200 (21%)]	Loss: 231.262863
+Train Epoch: 100 [1536/7200 (24%)]	Loss: 234.545990
+Train Epoch: 100 [1792/7200 (28%)]	Loss: 239.591156
+Train Epoch: 100 [2048/7200 (31%)]	Loss: 215.497559
+Train Epoch: 100 [2304/7200 (34%)]	Loss: 220.633514
+Train Epoch: 100 [2560/7200 (38%)]	Loss: 220.088486
+Train Epoch: 100 [2816/7200 (41%)]	Loss: 229.050476
+Train Epoch: 100 [3072/7200 (45%)]	Loss: 235.545715
+Train Epoch: 100 [3328/7200 (48%)]	Loss: 241.588562
+Train Epoch: 100 [3584/7200 (52%)]	Loss: 239.309235
+Train Epoch: 100 [3840/7200 (55%)]	Loss: 229.392288
+Train Epoch: 100 [4096/7200 (59%)]	Loss: 222.359436
+Train Epoch: 100 [4352/7200 (62%)]	Loss: 213.423660
+Train Epoch: 100 [4608/7200 (66%)]	Loss: 233.147629
+Train Epoch: 100 [4864/7200 (69%)]	Loss: 248.495544
+Train Epoch: 100 [5120/7200 (72%)]	Loss: 230.667114
+Train Epoch: 100 [5376/7200 (76%)]	Loss: 222.927460
+Train Epoch: 100 [5632/7200 (79%)]	Loss: 221.000000
+Train Epoch: 100 [5888/7200 (83%)]	Loss: 224.116318
+Train Epoch: 100 [6144/7200 (86%)]	Loss: 239.998734
+Train Epoch: 100 [6400/7200 (90%)]	Loss: 227.911804
+Train Epoch: 100 [6656/7200 (93%)]	Loss: 209.339981
+Train Epoch: 100 [6912/7200 (97%)]	Loss: 241.719528
+Train Epoch: 100 [7168/7200 (100%)]	Loss: 226.870804
+Train Epoch: 100 [7200/7200 (103%)]	Loss: 363.517670
+---------------------------------------------------

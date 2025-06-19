@@ -1,0 +1,50 @@
+V1 used 9000 wood images. 9000 hard rubber images,
+3000 gel, 3000 soft foam, and 3000 no-contact data.
+27,000 images in total
+learning rate was 1e-3
+dropout_p was 0.15
+batch size was 256
+Also, the *3 scaling was removed from terminal cost calculation
+
+In training, og loss uses F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(final_y_own,final_output_own).item()
+in training, new loss uses
+---------------------------------------------------
+Epoch 1:
+---------------------------------------------------
+Test set (2700 samples): Average OG loss: 65.8705
+ (*3 scaling removed)
+Agent 1 OG loss (*3 scaling removed):  51.3091983795166
+Agent 2 OG loss:  20.85079574584961
+Train Epoch: 1 [256/10800 (5%)]	Loss: 72.159996
+Agent 1 OG loss (*3 scaling removed):  47.39944076538086
+Agent 2 OG loss:  21.269764184951782
+Train Epoch: 1 [512/10800 (7%)]	Loss: 68.669205
+Agent 1 OG loss (*3 scaling removed):  50.15749168395996
+Agent 2 OG loss:  20.03906774520874
+Train Epoch: 1 [768/10800 (9%)]	Loss: 70.196556
+Agent 1 OG loss (*3 scaling removed):  44.51080513000488
+Agent 2 OG loss:  22.056602954864502
+Train Epoch: 1 [1024/10800 (12%)]	Loss: 66.567406
+Agent 1 OG loss (*3 scaling removed):  49.456647872924805
+Agent 2 OG loss:  20.312589645385742
+Train Epoch: 1 [1280/10800 (14%)]	Loss: 69.769234
+Agent 1 OG loss (*3 scaling removed):  37.91244411468506
+Agent 2 OG loss:  18.577369928359985
+Train Epoch: 1 [1536/10800 (16%)]	Loss: 56.489815
+Agent 1 OG loss (*3 scaling removed):  42.36749744415283
+Agent 2 OG loss:  20.047229766845703
+Train Epoch: 1 [1792/10800 (19%)]	Loss: 62.414726
+Agent 1 OG loss (*3 scaling removed):  40.75864124298096
+Agent 2 OG loss:  16.56950807571411
+---------------------------------------------------
+Test set (2700 samples): Average OG loss: 42.6159
+ (*3 scaling removed)
+Agent 1 OG loss (*3 scaling removed):  15.424388885498047
+Agent 2 OG loss:  16.683690071105957
+Train Epoch: 50 [256/10800 (5%)]	Loss: 32.108078
+Agent 1 OG loss (*3 scaling removed):  14.275628089904785
+Agent 2 OG loss:  15.71006727218628
+Train Epoch: 50 [512/10800 (7%)]	Loss: 29.985695
+Agent 1 OG loss (*3 scaling removed):  13.702327251434326
+Agent 2 OG loss:  13.636698246002197
+---------------------------------------------------

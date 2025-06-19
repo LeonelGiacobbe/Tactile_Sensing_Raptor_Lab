@@ -1,0 +1,34 @@
+V1 used 4500 wood images and 4500 hard rubber images,
+no gel, soft foam, or no-contact data.
+9000 images in total
+learning rate was 1e-4
+dropout_p was 0.15
+---------------------------------------------------
+Epoch 1:
+---------------------------------------------------
+Test set (1260 samples): Average loss: 46.1791
+
+Train Epoch: 1 [256/5040 (10%)]	Loss: 49.015305
+Train Epoch: 1 [512/5040 (15%)]	Loss: 46.096622
+Train Epoch: 1 [768/5040 (20%)]	Loss: 49.848839
+Train Epoch: 1 [1024/5040 (25%)]	Loss: 46.130844
+Train Epoch: 1 [1280/5040 (30%)]	Loss: 44.600998
+Train Epoch: 1 [1536/5040 (35%)]	Loss: 50.553993
+Train Epoch: 1 [1792/5040 (40%)]	Loss: 45.425987
+Train Epoch: 1 [2048/5040 (45%)]	Loss: 47.281418
+Train Epoch: 1 [2304/5040 (50%)]	Loss: 42.104866
+Train Epoch: 1 [2560/5040 (55%)]	Loss: 49.502769
+Train Epoch: 1 [2816/5040 (60%)]	Loss: 49.402496
+Train Epoch: 1 [3072/5040 (65%)]	Loss: 44.872032
+Train Epoch: 1 [3328/5040 (70%)]	Loss: 43.421684
+Train Epoch: 1 [3584/5040 (75%)]	Loss: 42.908550
+Train Epoch: 1 [3840/5040 (80%)]	Loss: 42.101631
+Train Epoch: 1 [4096/5040 (85%)]	Loss: 41.995941
+Train Epoch: 1 [4352/5040 (90%)]	Loss: 46.854073
+Train Epoch: 1 [4608/5040 (95%)]	Loss: 45.848782
+Train Epoch: 1 [4864/5040 (100%)]	Loss: 45.834091
+Train Epoch: 1 [5040/5040 (105%)]	Loss: 41.584717
+---------------------------------------------------
+Forgot to copy the losses at last epoch, but test
+was ~65 and train was ~10-11
+---------------------------------------------------

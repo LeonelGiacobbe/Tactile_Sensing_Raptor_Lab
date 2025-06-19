@@ -18,7 +18,7 @@ dropout_p = 0.15
 # Training parameters
 epochs = 100
 batch_size = 256
-learning_rate = 1e-4
+learning_rate = 1e-3
 eps = 1e-4
 nStep = 20
 del_t = 1/25
@@ -254,17 +254,27 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) 
         
         y_own= y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1))
-        final_y_own = y_own[:,(output_1.size(1)-1)]*3
-        final_output_own = output_1[:,(output_1.size(1)-1)]*3
+        final_y_own = y_own[:,(output_1.size(1)-1)] 
+        final_output_own = output_1[:,(output_1.size(1)-1)]
 
         y_other= y_other.unsqueeze(1).expand(X_other.size(0), output_2.size(1))
-        final_y_other = y_other[:,(output_2.size(1)-1)]*3
-        final_output_other = output_2[:,(output_2.size(1)-1)]*3
+        final_y_other = y_other[:,(output_2.size(1)-1)]
+        final_output_other = output_2[:,(output_2.size(1)-1)]
+        
+        print(f"Agent 1 loss per time step:")
+        for t in range(output_1.size(1)):
+            step_loss = F.mse_loss(output_1[:, t], y_own[:, t].float()).item()
+            print(f"  Step {t}: {step_loss:.6f}")
+
+        print(f"Agent 2 loss per time step:")
+        for t in range(output_2.size(1)):
+            step_loss = F.mse_loss(output_2[:, t], y_other[:, t].float()).item()
+            print(f"  Step {t}: {step_loss:.6f}")
         
         loss = F.mse_loss(output_1,y_own.float()) + F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_own,final_output_own) + F.mse_loss(final_y_other,final_output_other)
         losses.append(loss.item())
-        # print("Agent 1 loss: ", F.mse_loss(output_1,y_own.float()) + F.mse_loss(final_y_own,final_output_own))
-        # print("Agent 2 loss: ", F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_other,final_output_other))
+        print("Agent 1 OG loss (*3 scaling removed): ", F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(final_y_own,final_output_own).item())
+        print("Agent 2 OG loss: ", F.mse_loss(output_2,y_other.float()).item() + F.mse_loss(final_y_other,final_output_other).item())
         loss.backward()
 
         for name, param in MPC_layer.named_parameters():
@@ -277,9 +287,11 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         epoch_count += 1
 
         # show information
+        # print("Agent new 1 loss: ", F.mse_loss(output_1,y_own.float()).item())
+        # print("Agent nw 2 loss: ", F.mse_loss(output_2,y_other.float()).item())
         print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
             epoch + 1, N_count, len(own_train_loader.dataset), 100. * (epoch_count + 1) / len(own_train_loader), loss.item()))
-    # Return last loss in epoch (to match loss amount in validation)
+    # Return mean of losses in epoch (to match loss amount in validation)
     return np.mean(losses)
 
 def validation(model, device, own_test_loader, other_test_loader):
@@ -288,6 +300,7 @@ def validation(model, device, own_test_loader, other_test_loader):
     MPC_layer.eval()
     test_loss = 0
     loss_list = []
+    new_loss_list = []
     all_y_own = []
     all_y_other = []
     all_y_pred_own = []
@@ -317,15 +330,17 @@ def validation(model, device, own_test_loader, other_test_loader):
             
             output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
             
-            y_own = y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1))
-            final_y_own = y_own[:,(output_1.size(1)-1)]*3
-            final_output_own = output_1[:,(output_1.size(1)-1)]*3
+            y_own = y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1)) # size batchSize, nStep
+            final_y_own = y_own[:,(output_1.size(1)-1)]
+            final_output_own = output_1[:,(output_1.size(1)-1)]
 
             y_other = y_other.unsqueeze(1).expand(X_other.size(0), output_2.size(1))
-            final_y_other = y_other[:,(output_2.size(1)-1)]*3
-            final_output_other = output_2[:,(output_2.size(1)-1)]*3
+            final_y_other = y_other[:,(output_2.size(1)-1)]
+            final_output_other = output_2[:,(output_2.size(1)-1)]
                  
             loss = F.mse_loss(output_1,y_own.float()) + F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_own,final_output_own) + F.mse_loss(final_y_other,final_output_other)
+            new_loss = F.mse_loss(output_1,y_own.float()) + F.mse_loss(output_2,y_other.float()) #
+            new_loss_list.append(new_loss.item())
             loss_list.append(loss.item())
             test_loss += F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(output_2,y_other.float()).item()     
             y_pred_own = output_1.max(1, keepdim=True)[1] 
@@ -335,13 +350,14 @@ def validation(model, device, own_test_loader, other_test_loader):
 
             all_y_pred_own.extend(y_pred_own)
             all_y_pred_other.extend(y_pred_other)
-
+    new_test_loss = np.mean(new_loss_list)
     test_loss = np.mean(loss_list)
     all_y_own = torch.stack(all_y_own, dim=0)
     all_y_other = torch.stack(all_y_other, dim=0)
     all_y_pred_own = torch.stack(all_y_pred_own, dim=0)
     all_y_pred_other = torch.stack(all_y_pred_other, dim=0)
-    print('\nTest set ({:d} samples): Average loss: {:.4f}\n'.format(len(all_y_own), test_loss))
+    print('\nTest set ({:d} samples): Average OG loss: {:.4f}\n'.format(len(all_y_own), test_loss) + " (*3 scaling removed)")
+    # print('\nTest set ({:d} samples): Average NEW loss: {:.4f}\n'.format(len(all_y_own), new_test_loss))
     return test_loss
 
 use_cuda = torch.cuda.is_available()                  
@@ -454,7 +470,7 @@ for epoch in range(epochs):
         writer.writerow([epoch+1, valid_loss, training_loss])
         # Save checkpoint every 10 epochs
         if (epoch + 1) % 10 == 0:
-            checkpoint_path = f'./only_rubber_wood_v2_checkpoint_epoch_{epoch+1}.pth'
+            checkpoint_path = f'./33_soft_66_hard_v2_checkpoint_epoch_{epoch+1}.pth'
             torch.save({
                 'cnn_encoder_state_dict': cnn_encoder.state_dict(),
                 'mpc_layer_state_dict': MPC_layer.state_dict(),
