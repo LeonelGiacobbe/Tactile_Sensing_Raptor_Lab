@@ -154,7 +154,7 @@ class MPClayer(nn.Module):
         nHiddenExpand = 2 * (self.nHidden + 2)
 
         # Single Q in cost function
-        Q0 = self.Lq.mm(self.Lq.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda()
+        Q0 = self.Lq.mm(self.Lq.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda() 
         Q0 = torch.hstack((Q0,self.Q0_right))
         Q0 = torch.vstack((Q0,torch.hstack((self.Q0_down,self.Q0_right_down))))
         # Q0 is equivalent to Qf in the paper
@@ -317,8 +317,13 @@ class MPClayer(nn.Module):
         Without resizing, the losses are ~6000!
         
         """
-        x_predict_1 = x_predict[:, : (self.nStep * (self.nHidden + 2)), :]
-        x_predict_2 = x_predict[:, (self.nStep * (self.nHidden + 2)) : , :]
+        x_predict_reshaped = x_predict.view(nBatch, self.nStep, nHiddenExpand, 1)
+        # Now split agents
+        x_predict_1 = x_predict_reshaped[:, :, :(self.nHidden+2), :]
+        x_predict_2 = x_predict_reshaped[:, :, (self.nHidden+2):, :]
+        # Reshape back to original form
+        x_predict_1 = x_predict_1.reshape(nBatch, self.nStep*(self.nHidden+2), 1)
+        x_predict_2 = x_predict_2.reshape(nBatch, self.nStep*(self.nHidden+2), 1)
         
         embb_output_1 = Variable(torch.zeros(1,self.nHidden).cuda())
         state_output_1 = Variable(torch.eye(1).cuda())

@@ -1,0 +1,57 @@
+This combines the alternating and two loops dataset
+Approximately 15,000 wood, 15,000 rubber
+6,600 foam, 6,600 gel, 6,600 empty
+learning rate was 1e-4
+dropout_p was 0.15
+batch size was 256
+nStep is 15
+Difference to previous version is the use of L2 regularization to hopefully reduce overfitting
+------------------------------------------------------------------------------------
+Test set (5430 samples): Average loss: 73.7878
+
+Agent 1 loss:  38.1255419254303
+Agent 2 loss:  36.80638861656189
+Train Epoch: 1 [256/21720 (2%)]	Loss: 74.931931
+Agent 1 loss:  35.38271188735962
+Agent 2 loss:  36.90495824813843
+Train Epoch: 1 [512/21720 (4%)]	Loss: 72.287674
+Agent 1 loss:  33.2278254032135
+Agent 2 loss:  39.36762619018555
+Train Epoch: 1 [768/21720 (5%)]	Loss: 72.595451
+Agent 1 loss:  36.24937915802002
+Agent 2 loss:  30.98450207710266
+Train Epoch: 1 [1024/21720 (6%)]	Loss: 67.233879
+Agent 1 loss:  34.7077796459198
+Agent 2 loss:  37.88758087158203
+Train Epoch: 1 [1280/21720 (7%)]	Loss: 72.595360
+Agent 1 loss:  35.66235113143921
+Agent 2 loss:  36.891289710998535
+Train Epoch: 1 [1536/21720 (8%)]	Loss: 72.553642
+Agent 1 loss:  34.128525257110596
+Agent 2 loss:  34.72187924385071
+------------------------------------------------------------------------------------
+Test set (5430 samples): Average OG loss: 16.8340
+
+Agent 1 loss:  1.5925305485725403
+Agent 2 loss:  2.113398104906082
+Train Epoch: 49 [256/21720 (2%)]	Loss: 3.705929
+Agent 1 loss:  1.8565721809864044
+Agent 2 loss:  2.0655291974544525
+Train Epoch: 49 [512/21720 (4%)]	Loss: 3.922101
+Agent 1 loss:  1.8156333267688751
+Agent 2 loss:  1.9689765870571136
+Train Epoch: 49 [768/21720 (5%)]	Loss: 3.784610
+Agent 1 loss:  2.167370855808258
+Agent 2 loss:  2.2044939398765564
+Train Epoch: 49 [1024/21720 (6%)]	Loss: 4.371865
+Agent 1 loss:  2.044541358947754
+Agent 2 loss:  2.3687872886657715
+Train Epoch: 49 [1280/21720 (7%)]	Loss: 4.413329
+Agent 1 loss:  1.739757388830185
+Agent 2 loss:  1.886771321296692
+Train Epoch: 49 [1536/21720 (8%)]	Loss: 3.626529
+Agent 1 loss:  2.3729438483715057
+Agent 2 loss:  2.506928265094757
+Train Epoch: 49 [1792/21720 (9%)]	Loss: 4.879872
+Agent 1 loss:  2.015539824962616
+Agent 2 loss:  1.9433882236480713
