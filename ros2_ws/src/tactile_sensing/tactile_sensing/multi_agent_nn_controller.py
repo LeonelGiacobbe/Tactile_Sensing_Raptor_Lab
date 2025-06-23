@@ -154,7 +154,7 @@ class ModelBasedMPCNode(Node):
                 gripper_position = msg.position[index]
 
                 self.gripper_posi_1 = gripper_position
-                # self.get_logger().info(f"Current arm 1 gripper position: {gripper_position:.4f}")
+                self.get_logger().info(f"Current arm 1 gripper position: {gripper_position:.4f}")
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_1 = gripper_vel
@@ -176,7 +176,7 @@ class ModelBasedMPCNode(Node):
                 gripper_position = msg.position[index]
 
                 self.gripper_posi_2 = gripper_position
-                # self.get_logger().info(f"Current arm 2 gripper position: {gripper_position:.4f}")
+                self.get_logger().info(f"Current arm 2 gripper position: {gripper_position:.4f}")
                 
                 gripper_vel = msg.velocity[index]
                 self.gripper_vel_2 = gripper_vel
@@ -196,8 +196,8 @@ class ModelBasedMPCNode(Node):
     def contact_area_cb_1(self, msg):
         start = time.time()
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg)   
-            # cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)  
+            cv_image = self.bridge.imgmsg_to_cv2(msg, encoding='bgr8')  
+            rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB) 
             pil_image = Image.fromarray(cv_image)        
             # Convert to tensor and process single image
             tensor = self.transform(pil_image).to(self.device)
@@ -213,7 +213,7 @@ class ModelBasedMPCNode(Node):
     def contact_area_cb_2(self, msg):
         start = time.time()
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg)   
+            cv_image = self.bridge.imgmsg_to_cv2(msg, encoding='bgr8')   
             # cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)  
             pil_image = Image.fromarray(cv_image)        
             # Convert to tensor and process single image
@@ -239,27 +239,26 @@ class ModelBasedMPCNode(Node):
                 image_tensor_1 = self.current_image_1.unsqueeze(0)
                 image_tensor_2 = self.current_image_2.unsqueeze(0)
                 # Kinova uses a custom scale (see gripper posi callback for details), here we convert to mm
-                gripper_posi_1 = torch.tensor([gripper_posi_to_mm_140(self.gripper_posi_1)]).to(self.device)
+                gripper_posi_1 = torch.tensor([gripper_posi_to_mm_85(self.gripper_posi_1)]).to(self.device)
                 gripper_vel_1 = torch.tensor(self.gripper_vel_1).to(self.device)
 
-                gripper_posi_2 = torch.tensor([gripper_posi_to_mm_85(self.gripper_posi_2)]).to(self.device)
+                gripper_posi_2 = torch.tensor([gripper_posi_to_mm_140(self.gripper_posi_2)]).to(self.device)
                 gripper_vel_2 = torch.tensor(self.gripper_vel_2).to(self.device)
 
                 tactile_embeddings_1 = self.nn_encoder(image_tensor_1) # 0.16s spent here
                 tactile_embeddings_2 = self.nn_encoder(image_tensor_2)
                 
-                pos_sequences_1 = self.mpc_layer(tactile_embeddings_1, gripper_posi_1, gripper_vel_1) # 0.6s here
-                # pos_sequences_1, pos_sequences_2 = self.mpc_layer(tactile_embeddings_1, tactile_embeddings_2, gripper_posi_1, gripper_vel_1, gripper_posi_2, gripper_vel_2)
+                pos_sequences_1, pos_sequences_2 = self.mpc_layer(tactile_embeddings_1, tactile_embeddings_2, gripper_posi_1, gripper_vel_1, gripper_posi_2, gripper_vel_2)
 
             # Take the first action in the horizon
             target_pos_1 = pos_sequences_1[:, 0].item() # Now in mm
-            target_pos_1 = mm_to_gripper_posi_140(target_pos_1) # Now converted to kinova scale
+            target_pos_1 = mm_to_gripper_posi_85(target_pos_1) # Now converted to kinova scale
 
-            # target_pos_2 = pos_sequences_2[:, 0].item()
-            # target_pos_2 = mm_to_gripper_posi_85(target_pos_2)
+            target_pos_2 = pos_sequences_2[:, 0].item()
+            target_pos_2 = mm_to_gripper_posi_140(target_pos_2)
             
             self.get_logger().info(f"Target pos sequence 1: {pos_sequences_1}")
-            # self.get_logger().info(f"Target pos sequence 2: {pos_sequences_2}")
+            self.get_logger().info(f"Target pos sequence 2: {pos_sequences_2}")
             
             # Send command for arm 1
             self.goal_1 = GripperCommand.Goal()
@@ -269,12 +268,12 @@ class ModelBasedMPCNode(Node):
             self._send_goal_1(self.goal_1)
 
             # Send command for arm 2
-            # self.goal_2 = GripperCommand.Goal()
-            # self.goal_2.command.position = target_pos_2
-            # self.goal_2.command.max_effort = 100.0
-            # self.get_logger().info(f"Sending arm 2 goal: {self.goal_2.command.position:.4f}")
-            # self._send_goal_2(self.goal_2)
-            # self.rate.sleep()
+            self.goal_2 = GripperCommand.Goal()
+            self.goal_2.command.position = target_pos_2
+            self.goal_2.command.max_effort = 100.0
+            self.get_logger().info(f"Sending arm 2 goal: {self.goal_2.command.position:.4f}")
+            self._send_goal_2(self.goal_2)
+            #self.rate.sleep()
 
 
         except Exception as e:

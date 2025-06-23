@@ -473,7 +473,7 @@ scheduler = ReduceLROnPlateau(
     factor=0.1,          # reduce LR by 10x
     patience=5,          # wait 5 epochs with no improvement
     threshold=.5,      # minimal change to be considered an improvement
-    verbose=True         # prints when LR is reduced
+    #verbose=True         # prints when LR is reduced
 )
 
 # Load checkpoint if exists

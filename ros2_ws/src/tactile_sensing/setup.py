@@ -19,6 +19,7 @@ setup(
                     'torchvision',
                     'qpth',
                     'numpy',
+                    'torch',
                     ],
     zip_safe=True,
     maintainer='leo',

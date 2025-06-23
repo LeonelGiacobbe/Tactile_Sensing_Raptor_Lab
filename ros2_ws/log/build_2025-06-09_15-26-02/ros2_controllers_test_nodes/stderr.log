@@ -1,6 +1,0 @@
-/home/leo/.local/lib/python3.10/site-packages/setuptools/_distutils/dist.py:261: UserWarning: Unknown distribution option: 'tests_require'
-  warnings.warn(msg)
-warning: build_py: byte-compiling is disabled, skipping.
-
-warning: install_lib: byte-compiling is disabled, skipping.
-

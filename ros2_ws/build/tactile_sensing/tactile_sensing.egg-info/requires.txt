@@ -2,3 +2,4 @@ setuptools
 torchvision
 qpth
 numpy
+torch
