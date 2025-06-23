@@ -6,11 +6,12 @@ from kortex_api.autogen.messages import Base_pb2
 from kortex_api.autogen.messages import BaseCyclic_pb2
 from movement_functions import *
 
-def capture_image(dev):
-    f0 = dev.get_raw_image()
+def capture_image(dev1, dev2):
+    f0 = dev1.get_raw_image()
+    f1 = dev2.get_raw_image()
     if f0 is not None:
         cv2.imwrite(f'image.jpg', f0)
-        # cv2.imwrite(f'image2.jpg', f1)
+        cv2.imwrite(f'image2.jpg', f1)
         return f0
         # print("Image saved")
     else:
@@ -28,8 +29,7 @@ def main():
     dev.connect()
     dev2.connect()
 
-    capture_image(dev2)
-    capture_image(dev2)
+    capture_image(dev, dev2)
         
 
 if __name__ == "__main__":

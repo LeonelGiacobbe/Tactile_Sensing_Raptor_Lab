@@ -8,3 +8,4 @@ License: TODO: License declaration
 Requires-Dist: setuptools
 Requires-Dist: torchvision
 Requires-Dist: qpth
+Requires-Dist: numpy

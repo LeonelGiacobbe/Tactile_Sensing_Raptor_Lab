@@ -18,6 +18,7 @@ setup(
     install_requires=['setuptools',
                     'torchvision',
                     'qpth',
+                    'numpy',
                     ],
     zip_safe=True,
     maintainer='leo',

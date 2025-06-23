@@ -5,7 +5,7 @@ import rclpy
 from rclpy.node import Node  # Enables the use of rclpy's Node class
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-
+import numpy as np
 
 class CameraPublisher(Node):
     """
@@ -54,17 +54,31 @@ class CameraPublisher(Node):
         # Increment counter variable
         self.i += 1
 
+    def resize_crop_mini(self, img, imgw, imgh):
+        # remove 1/7th of border from each size
+        border_size_x, border_size_y = int(img.shape[0] * (1 / 7)), int(np.floor(img.shape[1] * (1 / 7)))
+        # keep the ratio the same as the original image size
+        img = img[border_size_x+2:img.shape[0] - border_size_x, border_size_y:img.shape[1] - border_size_y]
+        # final resize for 3d
+        img = cv2.resize(img, (imgw, imgh))
+        return img
+
     def publish_coordinates(self, img_1, img_2):
         """
         Publish the coordinates of the object to ROS2 topics
         :param: The position of the object in centimeter coordinates [x , y]
         """
-        # msg = Image()  # Create a message of this type
-        msg_1 = self.cvbridge.cv2_to_imgmsg(img_1)  # Store the x and y coordinates of the object
-        self.frame_publisher_1.publish(msg_1)  # Publish the position to the topic
+        # Resize both images to 224x224
+        img_1_resized = self.resize_crop_mini(img_1, 224, 224)
+        img_2_resized = self.resize_crop_mini(img_2, 224, 224)
 
-        msg_2 = self.cvbridge.cv2_to_imgmsg(img_2)  # Store the x and y coordinates of the object
-        self.frame_publisher_2.publish(msg_2)  # Publish the position to the topic
+        # Convert resized images to ROS messages
+        msg_1 = self.cvbridge.cv2_to_imgmsg(img_1_resized, encoding='bgr8')
+        msg_2 = self.cvbridge.cv2_to_imgmsg(img_2_resized, encoding='bgr8')
+
+        # Publish the resized images
+        self.frame_publisher_1.publish(msg_1)
+        self.frame_publisher_2.publish(msg_2)
 
 
 
@@ -73,7 +87,7 @@ def get_diff_img_2(img1, img2):
 
 
 class WebcamVideoStream :
-    def __init__(self, src, width = 320, height = 240) :
+    def __init__(self, src, width = 224, height = 224) :
         self.stream = cv2.VideoCapture(src)
         # self.stream.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, width)
         # self.stream.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, height)
@@ -118,8 +132,8 @@ def main(args=None):
     SAVE_SINGLE_IMGS_FLAG = False
     cvbridge = CvBridge()
     chop_border_size = 0
-    imgh = 240
-    imgw = 320
+    imgh = 224
+    imgw = 224
     NUM_SENSORS = 1
 
     gs = {}

@@ -18,6 +18,7 @@
   <exec_depend>python3-tty</exec_depend>
   <exec_depend>python3-cv-bridge</exec_depend>
   <exec_depend>gelsight</exec_depend>
+  <exec_depend>numpy</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
