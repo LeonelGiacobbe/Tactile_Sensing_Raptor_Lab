@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 import random
 from sklearn.linear_model import LinearRegression
 import torchvision.transforms as transforms
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 # EncoderCNN architecture
 CNN_hidden1, CNN_hidden2 = 128, 128 
@@ -276,8 +277,8 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         losses.append(loss.item())
         print("Agent 1 loss: ", F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(final_y_own,final_output_own).item())
         print("Agent 2 loss: ", F.mse_loss(output_2,y_other.float()).item() + F.mse_loss(final_y_other,final_output_other).item())
-        print("Agent 1 only final loss: ", F.mse_loss(final_y_own,final_output_own).item())
-        print("Agent 2 only final loss: ",  F.mse_loss(final_y_other,final_output_other).item())
+        # print("Agent 1 only final loss: ", F.mse_loss(final_y_own,final_output_own).item())
+        # print("Agent 2 only final loss: ",  F.mse_loss(final_y_other,final_output_other).item())
         loss.backward()
 
         for name, param in MPC_layer.named_parameters():
@@ -466,9 +467,18 @@ letac_params = list(cnn_encoder.fc1.parameters()) + list(cnn_encoder.bn1.paramet
 
 optimizer = torch.optim.Adam(letac_params, lr=learning_rate, weight_decay=1e-4) # L2 regularizer of 1e-4
 
+scheduler = ReduceLROnPlateau(
+    optimizer,
+    mode='min',          # because you're minimizing loss
+    factor=0.1,          # reduce LR by 10x
+    patience=5,          # wait 5 epochs with no improvement
+    threshold=.5,      # minimal change to be considered an improvement
+    verbose=True         # prints when LR is reduced
+)
+
 # Load checkpoint if exists
 start_epoch = 0
-checkpoint_path = '40_soft_60_hard_v2_checkpoint_epoch_40.pth'
+checkpoint_path = '40_soft_60_hard_v3_checkpoint_epoch_30.pth'
 if os.path.exists(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     cnn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
@@ -483,12 +493,13 @@ else:
 for epoch in range(start_epoch, epochs):
     with open("loss_log.csv", mode='a') as f:  # 'a' mode appends rather than overwrites
         valid_loss = validation([cnn_encoder, MPC_layer], device, own_valid_loader, other_valid_loader)
+        scheduler.step(valid_loss)
         training_loss = train([cnn_encoder, MPC_layer], device, own_train_loader, other_train_loader, optimizer, epoch)
         writer = csv.writer(f)
         writer.writerow([epoch+1, valid_loss, training_loss])
         # Save checkpoint every 10 epochs
         if (epoch + 1) % 10 == 0:
-            checkpoint_path = f'./40_soft_60_hard_v2_checkpoint_epoch_{epoch+1}.pth'
+            checkpoint_path = f'./40_soft_60_hard_v3_checkpoint_epoch_{epoch+1}.pth'
             torch.save({
                 'cnn_encoder_state_dict': cnn_encoder.state_dict(),
                 'mpc_layer_state_dict': MPC_layer.state_dict(),
