@@ -57,5 +57,6 @@ def generate_launch_description():
     
     return LaunchDescription([
         two_arm_bringup,
+        # image_publisher_node,
         nn_controller_node
     ])

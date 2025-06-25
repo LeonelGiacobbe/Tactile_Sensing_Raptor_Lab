@@ -12,13 +12,22 @@ import threading
 import torch
 from torchvision import transforms
 from PIL import Image
-from .implemented_functions import ResCNNEncoder, MPClayer
+from .multi_agent_functions import ResCNNEncoder, MPClayer
 from cv_bridge import CvBridge
 import os, time
 from ament_index_python.packages import get_package_share_directory
 
 CONVERSION_RATE_140_MM = 0.00571429 # Kinova unit to mm
 CONVERSION_RATE_85_MM = 0.00941176 # Kinova unit to mm
+
+# Model architecture params
+CNN_hidden1, CNN_hidden2 = 128, 128 
+CNN_embed_dim = 20  
+res_size = 224       
+eps = 1e-4
+nStep = 15
+del_t = 1/25
+dropout_p = 0.15
 
 def gripper_posi_to_mm_140(gripper_posi):
     opening = 0.8 - gripper_posi
@@ -41,6 +50,7 @@ class ModelBasedMPCNode(Node):
     def __init__(self):
         super().__init__('model_based_mpc_node')
         
+        # Model variables
         self.gripper_posi_1 = 0.0
         self.gripper_vel_1 = 0.0
         self.gripper_posi_2 = 0.0
@@ -48,30 +58,31 @@ class ModelBasedMPCNode(Node):
         self.processing_executor = ThreadPoolExecutor(max_workers=1)
         self.contact_area_lock = threading.Lock()
         self.frequency = 10
+        self.current_image_1 = None
+        self.current_image_2 = None
 
-        # # Neural network stuff
-        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        # self.get_logger().info(f"Using {self.device} in controller node")
-        # self.nn_encoder = ResCNNEncoder().to(self.device)
-        # self.mpc_layer = MPClayer().to(self.device)
-        # if self.device.type == 'cuda':
-        #     self.stream = torch.cuda.Stream()
-        # self.nn_encoder.eval()
-        # self.mpc_layer.eval()
+        # Neural network stuff
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.get_logger().info(f"Using {self.device} in controller node")
+        self.nn_encoder = ResCNNEncoder(hidden1=CNN_hidden1, hidden2=CNN_hidden2, dropP=dropout_p, outputDim=CNN_embed_dim).to(self.device)
+        self.mpc_layer = MPClayer(nHidden = CNN_embed_dim, eps = eps, nStep = nStep, del_t = del_t).to(self.device)
+        if self.device.type == 'cuda':
+            # self.stream = torch.cuda.Stream()
+            torch.cuda.synchronize()
+        self.nn_encoder.eval()
+        self.mpc_layer.eval()
 
-        # # Warmup pass
-        # dummy_input = torch.randn(1, 3, 224, 224, device=self.device)
-        # _ = self.nn_encoder(dummy_input)
-        # if self.device.type == 'cuda':
-        #     torch.cuda.synchronize()
+        # Warmup pass
+        dummy_input = torch.randn(1, 3, 224, 224, device=self.device)
+        _ = self.nn_encoder(dummy_input)            
 
-        # # Load weights
-        # package_dir = get_package_share_directory('tactile_sensing')
-        # model_path = os.path.join(package_dir, 'models', 'letac_mpc_model.pth')
-        # checkpoint = torch.load(model_path, map_location=torch.device(self.device))
-        # self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
-        # self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
-        # self.get_logger().info("Loaded MPC weights")
+        # Load weights
+        package_dir = get_package_share_directory('tactile_sensing')
+        model_path = os.path.join(package_dir, 'models', 'multi_agent_tactile_model.pth')
+        checkpoint = torch.load(model_path, map_location=torch.device(self.device))
+        self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
+        self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
+        self.get_logger().info("Loaded MPC weights")
 
         # Image preprocessing (using the same transform as in training of the CNN encoder)
         self.transform = transforms.Compose([transforms.Resize([224, 224]),
@@ -81,21 +92,23 @@ class ModelBasedMPCNode(Node):
         # To convert GelSight images from ROS Image to CV Image
         self.bridge = CvBridge()
 
-        # Gelsight image vars
-        self.current_image_1 = None
-        self.current_image_2 = None
-
         self.rate = self.create_rate(self.frequency)
 
         # Timer to call the run method periodically
         self.timer = self.create_timer(1.0 / self.frequency, self.run)
 
+        # QoS profiles for subscriptions
         gs_qos_profile = QoSProfile(
             depth=0,
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
             history=HistoryPolicy.KEEP_LAST
         )   
+        posi_qos_profile = QoSProfile(
+            depth=0,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE 
+        )
 
         # Using Kinova arm, and we send gripper posi commands through Action Server
         self._action_client_1 = ActionClient(self, GripperCommand, '/arm_1_/robotiq_gripper_controller/gripper_cmd')
@@ -119,14 +132,7 @@ class ModelBasedMPCNode(Node):
             callback_group=self.callback_group
         )
         
-        # Subscribe to the JointState topic to get gripper position
-        posi_qos_profile = QoSProfile(
-            depth=0,
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
-        )
-        
-        # WILL NEED TO DO THIS TWICE
+        # Gripper position subscriptions
         self.arm_1_joint_state_sub = self.create_subscription(
             JointState,
             '/arm_1_/joint_states',
@@ -194,26 +200,25 @@ class ModelBasedMPCNode(Node):
         self.dis_sum_ = msg.data        
         
     def contact_area_cb_1(self, msg):
-        start = time.time()
+        #start = time.time()
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg)   
-            # cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)  
+            cv_image = self.bridge.imgmsg_to_cv2(msg, encoding='bgr8')  
             pil_image = Image.fromarray(cv_image)        
             # Convert to tensor and process single image
             tensor = self.transform(pil_image).to(self.device)
             
             with self.contact_area_lock:
                 self.current_image_1 = tensor  # Store single image
-            stop = time.time()
+            #stop = time.time()
             # self.get_logger().info(f"Image processing runtime: {stop - start}")
 
         except Exception as e:
             self.get_logger().error(f'Tactile processing failed: {str(e)}')
 
     def contact_area_cb_2(self, msg):
-        start = time.time()
+        #start = time.time()
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg)   
+            cv_image = self.bridge.imgmsg_to_cv2(msg, encoding='bgr8')   
             # cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)  
             pil_image = Image.fromarray(cv_image)        
             # Convert to tensor and process single image
@@ -221,7 +226,7 @@ class ModelBasedMPCNode(Node):
             
             with self.contact_area_lock:
                 self.current_image_2 = tensor  # Store single image
-            stop = time.time()
+            #stop = time.time()
             # self.get_logger().info(f"Image processing runtime: {stop - start}")
 
         except Exception as e:
@@ -236,8 +241,9 @@ class ModelBasedMPCNode(Node):
         try:
             # Prepare tensors
             with torch.no_grad():
-                image_tensor_1 = self.current_image_1.unsqueeze(0)
-                image_tensor_2 = self.current_image_2.unsqueeze(0)
+                # Not sure if unsqueeze is right here, trying without it first
+                image_tensor_1 = self.current_image_1#.unsqueeze(0)
+                image_tensor_2 = self.current_image_2#.unsqueeze(0)
                 # Kinova uses a custom scale (see gripper posi callback for details), here we convert to mm
                 gripper_posi_1 = torch.tensor([gripper_posi_to_mm_85(self.gripper_posi_1)]).to(self.device)
                 gripper_vel_1 = torch.tensor(self.gripper_vel_1).to(self.device)

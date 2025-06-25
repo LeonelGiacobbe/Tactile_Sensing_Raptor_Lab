@@ -20,6 +20,7 @@ tactile_sensing/functions.py
 tactile_sensing/implemented_functions.py
 tactile_sensing/model_based_mpc.py
 tactile_sensing/movement_functions.py
+tactile_sensing/multi_agent_functions.py
 tactile_sensing/multi_agent_mpc.py
 tactile_sensing/multi_agent_nn_controller.py
 tactile_sensing/nn_controller.py
