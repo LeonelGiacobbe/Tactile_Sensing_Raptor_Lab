@@ -81,8 +81,8 @@ class MPClayer(nn.Module):
         super(MPClayer, self).__init__()
 
         self.Pq = 5
-        self.Qv = 100 # Scaling recommended by letac paper
-        self.Qa = 2 # Scaling recommended by letac paper
+        self.Qv = 200 # Increase for quicker convergence
+        self.Qa = 1 # Increase for quicker convergence
         self.nHidden = nHidden
         self.eps = eps
         self.nStep = nStep
@@ -142,8 +142,6 @@ class MPClayer(nn.Module):
         # Stacked R
         R0_stack = self.R0.unsqueeze(0).expand(2 * self.nStep, 1, 1) # Qa stack
         self.R_dia =  torch.block_diag(*R0_stack).cuda() #Qa diagonal
-
-        # self.alpha = nn.Parameter(torch.tensor(0.1).cuda())
 
 
     def forward(self, x1, x2, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v):
