@@ -321,7 +321,6 @@ def validation(model, device, own_test_loader, other_test_loader):
             X_own, y_own = X_own[0].to(device), y_own.to(device).view(-1, )
             X_other, y_other = X_other[0].to(device), y_other.to(device).view(-1, )
             #y_own and y_other are the p_slip of the trials
-
             own_output = cnn_encoder(X_own)
             other_output = cnn_encoder(X_other) 
             

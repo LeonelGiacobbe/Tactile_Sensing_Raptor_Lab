@@ -35,7 +35,7 @@ class CameraPublisher(Node):
         self.timer = self.create_timer(timer_period, self.get_image)
         self.i = 0  # Initialize a counter variable
 
-        self.vs0 = WebcamVideoStream(src=4).start()
+        self.vs0 = WebcamVideoStream(src=0).start()
         self.vs1 = WebcamVideoStream(src=2).start()
 
         self.cvbridge = CvBridge()

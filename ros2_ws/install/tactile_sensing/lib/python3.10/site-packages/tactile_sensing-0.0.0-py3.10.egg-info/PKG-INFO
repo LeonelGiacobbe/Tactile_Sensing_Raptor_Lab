@@ -1,4 +1,4 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: tactile_sensing
 Version: 0.0.0
 Summary: TODO: Package description
@@ -10,3 +10,8 @@ Requires-Dist: torchvision
 Requires-Dist: qpth
 Requires-Dist: numpy
 Requires-Dist: torch
+Dynamic: license
+Dynamic: maintainer
+Dynamic: maintainer-email
+Dynamic: requires-dist
+Dynamic: summary

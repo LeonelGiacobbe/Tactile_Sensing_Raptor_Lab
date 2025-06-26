@@ -51,7 +51,7 @@ for batch_size in batch_sizes:
         encoding2 = ma_cnn_encoder(x2)
         ma_mpc_output = ma_mpc_layer(encoding1, encoding2, own_gripper_p, own_gripper_v, 
                                     other_gripper_p, other_gripper_v)
-        #torch.cuda.synchronize()  # Ensure CUDA ops are complete
+        torch.cuda.synchronize()  # Ensure CUDA ops are complete
         ma_end = time.time()
         ma_total_time += (ma_end - ma_start)
         
@@ -59,7 +59,7 @@ for batch_size in batch_sizes:
         sa_start = time.time()
         encoding1 = ma_cnn_encoder(x1)
         sa_output = sa_mpc_layer(encoding1, own_gripper_p, own_gripper_v)
-        #torch.cuda.synchronize()  # Ensure CUDA ops are complete
+        torch.cuda.synchronize()  # Ensure CUDA ops are complete
         sa_end = time.time()
         sa_total_time += (sa_end - sa_start)
     

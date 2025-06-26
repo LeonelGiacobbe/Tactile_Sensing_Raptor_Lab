@@ -9,7 +9,7 @@ from torch.autograd import  Variable
 from torch.nn.parameter import Parameter
 from qpth.qp import QPFunction
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda')
 
 # Helper function to stack zeros
 def zeors_hstack_help(vec, n, size_row, size_col):
