@@ -49,6 +49,7 @@ def mm_to_gripper_posi_85(millimeters):
 class ModelBasedMPCNode(Node):
     def __init__(self):
         super().__init__('model_based_mpc_node')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         # Model variables
         self.gripper_posi_1 = 0.0
@@ -57,9 +58,9 @@ class ModelBasedMPCNode(Node):
         self.gripper_vel_2 = 0.0
         self.processing_executor = ThreadPoolExecutor(max_workers=1)
         self.contact_area_lock = threading.Lock()
-        self.frequency = 10
-        self.current_image_1 = None
-        self.current_image_2 = None
+        self.frequency = 4
+        self.current_image_1 = torch.zeros((1, 3, 224, 224), device=self.device)
+        self.current_image_2 = torch.zeros((1, 3, 224, 224), device=self.device)
 
         # Inference thread setup
         self.inference_queue = queue.Queue(maxsize=1)
@@ -70,8 +71,7 @@ class ModelBasedMPCNode(Node):
         self.results_lock = threading.Lock()
 
         # Neural network stuff
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.get_logger().info(f"Using {self.device} in controller node")
+        # self.get_logger().info(f"Using {self.device} in controller node")
         self.nn_encoder = ResCNNEncoder(hidden1=CNN_hidden1, hidden2=CNN_hidden2, dropP=dropout_p, outputDim=CNN_embed_dim).to(self.device)
         self.mpc_layer = MPClayer(nHidden = CNN_embed_dim, eps = eps, nStep = nStep, del_t = del_t).to(self.device)
         if self.device.type == 'cuda':
@@ -88,7 +88,7 @@ class ModelBasedMPCNode(Node):
 
         # Load weights
         package_dir = get_package_share_directory('tactile_sensing')
-        model_path = os.path.join(package_dir, 'models', 'multi_agent_tactile_model.pth')
+        model_path = os.path.join(package_dir, 'models', 'rgb_letac_model.pth')
         checkpoint = torch.load(model_path, map_location=torch.device(self.device))
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
@@ -219,12 +219,12 @@ class ModelBasedMPCNode(Node):
         try:
             # self.get_logger().info(f"Received image in gelsight topic 1")
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')  
-            pil_image = Image.fromarray(cv_image).convert('RGB')        
+            pil_image = Image.fromarray(cv_image) #.convert('RGB')        
             # Convert to tensor and process single image
             tensor = self.transform(pil_image).to(self.device)
             
-            with self.contact_area_lock:
-                self.current_image_1 = tensor  # Store single image
+            #with self.contact_area_lock:
+            self.current_image_1 = tensor  # Store single image
             #stop = time.time()
             # self.get_logger().info(f"Image processing runtime: {stop - start}")
 
@@ -237,12 +237,12 @@ class ModelBasedMPCNode(Node):
             # self.get_logger().info(f"Received image in gelsight topic 2")
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')   
             # cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)  
-            pil_image = Image.fromarray(cv_image).convert('RGB')        
+            pil_image = Image.fromarray(cv_image) #.convert('RGB')        
             # Convert to tensor and process single image
             tensor = self.transform(pil_image).to(self.device)
             
-            with self.contact_area_lock:
-                self.current_image_2 = tensor  # Store single image
+            #with self.contact_area_lock:
+            self.current_image_2 = tensor  # Store single image
             #stop = time.time()
             # self.get_logger().info(f"Image processing runtime: {stop - start}")
 
@@ -253,26 +253,27 @@ class ModelBasedMPCNode(Node):
         while rclpy.ok():
             try:
                 # Get data from queue with timeout to periodically check rclpy.ok()
-                data = self.inference_queue.get(timeout=0.1)
+                data = self.inference_queue.get(block=True)
                 
                 with self.stream, torch.no_grad():
                     # Unpack data
                     (image_tensor_1, image_tensor_2, 
                      gripper_posi_1, gripper_vel_1,
                      gripper_posi_2, gripper_vel_2) = data
-                    self.get_logger().info(f"posi dimensions: {gripper_posi_1.size()}")
-                    self.get_logger().info(f"vel dimensions: {gripper_vel_1.size()}")
-                    self.get_logger().info(f"image dimensions: {image_tensor_1.size()}")
+                    # Sizes match sizes in training, so that's not the issue
                     
                     # Perform inference
+                    start = time.time()
                     tactile_embeddings_1 = self.nn_encoder(image_tensor_1) 
                     tactile_embeddings_2 = self.nn_encoder(image_tensor_2)
                     pos_sequences_1, pos_sequences_2 = self.mpc_layer(
-                        tactile_embeddings_1, tactile_embeddings_2, 
+                        -tactile_embeddings_1, -tactile_embeddings_2, 
                         gripper_posi_1, gripper_vel_1, 
                         gripper_posi_2, gripper_vel_2
                     )
+                    end = time.time()
                     
+                    self.get_logger().info(f"both inference time: {end - start}")
                     # Store results
                     with self.results_lock:
                         self.latest_results = (pos_sequences_1, pos_sequences_2)
@@ -286,20 +287,20 @@ class ModelBasedMPCNode(Node):
         try:
             # Prepare data for inference
             with self.contact_area_lock:
-                if self.current_image_1 is None or self.current_image_2 is None:
+                if torch.all(self.current_image_1 == 0).item() or torch.all(self.current_image_2 == 0).item():
                     return
                     
                 # Prepare tensors
                 image_tensor_1 = self.current_image_1.unsqueeze(0)#.float()
                 image_tensor_2 = self.current_image_2.unsqueeze(0)#.float()
-                self.current_image_1 = None
-                self.current_image_2 = None
+                self.current_image_1 = torch.zeros((1, 3, 224, 224), device=self.device)
+                self.current_image_2 = torch.zeros((1, 3, 224, 224), device=self.device)
 
             # Prepare other inputs
             gripper_posi_1 = torch.tensor([gripper_posi_to_mm_85(self.gripper_posi_1)]).to(self.device)
-            gripper_vel_1 = torch.tensor([0.5]).to(self.device)
+            gripper_vel_1 = torch.tensor([7.5]).to(self.device)
             gripper_posi_2 = torch.tensor([gripper_posi_to_mm_140(self.gripper_posi_2)]).to(self.device)
-            gripper_vel_2 = torch.tensor([0.5]).to(self.device)
+            gripper_vel_2 = torch.tensor([7.5]).to(self.device)
 
             # Put data in queue (non-blocking, replace if full)
             try:

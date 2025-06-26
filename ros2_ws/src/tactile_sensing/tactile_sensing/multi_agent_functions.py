@@ -9,7 +9,7 @@ from torch.autograd import  Variable
 from torch.nn.parameter import Parameter
 from qpth.qp import QPFunction
 
-device = torch.device('cuda')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Helper function to stack zeros
 def zeors_hstack_help(vec, n, size_row, size_col):
@@ -83,8 +83,8 @@ class MPClayer(nn.Module):
         super(MPClayer, self).__init__()
 
         self.Pq = 5
-        self.Qv = 200 # Scaling as recommended by LeTac paper
-        self.Qa = 1 # Scaling as recommended by LeTac paper
+        self.Qv = 100 # Scaling as recommended by LeTac paper
+        self.Qa = 2 # Scaling as recommended by LeTac paper
         self.nHidden = nHidden
         self.eps = eps
         self.nStep = nStep

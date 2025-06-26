@@ -73,8 +73,8 @@ class CameraPublisher(Node):
         img_2_resized = self.resize_crop_mini(img_2, 224, 224)
 
         # Convert resized images to ROS messages
-        msg_1 = self.cvbridge.cv2_to_imgmsg(img_1_resized, encoding='bgr8')
-        msg_2 = self.cvbridge.cv2_to_imgmsg(img_2_resized, encoding='bgr8')
+        msg_1 = self.cvbridge.cv2_to_imgmsg(img_1_resized, encoding='rgb8')
+        msg_2 = self.cvbridge.cv2_to_imgmsg(img_2_resized, encoding='rgb8')
 
         # Publish the resized images
         self.frame_publisher_1.publish(msg_1)
