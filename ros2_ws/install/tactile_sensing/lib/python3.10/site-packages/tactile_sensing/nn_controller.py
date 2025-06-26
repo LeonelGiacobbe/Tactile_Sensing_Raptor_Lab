@@ -99,17 +99,17 @@ class ModelBasedMPCNode(Node):
         self.contact_area_lock = threading.Lock()
 
         # Neural network stuff
-        self.device = torch.device('cuda')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.get_logger().info(f"Using {self.device} in controller node")
         self.nn_encoder = ResCNNEncoder(outputDim=20).to(self.device)
         self.mpc_layer = MPClayer(nHidden=20, nStep=15).to(self.device)
-        self.stream = torch.cuda.Stream()
+        # self.stream = torch.cuda.Stream()
         self.nn_encoder.eval()
         self.mpc_layer.eval()
         # Warmup pass
         dummy_input = torch.randn(1, 3, 224, 224, device=self.device)
         _ = self.nn_encoder(dummy_input)
-        torch.cuda.synchronize()
+        # torch.cuda.synchronize()
 
         # Load weights
         package_dir = get_package_share_directory('tactile_sensing')
@@ -274,7 +274,7 @@ class ModelBasedMPCNode(Node):
 
         try:
             # Prepare batched tensors
-            with torch.cuda.stream(self.stream), torch.no_grad():
+            with torch.no_grad():
                 image_batch = torch.stack(self.image_buffer).to(self.device)
                 # 0.2s runtime approx before this
                 gripper_p_batch = torch.tensor([self.gripper_posi_] * self.batch_size, dtype=torch.float32).to(self.device).unsqueeze(1)

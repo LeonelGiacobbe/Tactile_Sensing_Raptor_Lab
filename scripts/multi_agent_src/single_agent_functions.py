@@ -9,10 +9,13 @@ from torch.autograd import  Variable
 from torch.nn.parameter import Parameter
 from qpth.qp import QPFunction
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
 # Helper function to stack zeros
 def zeors_hstack_help(vec, n, size_row, size_col):
     combo = vec
-    single = Variable(torch.zeros(size_row,size_col).cuda())
+    single = Variable(torch.zeros(size_row,size_col).to(device))
     for i in range(n-1):
         combo = torch.hstack((combo,single))
     return combo
@@ -89,43 +92,43 @@ class SingleMPClayer(nn.Module):
         self.del_t = del_t
     
         # A matrix
-        self.A_eye = Variable(torch.eye(self.nHidden).cuda())
-        self.Af_zero = Variable(torch.zeros(self.nHidden,1).cuda())
-        self.Af= Parameter(torch.rand(self.nHidden,1).cuda())
+        self.A_eye = Variable(torch.eye(self.nHidden).to(device))
+        self.Af_zero = Variable(torch.zeros(self.nHidden,1).to(device))
+        self.Af= Parameter(torch.rand(self.nHidden,1).to(device))
         Ap_right_temp = Variable(torch.from_numpy(np.array([
         [1,     self.del_t],
         [0,     1]
-        ])).float().cuda())
-        self.Ap_right = torch.hstack((Variable(0*torch.ones(2, self.nHidden).cuda()),Ap_right_temp))
+        ])).float().to(device))
+        self.Ap_right = torch.hstack((Variable(0*torch.ones(2, self.nHidden).to(device)),Ap_right_temp))
 
         # B matrix
         Bg = Variable(torch.from_numpy(np.array([
         [0.5*self.del_t*self.del_t],
         [self.del_t]
-        ])).float().cuda())
-        self.B_zero = Variable(torch.zeros(self.nHidden, 1).cuda())
+        ])).float().to(device))
+        self.B_zero = Variable(torch.zeros(self.nHidden, 1).to(device))
         self.B0 = torch.vstack((self.B_zero,Bg))
 
         # Weights
-        self.Lq = Parameter(torch.tril(torch.rand(self.nHidden, self.nHidden).cuda()))
-        self.R0 = self.Qa*Variable(torch.eye(1).cuda())
+        self.Lq = Parameter(torch.tril(torch.rand(self.nHidden, self.nHidden).to(device)))
+        self.R0 = self.Qa*Variable(torch.eye(1).to(device))
         self.Q0_right_down = Variable(torch.from_numpy(np.array([
         [0,     0],
         [0,     self.Qv]
-        ])).float().cuda())
-        self.Q0_down = Variable(torch.zeros(2,self.nHidden).cuda())
-        self.Q0_right = Variable(torch.zeros(self.nHidden,2).cuda())
+        ])).float().to(device))
+        self.Q0_down = Variable(torch.zeros(2,self.nHidden).to(device))
+        self.Q0_right = Variable(torch.zeros(self.nHidden,2).to(device))
 
         # No constraints during training
-        self.G = Variable(torch.zeros(self.nStep,self.nStep).cuda())
-        self.h = Variable(torch.zeros(self.nStep,1).cuda())
+        self.G = Variable(torch.zeros(self.nStep,self.nStep).to(device))
+        self.h = Variable(torch.zeros(self.nStep,1).to(device))
 
 
     def forward(self, x, gripper_p, gripper_v):
         nBatch = x.size(0)
 
         # Single Q in cost function
-        Q0 = self.Lq.mm(self.Lq.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda()
+        Q0 = self.Lq.mm(self.Lq.t()) + self.eps*Variable(torch.eye(self.nHidden)).to(device)
         Q0 = torch.hstack((Q0,self.Q0_right))
         Q0 = torch.vstack((Q0,torch.hstack((self.Q0_down,self.Q0_right_down))))
 
@@ -133,11 +136,11 @@ class SingleMPClayer(nn.Module):
         Q0_stack = Q0.unsqueeze(0).expand(self.nStep-1, self.nHidden+2, self.nHidden+2)
         Q0_final = self.Pq*Q0.unsqueeze(0).expand(1, self.nHidden+2, self.nHidden+2)
         Q0_stack = torch.vstack((Q0_stack,Q0_final))
-        Q_dia =  torch.block_diag(*Q0_stack).cuda()
+        Q_dia =  torch.block_diag(*Q0_stack).to(device)
 
         # Stacked R
         R0_stack = self.R0.unsqueeze(0).expand(self.nStep, 1, 1)
-        R_dia =  torch.block_diag(*R0_stack).cuda()
+        R_dia =  torch.block_diag(*R0_stack).to(device)
 
         # Model computing
         A0 = torch.vstack((torch.hstack((torch.hstack((self.A_eye,self.Af_zero)),self.Af)),self.Ap_right))
@@ -146,7 +149,7 @@ class SingleMPClayer(nn.Module):
         for i in range(self.nStep-1):
             temp = torch.mm(temp,A0)
             T_ = torch.vstack((T_,temp))
-        I=Variable(torch.eye(self.nHidden+2).cuda())
+        I=Variable(torch.eye(self.nHidden+2).to(device))
         row_single = zeors_hstack_help(I, self.nStep, self.nHidden+2, self.nHidden+2)
         AN_ = row_single
         for i in range(self.nStep-1):
@@ -160,7 +163,7 @@ class SingleMPClayer(nn.Module):
         B0_stack = self.B0.unsqueeze(0).expand(self.nStep, self.nHidden+2, 1)
         B_dia =  torch.block_diag(*B0_stack)
         S_ = torch.mm(AN_,B_dia)
-        Q_final = 2*(R_dia+(torch.mm(S_.t(),Q_dia)).mm(S_))+ self.eps*Variable(torch.eye(self.nStep)).cuda()
+        Q_final = 2*(R_dia+(torch.mm(S_.t(),Q_dia)).mm(S_))+ self.eps*Variable(torch.eye(self.nStep)).to(device)
         Q_batch = Q_final.unsqueeze(0).expand(nBatch, self.nStep, self.nStep)
         p_final = 2*torch.mm(T_.t(),torch.mm(Q_dia,S_))
         p_batch = p_final.unsqueeze(0).expand(nBatch, self.nHidden+2, self.nStep)
@@ -184,12 +187,12 @@ class SingleMPClayer(nn.Module):
         S_batch = S_.unsqueeze(0).expand(nBatch, self.nStep*(self.nHidden+2), self.nStep)
         T_batch = T_.unsqueeze(0).expand(nBatch, self.nStep*(self.nHidden+2), self.nHidden+2)
         x_predict = torch.bmm(S_batch,u.reshape(nBatch,self.nStep,1)) + torch.bmm(T_batch,x.reshape(nBatch,self.nHidden+2,1))
-        embb_output = Variable(torch.zeros(1,self.nHidden).cuda())
-        state_output = Variable(torch.eye(1).cuda())
+        embb_output = Variable(torch.zeros(1,self.nHidden).to(device))
+        state_output = Variable(torch.eye(1).to(device))
         output_single = torch.hstack((embb_output,state_output))
-        output_single = torch.hstack((output_single,torch.zeros(1,1).cuda()))
+        output_single = torch.hstack((output_single,torch.zeros(1,1).to(device)))
         output_stack = output_single.unsqueeze(0).expand(self.nStep, 1, self.nHidden+2)
-        output_dia =  torch.block_diag(*output_stack).cuda()
+        output_dia =  torch.block_diag(*output_stack).to(device)
         output_batch = output_dia.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(self.nHidden+2))
         posi_predict = torch.bmm(output_batch,x_predict).resize(nBatch,self.nStep)
         x = posi_predict

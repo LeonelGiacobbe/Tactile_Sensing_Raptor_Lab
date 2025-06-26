@@ -43,21 +43,23 @@ for batch_size in batch_sizes:
     for _ in range(samples):
         # Generate data with current batch size
         x1, x2 = generate_image_data(batch_size)
-        encoding1, encoding2 = ma_cnn_encoder(x1), ma_cnn_encoder(x2)
         own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v = generate_pos(batch_size)
         
         # Multi-agent timing
         ma_start = time.time()
+        encoding1 = ma_cnn_encoder(x1)
+        encoding2 = ma_cnn_encoder(x2)
         ma_mpc_output = ma_mpc_layer(encoding1, encoding2, own_gripper_p, own_gripper_v, 
                                     other_gripper_p, other_gripper_v)
-        torch.cuda.synchronize()  # Ensure CUDA ops are complete
+        #torch.cuda.synchronize()  # Ensure CUDA ops are complete
         ma_end = time.time()
         ma_total_time += (ma_end - ma_start)
         
         # Single-agent timing (using same inputs for fair comparison)
         sa_start = time.time()
+        encoding1 = ma_cnn_encoder(x1)
         sa_output = sa_mpc_layer(encoding1, own_gripper_p, own_gripper_v)
-        torch.cuda.synchronize()  # Ensure CUDA ops are complete
+        #torch.cuda.synchronize()  # Ensure CUDA ops are complete
         sa_end = time.time()
         sa_total_time += (sa_end - sa_start)
     
