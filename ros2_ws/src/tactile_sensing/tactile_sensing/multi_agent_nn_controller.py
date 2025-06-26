@@ -260,6 +260,7 @@ class ModelBasedMPCNode(Node):
                     (image_tensor_1, image_tensor_2, 
                      gripper_posi_1, gripper_vel_1,
                      gripper_posi_2, gripper_vel_2) = data
+                    # Sizes match sizes in training, so that's not the issue
                     
                     # Perform inference
                     tactile_embeddings_1 = self.nn_encoder(image_tensor_1) 
@@ -269,6 +270,7 @@ class ModelBasedMPCNode(Node):
                         gripper_posi_1, gripper_vel_1, 
                         gripper_posi_2, gripper_vel_2
                     )
+                    
                     # Store results
                     with self.results_lock:
                         self.latest_results = (pos_sequences_1, pos_sequences_2)
@@ -286,16 +288,16 @@ class ModelBasedMPCNode(Node):
                     return
                     
                 # Prepare tensors
-                image_tensor_1 = self.current_image_1.unsqueeze(0).float()
-                image_tensor_2 = self.current_image_2.unsqueeze(0).float()
+                image_tensor_1 = self.current_image_1.unsqueeze(0)#.float()
+                image_tensor_2 = self.current_image_2.unsqueeze(0)#.float()
                 self.current_image_1 = None
                 self.current_image_2 = None
 
             # Prepare other inputs
             gripper_posi_1 = torch.tensor([gripper_posi_to_mm_85(self.gripper_posi_1)]).to(self.device)
-            gripper_vel_1 = torch.tensor(self.gripper_vel_1).to(self.device)
+            gripper_vel_1 = torch.tensor([0.5]).to(self.device)
             gripper_posi_2 = torch.tensor([gripper_posi_to_mm_140(self.gripper_posi_2)]).to(self.device)
-            gripper_vel_2 = torch.tensor(self.gripper_vel_2).to(self.device)
+            gripper_vel_2 = torch.tensor([0.5]).to(self.device)
 
             # Put data in queue (non-blocking, replace if full)
             try:
