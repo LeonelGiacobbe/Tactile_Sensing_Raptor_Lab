@@ -13,8 +13,8 @@ MIN_VELOCITY = 3.0
 
 class GripperCommand: 
     
-    MAX_SPEED_85_MM_PER_SEC = 100.0 
-    MAX_SPEED_140_MM_PER_SEC = 150.0 
+    MAX_SPEED_85_MM_PER_SEC = 150.0 
+    MAX_SPEED_140_MM_PER_SEC = 250.0 
 
     def __init__(self, router, router_real_time, proportional_gain=2.0, gripper_type="85", gripper_index=0):
         self.proportional_gain = proportional_gain
@@ -110,15 +110,17 @@ class GripperCommand:
 
                 # Calculate velocity command based on error to the internal target
                 position_error = self._target_position_percentage - current_position_percentage
+                # print("position error: ", position_error)
                 
                 # Apply proportional control
-                if abs(position_error) < 0.7: # Tolerance for stopping
+                if abs(position_error) < 0.1: # Tolerance for stopping
                     self.motorcmd.velocity = 0
                     self.motorcmd.position = self._target_position_percentage # Ensure it settles at target
                 else:
-                    self.motorcmd.velocity = self.proportional_gain * position_error
+                    self.motorcmd.velocity = self.proportional_gain * abs(position_error) 
                     if self.motorcmd.velocity > 100.0:
                         self.motorcmd.velocity = 100.0
+                    # print("Current motor command velocity: ", self.motorcmd.velocity)
                     # if self.motorcmd.velocity < MIN_VELOCITY:
                     #     self.motorcmd.velocity = MIN_VELOCITY
                     self.motorcmd.position = self._target_position_percentage # Continuously command target

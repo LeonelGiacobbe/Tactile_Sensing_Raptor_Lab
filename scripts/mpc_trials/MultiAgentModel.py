@@ -15,8 +15,6 @@ from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
 from kortex_api.autogen.messages import Base_pb2
 from kortex_api.autogen.messages import BaseCyclic_pb2
 
-from GripperCommand85 import GripperCommand85
-from GripperCommand140 import GripperCommand140
 from newGripperCommand import GripperCommand
 
 # Model architecture params
@@ -57,7 +55,6 @@ class MultiAgentMpc():
         self.gripper_vel_2 = 0.0
         self.gripper_posi_1_mm = 0.0
         self.gripper_posi_2_mm = 0.0
-        self.frequency = 4
         self.current_image_1 = torch.zeros((1, 3, 224, 224), device=self.device)
         self.current_image_2 = torch.zeros((1, 3, 224, 224), device=self.device)
 
@@ -109,9 +106,13 @@ class MultiAgentMpc():
         cv_image_2 = self.dev2.get_raw_image()
         if cv_image_1 is None or cv_image_2 is None:
             raise ValueError("One or both images weren't obtained")
+        
+        # Convert to rgb
+        cv_image_1_rgb = cv2.cvtColor(cv_image_1, cv2.COLOR_BGR2RGB)
+        cv_image_2_rgb = cv2.cvtColor(cv_image_2, cv2.COLOR_BGR2RGB)
 
-        pil_image_1 = Image.fromarray(cv_image_1)
-        pil_image_2 = Image.fromarray(cv_image_2)
+        pil_image_1 = Image.fromarray(cv_image_1_rgb)
+        pil_image_2 = Image.fromarray(cv_image_2_rgb)
 
         self.current_image_1 = self.transform(pil_image_1).to(self.device)
         self.current_image_2 = self.transform(pil_image_2).to(self.device)
@@ -187,12 +188,10 @@ class MultiAgentMpc():
         
         # Wait until grippers are approximately at initial position before starting MPC loop
         # This is a blocking wait but only happens once at the beginning.
-        # You might want to refine this to wait for an 'at_target' status.
-        # For a simple wait:
-        print("Waiting for grippers to reach initial positions...")
-        while not (self.gripper_1.is_target_position_reached() and self.gripper_2.is_target_position_reached()):
-             time.sleep(0.1) # Wait briefly
-        print("Grippers at initial positions. Starting MPC loop.")
+        # print("Waiting for grippers to reach initial positions...")
+        # while not (self.gripper_1.is_target_position_reached() and self.gripper_2.is_target_position_reached()):
+        #      time.sleep(0.1) # Wait briefly
+        # print("Grippers at initial positions. Starting MPC loop.")
 
 
         loop_dt = 1.0 / self.frequency # Calculate desired loop delay
@@ -242,11 +241,16 @@ class MultiAgentMpc():
                 if time_to_sleep > 0:
                     time.sleep(time_to_sleep)
                 else:
-                    print(f"Warning: MPC loop is running slower than desired frequency! {time_elapsed:.4f}s vs {loop_dt:.4f}s")
+                    print(f"Warning: MPC loop is running slower than desired frequency! {time_elapsed:.4f}s vs {loop_dt:.4f}s")           
 
+        except KeyboardInterrupt:
+            self.gripper_1.Cleanup()
+            self.gripper_2.Cleanup()
 
         except Exception as e:
             print(f"Critical Error in MPC model _run_model: {e}")
+            self.gripper_1.Cleanup()
+            self.gripper_2.Cleanup()
             import traceback
             traceback.print_exc() 
             return False
@@ -258,6 +262,7 @@ class MultiAgentMpc():
 
 
 def main():
+        print("Init main function")
     # Initialize arm connection
         import argparse
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -266,8 +271,8 @@ def main():
         # Parse arguments
         parser_1 = argparse.ArgumentParser()
         parser_2 = argparse.ArgumentParser()
-        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=4.0)
-        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=4.0)
+        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.0)
+        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.0)
         args1 = utilities.parseConnectionArguments1(parser_1)
         args2 = utilities.parseConnectionArguments2(parser_2)
 
@@ -280,14 +285,22 @@ def main():
                 gripper_2.start_control_thread()
                 print("Created both gripper objects")
 
+                # print("Before sending grippers to 50")
                 # gripper_1.set_target_position_percentage(50)
+                # #gripper_2.set_target_position_percentage(50)
+                # print("after sending grippers to 50")
                 # time.sleep(2)
-                # gripper_1.set_target_position_percentage(0)
+                # print("Before sending grippers to 0")
+                # gripper_1.set_target_position_percentage(50.4)
+                # #gripper_2.set_target_position_percentage(50.8)
+                # print("after sending grippers to 0")
                 # time.sleep(3)
                 # gripper_1.Cleanup()
+                # gripper_2.Cleanup()
 
                 mpc_model = MultiAgentMpc(gripper_1, gripper_2)
                 mpc_model._run_model()
+
 
 if __name__ == "__main__":
     main()
