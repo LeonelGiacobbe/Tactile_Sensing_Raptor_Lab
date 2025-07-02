@@ -121,11 +121,14 @@ class MultiAgentMpc():
         cv_image_1_rgb = cv2.cvtColor(cv_image_1, cv2.COLOR_BGR2RGB)
         cv_image_2_rgb = cv2.cvtColor(cv_image_2, cv2.COLOR_BGR2RGB)
 
-        pil_image_1 = Image.fromarray(cv_image_1_rgb)
-        pil_image_2 = Image.fromarray(cv_image_2_rgb)
-
-        self.current_image_1 = self.transform(pil_image_1).to(self.device)
-        self.current_image_2 = self.transform(pil_image_2).to(self.device)
+        pil_image_1 = Image.fromarray(cv_image_1)
+        pil_image_2 = Image.fromarray(cv_image_2)
+        r, g, b = pil_image_1.split()
+        bgr_pil_image_1 = Image.merge("RGB", (b, g, r))
+        r, g, b = pil_image_2.split()
+        bgr_pil_image_2 = Image.merge("RGB", (b, g, r))
+        self.current_image_1 = self.transform(bgr_pil_image_1).to(self.device)
+        self.current_image_2 = self.transform(bgr_pil_image_2).to(self.device)
 
         return self.current_image_1, self.current_image_2
     
@@ -207,15 +210,14 @@ class MultiAgentMpc():
 
 
         loop_dt = 1.0 / self.frequency # Calculate desired loop delay
-        first = True
         try:
             while True:
                 loop_start_time = time.time()
 
                 # Before updating, get current gripper posi to know what sign to use in velocity
-                if not first:
-                    self.prev_gripper_posi_1 = self.gripper_posi_1_mm
-                    self.prev_gripper_posi_2 = self.gripper_posi_2_mm
+            
+                self.prev_gripper_posi_1 = self.gripper_posi_1_mm
+                self.prev_gripper_posi_2 = self.gripper_posi_2_mm
                 # Get latest state from grippers (non-blocking)
                 self._update_grippers_state()
                 posi_1_mm_for_mpc = self.gripper_posi_1_mm 
@@ -299,8 +301,8 @@ def main():
         # Parse arguments
         parser_1 = argparse.ArgumentParser()
         parser_2 = argparse.ArgumentParser()
-        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=5.0)
-        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=5.0)
+        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=2.0)
+        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=2.0)
         args1 = utilities.parseConnectionArguments1(parser_1)
         args2 = utilities.parseConnectionArguments2(parser_2)
 

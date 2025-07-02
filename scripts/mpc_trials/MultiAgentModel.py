@@ -1,5 +1,3 @@
-
-
 import threading, queue
 import torch
 from torchvision import transforms
@@ -23,7 +21,7 @@ CNN_embed_dim = 20
 res_size = 224       
 eps = 1e-4
 nStep = 15
-del_t = 1/10
+del_t = 1/12
 dropout_p = 0.15
 
 # percentage to mm helper functions
@@ -60,13 +58,17 @@ class MultiAgentMpc():
         self.current_image_1 = None
         self.current_image_2 = None
 
-        self.frequency = 10
+        self.frequency = 12
 
         # Gelsight devices
         self.dev1 = gsdevice.Camera("Gelsight Mini", 0)
         self.dev2 = gsdevice.Camera("Gelsight Mini", 2)
         self.dev1.connect()
         self.dev2.connect()
+        # Warm up camera:
+        for i in range(10):
+            self.dev1.get_raw_image()
+            self.dev2.get_raw_image()
         #time.sleep(5)
 
         # Conversion of images to tensor
@@ -116,8 +118,8 @@ class MultiAgentMpc():
         if cv_image_2 is None:
             raise ValueError("Image from gelsight two wasn't obtained")
 
-        pil_image_1 = Image.fromarray(cv_image_1)
-        pil_image_2 = Image.fromarray(cv_image_2)
+        pil_image_1 = Image.fromarray(cv_image_1).convert("RGB")
+        pil_image_2 = Image.fromarray(cv_image_2).convert("RGB")
 
         self.current_image_1 = self.transform(pil_image_1).to(self.device)
         self.current_image_2 = self.transform(pil_image_2).to(self.device)
@@ -292,8 +294,8 @@ def main():
         # Parse arguments
         parser_1 = argparse.ArgumentParser()
         parser_2 = argparse.ArgumentParser()
-        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=5.0)
-        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=5.0)
+        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.0)
+        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.0)
         args1 = utilities.parseConnectionArguments1(parser_1)
         args2 = utilities.parseConnectionArguments2(parser_2)
 
@@ -305,23 +307,6 @@ def main():
                 gripper_1.start_control_thread()
                 gripper_2.start_control_thread()
                 print("Created both gripper objects")
-
-                # print("Before sending grippers to 50")
-                # gripper_1.set_target_position_percentage(50)
-                # #gripper_2.set_target_position_percentage(50)
-                # print("after sending grippers to 50")
-                # time.sleep(2)
-                # print(gripper_1.get_latest_feedback())
-                
-                # print("Before sending grippers to 50.1")
-                # gripper_1.set_target_position_percentage(50.4)
-                # #gripper_2.set_target_position_percentage(50.1)
-                # print("after sending grippers to 50.1")
-                # time.sleep(3)
-                # print(gripper_1.get_latest_feedback())
-                
-                # gripper_1.Cleanup()
-                # gripper_2.Cleanup()
 
                 mpc_model = MultiAgentMpc(gripper_1, gripper_2)
                 mpc_model._run_model()
