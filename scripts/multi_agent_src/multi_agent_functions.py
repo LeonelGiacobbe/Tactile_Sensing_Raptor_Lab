@@ -145,7 +145,7 @@ class MPClayer(nn.Module):
         R0_stack = self.R0.unsqueeze(0).expand(2 * self.nStep, 1, 1) # Qa stack
         self.R_dia =  torch.block_diag(*R0_stack).to(device) #Qa diagonal
 
-        self.alpha = nn.Parameter(torch.tensor(0.1).to(device))
+        #self.alpha = nn.Parameter(torch.tensor(0.1).to(device))
 
 
     def forward(self, x1, x2, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v):
@@ -167,7 +167,7 @@ class MPClayer(nn.Module):
         Q_coupling = self.Lq_coupling.mm(self.Lq_coupling.t()) + self.eps*Variable(torch.eye(self.nHidden)).to(device)
         Q_coupling = torch.hstack((Q_coupling, self.Q0_right))
         # If Q_coupling is not scaled, then the off-diagonal coupling is too strong and the matrix is not SPD
-        Q_coupling = torch.vstack((Q_coupling,torch.hstack((self.Q0_down,self.Q0_right_down))))  * self.alpha
+        Q_coupling = torch.vstack((Q_coupling,torch.hstack((self.Q0_down,self.Q0_right_down))))  * 0.25 #self.alpha
 
         # Add coupling terms on off-diagonal sections, combine for bigger Q matrix
         Top_Q0 = torch.hstack((Q0, Q_coupling)) # Top right

@@ -6,3 +6,4 @@ multi_agent_nn = tactile_sensing.multi_agent_nn_controller:main
 nn_controller = tactile_sensing.nn_controller:main
 show3d_ros2 = tactile_sensing.show3d_ros2:main
 show_tac_image = tactile_sensing.show_tactile_image:main
+single_agent_nn = tactile_sensing.single_agent_nn_controller:main

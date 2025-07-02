@@ -19,11 +19,11 @@ from newGripperCommand import GripperCommand
 
 # Model architecture params
 CNN_hidden1, CNN_hidden2 = 128, 128 
-CNN_embed_dim = 20  
+CNN_embed_dim = 20
 res_size = 224       
 eps = 1e-4
 nStep = 15
-del_t = 1/25
+del_t = 1/10
 dropout_p = 0.15
 
 # percentage to mm helper functions
@@ -49,27 +49,30 @@ class MultiAgentMpc():
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         # Model variables
+        self.prev_gripper_posi_1 = 0.0
+        self.prev_gripper_posi_2 = 0.0
         self.gripper_posi_1 = 0.0
         self.gripper_vel_1 = 0.0
         self.gripper_posi_2 = 0.0
         self.gripper_vel_2 = 0.0
         self.gripper_posi_1_mm = 0.0
         self.gripper_posi_2_mm = 0.0
-        self.current_image_1 = torch.zeros((1, 3, 224, 224), device=self.device)
-        self.current_image_2 = torch.zeros((1, 3, 224, 224), device=self.device)
+        self.current_image_1 = None
+        self.current_image_2 = None
 
-        self.frequency = 5
+        self.frequency = 10
 
         # Gelsight devices
         self.dev1 = gsdevice.Camera("Gelsight Mini", 0)
         self.dev2 = gsdevice.Camera("Gelsight Mini", 2)
         self.dev1.connect()
         self.dev2.connect()
+        #time.sleep(5)
 
         # Conversion of images to tensor
         self.transform = transforms.Compose([transforms.Resize([res_size, res_size]),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize(mean=[0, 0, 0], std=[0.2, 0.2, 0.2])])
+                                transforms.ToTensor(),
+                                transforms.Normalize(mean=[0, 0, 0], std=[0.2, 0.2, 0.2])])
         # Neural network stuff
         print(f"Using {self.device} in controller class")
         self.nn_encoder = ResCNNEncoder(hidden1=CNN_hidden1, hidden2=CNN_hidden2, dropP=dropout_p, outputDim=CNN_embed_dim).to(self.device)
@@ -77,20 +80,22 @@ class MultiAgentMpc():
         if self.device.type == 'cuda':
             self.stream = torch.cuda.Stream()
             torch.cuda.synchronize()
-        self.nn_encoder.eval()
-        self.mpc_layer.eval()
+            torch.backends.cudnn.benchmark = True
+        
 
-        # Warmup pass
-        dummy_input = torch.randn(1, 3, 224, 224, device=self.device)
-        dummy_mpc_var = torch.tensor(0).to(self.device)
-        _ = self.nn_encoder(dummy_input)  
-        _ = self.mpc_layer(_, _, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var)
+        # # Warmup pass
+        # dummy_input = torch.randn(1, 3, 224, 224, device=self.device)
+        # dummy_mpc_var = torch.tensor(0).to(self.device)
+        # _ = self.nn_encoder(dummy_input)  
+        # _ = self.mpc_layer(_, _, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var)
 
         # Load weights
         model_path = os.path.join(os.getcwd(), 'multi_agent_tactile_model.pth')
-        checkpoint = torch.load(model_path, map_location=torch.device(self.device))
+        checkpoint = torch.load(model_path, map_location=torch.device(self.device), weights_only=True)
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
+        self.nn_encoder.eval()
+        self.mpc_layer.eval()
         print("Loaded MPC weights")
 
         # Gripper objects (declared outside of this class in main)
@@ -104,15 +109,15 @@ class MultiAgentMpc():
         """
         cv_image_1 = self.dev1.get_raw_image()
         cv_image_2 = self.dev2.get_raw_image()
-        if cv_image_1 is None or cv_image_2 is None:
-            raise ValueError("One or both images weren't obtained")
-        
-        # Convert to rgb
-        cv_image_1_rgb = cv2.cvtColor(cv_image_1, cv2.COLOR_BGR2RGB)
-        cv_image_2_rgb = cv2.cvtColor(cv_image_2, cv2.COLOR_BGR2RGB)
+        if cv_image_1 is None and cv_image_2 is None:
+            raise ValueError("Both images weren't obtained")
+        if cv_image_1 is None:
+            raise ValueError("Image from gelsight one wasn't obtained")
+        if cv_image_2 is None:
+            raise ValueError("Image from gelsight two wasn't obtained")
 
-        pil_image_1 = Image.fromarray(cv_image_1_rgb)
-        pil_image_2 = Image.fromarray(cv_image_2_rgb)
+        pil_image_1 = Image.fromarray(cv_image_1)
+        pil_image_2 = Image.fromarray(cv_image_2)
 
         self.current_image_1 = self.transform(pil_image_1).to(self.device)
         self.current_image_2 = self.transform(pil_image_2).to(self.device)
@@ -128,7 +133,7 @@ class MultiAgentMpc():
         if feedback1:
             self.gripper_posi_1, self.gripper_vel_1 = feedback1
             # Convert percentage position to mm for MPC input if needed.
-            # Your _run_inference expects mm, so this conversion should happen here or before _run_inference.
+            # _run_inference expects mm, so this conversion should happen here or before _run_inference.
             self.gripper_posi_1_mm = percentage_to_85_opening(self.gripper_posi_1)
         else:
             raise ValueError("No information in gripper 1 control thread")
@@ -154,20 +159,21 @@ class MultiAgentMpc():
         """
         with self.stream, torch.no_grad():
             # Prepare for cnn inference
-            image_1 = image_1.unsqueeze(0)
-            image_2 = image_2.unsqueeze(0)
+            image_1 = image_1.unsqueeze(0).to(self.device)
+            image_2 = image_2.unsqueeze(0).to(self.device)
             #start = time.time()
-            output_1 = self.nn_encoder(image_1)
-            output_2 = self.nn_encoder(image_2)
+            output_1 = self.nn_encoder(image_1).to(self.device) 
+            output_2 = self.nn_encoder(image_2).to(self.device) 
             #end = time.time()
             #print("cnn encoder inference time: ", end - start)
+            # print("encodings 1: ", output_1)
+            # print("encodings 2: ", output_2)
 
             # Prepare for mpc pass
             posi_1 = torch.tensor([posi_1]).to(self.device)
             vel_1 = torch.tensor([vel_1]).to(self.device)
             posi_2 = torch.tensor([posi_2]).to(self.device)
             vel_2 = torch.tensor([vel_2]).to(self.device)
-
             #start = time.time()
             pos_sequences_1, pos_sequences_2 = self.mpc_layer(output_1, output_2, posi_1, vel_1, posi_2, vel_2)
             #end = time.time()
@@ -181,8 +187,8 @@ class MultiAgentMpc():
         and sends new commands.
         """
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
-        initial_target_g1_percentage = 59.0
-        initial_target_g2_percentage = 75.0
+        initial_target_g1_percentage = 70.0
+        initial_target_g2_percentage = 83.0
         self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
         print(f"Sent grippers to initial target positions: G1->{initial_target_g1_percentage}%, G2->{initial_target_g2_percentage}%")
         
@@ -191,21 +197,29 @@ class MultiAgentMpc():
         # print("Waiting for grippers to reach initial positions...")
         # while not (self.gripper_1.is_target_position_reached() and self.gripper_2.is_target_position_reached()):
         #      time.sleep(0.1) # Wait briefly
-        # print("Grippers at initial positions. Starting MPC loop.")
-
+        print("Grippers at initial positions. Starting MPC loop.")
+        time.sleep(2)
 
         loop_dt = 1.0 / self.frequency # Calculate desired loop delay
-
         try:
             while True:
                 loop_start_time = time.time()
 
+                # Before updating, get current gripper posi to know what sign to use in velocity
+                self.prev_gripper_posi_1 = self.gripper_posi_1_mm
+                self.prev_gripper_posi_2 = self.gripper_posi_2_mm
                 # Get latest state from grippers (non-blocking)
                 self._update_grippers_state()
                 posi_1_mm_for_mpc = self.gripper_posi_1_mm 
                 vel_1_for_mpc = self.gripper_vel_1
                 posi_2_mm_for_mpc = self.gripper_posi_2_mm 
                 vel_2_for_mpc = self.gripper_vel_2
+
+                if self.prev_gripper_posi_1 > posi_1_mm_for_mpc: # gripper is closing, flip vel to negative as that's what the MPC layer expects
+                    vel_1_for_mpc *= -1
+                if self.prev_gripper_posi_2 > posi_2_mm_for_mpc: # gripper is closing, flip vel to negative as that's what the MPC layer expects
+                    vel_2_for_mpc *= -1
+
 
                 # Get Gelsight images
                 image_1, image_2 = self._get_gelsight_images()
@@ -215,11 +229,14 @@ class MultiAgentMpc():
                 # print("Image 2 shape:", image_2.shape)
 
                 # Run MPC Inference
-                pos_sequences_1_mm, pos_sequences_2_mm = self._run_inference(
-                    image_1, image_2,
-                    posi_1_mm_for_mpc, vel_1_for_mpc,
-                    posi_2_mm_for_mpc, vel_2_for_mpc
-                )
+                if image_1 is not None and image_2 is not None:
+                    pos_sequences_1_mm, pos_sequences_2_mm = self._run_inference(
+                        image_1, image_2,
+                        posi_1_mm_for_mpc, vel_1_for_mpc,
+                        posi_2_mm_for_mpc, vel_2_for_mpc
+                    )
+                else:
+                    raise ValueError ("empty gelsight images in run loop")
                 #print("Successful inference.")
                 print("Target pos sequence 1 (mm): ", pos_sequences_1_mm)
                 print("Target pos sequence 2 (mm): ", pos_sequences_2_mm)
@@ -233,6 +250,10 @@ class MultiAgentMpc():
 
                 # Send new commands to grippers (non-blocking)
                 self._send_gripper_commands(target_pos_1_percentage, target_pos_2_percentage)
+                
+                # Set images to None again to force update of gelsights
+                self.current_image_1 = None
+                self.current_image_2 = None
                 
                 # Enforce MPC loop frequency
                 loop_end_time = time.time()
@@ -271,8 +292,8 @@ def main():
         # Parse arguments
         parser_1 = argparse.ArgumentParser()
         parser_2 = argparse.ArgumentParser()
-        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.0)
-        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.0)
+        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=5.0)
+        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=5.0)
         args1 = utilities.parseConnectionArguments1(parser_1)
         args2 = utilities.parseConnectionArguments2(parser_2)
 
@@ -290,11 +311,15 @@ def main():
                 # #gripper_2.set_target_position_percentage(50)
                 # print("after sending grippers to 50")
                 # time.sleep(2)
-                # print("Before sending grippers to 0")
+                # print(gripper_1.get_latest_feedback())
+                
+                # print("Before sending grippers to 50.1")
                 # gripper_1.set_target_position_percentage(50.4)
-                # #gripper_2.set_target_position_percentage(50.8)
-                # print("after sending grippers to 0")
+                # #gripper_2.set_target_position_percentage(50.1)
+                # print("after sending grippers to 50.1")
                 # time.sleep(3)
+                # print(gripper_1.get_latest_feedback())
+                
                 # gripper_1.Cleanup()
                 # gripper_2.Cleanup()
 

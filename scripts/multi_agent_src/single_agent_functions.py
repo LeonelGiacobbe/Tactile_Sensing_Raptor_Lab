@@ -84,8 +84,8 @@ class SingleMPClayer(nn.Module):
         super(SingleMPClayer, self).__init__()
 
         self.Pq = 5
-        self.Qv = 200
-        self.Qa = 1
+        self.Qv = 100
+        self.Qa = 2
         self.nHidden = nHidden
         self.eps = eps
         self.nStep = nStep

@@ -35,6 +35,7 @@ setup(
             'camera_publisher = tactile_sensing.camera_publisher:main',
             'multi_agent_mpc = tactile_sensing.multi_agent_mpc:main',
             'multi_agent_nn = tactile_sensing.multi_agent_nn_controller:main',
+            'single_agent_nn = tactile_sensing.single_agent_nn_controller:main',
         ],
     },
 )

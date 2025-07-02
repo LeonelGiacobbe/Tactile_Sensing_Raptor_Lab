@@ -13,10 +13,10 @@ launch/multi_agent_mpc_controller.launch.py
 launch/multi_agent_nn_controller.launch.py
 launch/multi_arm.launch.py
 launch/nn_controller.launch.py
+launch/single_agent_controller.launch.py
 resource/tactile_sensing
 tactile_sensing/__init__.py
 tactile_sensing/changed_functions.py
-tactile_sensing/functions.py
 tactile_sensing/implemented_functions.py
 tactile_sensing/model_based_mpc.py
 tactile_sensing/movement_functions.py
@@ -26,6 +26,8 @@ tactile_sensing/multi_agent_nn_controller.py
 tactile_sensing/nn_controller.py
 tactile_sensing/show3d_ros2.py
 tactile_sensing/show_tactile_image.py
+tactile_sensing/single_agent_functions.py
+tactile_sensing/single_agent_nn_controller.py
 tactile_sensing/testing_functions.py
 test/test_copyright.py
 test/test_flake8.py

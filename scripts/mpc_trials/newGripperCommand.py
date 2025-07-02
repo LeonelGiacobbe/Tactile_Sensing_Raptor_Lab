@@ -8,9 +8,6 @@ from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
 from kortex_api.autogen.messages import Base_pb2
 from kortex_api.autogen.messages import BaseCyclic_pb2
 
-
-MIN_VELOCITY = 3.0
-
 class GripperCommand: 
     
     MAX_SPEED_85_MM_PER_SEC = 150.0 
@@ -113,16 +110,13 @@ class GripperCommand:
                 # print("position error: ", position_error)
                 
                 # Apply proportional control
-                if abs(position_error) < 0.1: # Tolerance for stopping
+                if abs(position_error) < 0.05: # Tolerance for stopping
                     self.motorcmd.velocity = 0
                     self.motorcmd.position = self._target_position_percentage # Ensure it settles at target
                 else:
                     self.motorcmd.velocity = self.proportional_gain * abs(position_error) 
                     if self.motorcmd.velocity > 100.0:
                         self.motorcmd.velocity = 100.0
-                    # print("Current motor command velocity: ", self.motorcmd.velocity)
-                    # if self.motorcmd.velocity < MIN_VELOCITY:
-                    #     self.motorcmd.velocity = MIN_VELOCITY
                     self.motorcmd.position = self._target_position_percentage # Continuously command target
 
                 # Prepare and send feedback to MPC (non-blocking)
@@ -176,7 +170,7 @@ class GripperCommand:
         except queue.Empty:
             return None # No new feedback yet
 
-    def is_target_position_reached(self, tolerance=0.2):
+    def is_target_position_reached(self, tolerance=0.1):
         """
         Checks if the gripper is close to its _currently commanded_ target percentage.
         This is useful for knowing if a specific movement is "done".

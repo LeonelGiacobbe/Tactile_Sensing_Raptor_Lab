@@ -23,7 +23,7 @@ def main():
     counter2 = 1
     
     dev = gsdevice.Camera("GelSight Mini", 0)
-    dev2 = gsdevice.Camera("GelSight Mini", 4)
+    dev2 = gsdevice.Camera("GelSight Mini", 2)
 
     # dev1.connect()
     dev.connect()

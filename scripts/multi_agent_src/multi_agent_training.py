@@ -252,6 +252,7 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         own_output = cnn_encoder(X_own)
         other_output = cnn_encoder(X_other) 
         
+        
         output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) 
         
         y_own= y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1))
@@ -322,9 +323,12 @@ def validation(model, device, own_test_loader, other_test_loader):
             X_other, y_other = X_other[0].to(device), y_other.to(device).view(-1, )
 
             #y_own and y_other are the p_slip of the trials
-            own_output = cnn_encoder(X_own)
-            other_output = cnn_encoder(X_other) 
-            
+            zero_image = torch.zeros_like(X_own)
+            own_output = cnn_encoder(zero_image)
+            other_output = cnn_encoder(zero_image) 
+            # print("own encodings: ", own_output)
+            # print("other encodings: ", other_output)
+
             # print("own_output size: ", own_output.size())
             # print("other_output size: ", other_output.size())
             # print("own gripper pos size: ", own_gripper_p.size())
@@ -333,6 +337,7 @@ def validation(model, device, own_test_loader, other_test_loader):
             # print("other gripper v size: ", other_gripper_v.size())
             
             output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
+
             
             y_own = y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1)) # size batchSize, nStep
             final_y_own = y_own[:,(output_1.size(1)-1)]*3
@@ -478,7 +483,7 @@ scheduler = ReduceLROnPlateau(
 
 # Load checkpoint if exists
 start_epoch = 0
-checkpoint_path = '40_soft_60_hard_v3_checkpoint_epoch_30.pth'
+checkpoint_path = 'multi_agent_tactile_model.pth'
 if os.path.exists(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     cnn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
@@ -499,7 +504,7 @@ for epoch in range(start_epoch, epochs):
         writer.writerow([epoch+1, valid_loss, training_loss])
         # Save checkpoint every 10 epochs
         if (epoch + 1) % 10 == 0:
-            checkpoint_path = f'./40_soft_60_hard_v3_checkpoint_epoch_{epoch+1}.pth'
+            checkpoint_path = f'./40_soft_60_hard_v4_checkpoint_epoch_{epoch+1}.pth'
             torch.save({
                 'cnn_encoder_state_dict': cnn_encoder.state_dict(),
                 'mpc_layer_state_dict': MPC_layer.state_dict(),

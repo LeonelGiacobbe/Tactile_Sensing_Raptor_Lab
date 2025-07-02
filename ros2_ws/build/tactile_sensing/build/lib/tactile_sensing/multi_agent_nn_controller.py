@@ -267,7 +267,7 @@ class ModelBasedMPCNode(Node):
                     tactile_embeddings_1 = self.nn_encoder(image_tensor_1) 
                     tactile_embeddings_2 = self.nn_encoder(image_tensor_2)
                     pos_sequences_1, pos_sequences_2 = self.mpc_layer(
-                        -tactile_embeddings_1, -tactile_embeddings_2, 
+                        tactile_embeddings_1, tactile_embeddings_2, 
                         gripper_posi_1, gripper_vel_1, 
                         gripper_posi_2, gripper_vel_2
                     )
