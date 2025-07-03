@@ -21,7 +21,7 @@ CNN_embed_dim = 20
 res_size = 224       
 eps = 1e-4
 nStep = 15
-del_t = 1/12
+del_t = 1/25
 dropout_p = 0.15
 
 # percentage to mm helper functions
@@ -58,7 +58,7 @@ class MultiAgentMpc():
         self.current_image_1 = None
         self.current_image_2 = None
 
-        self.frequency = 12
+        self.frequency = 25
 
         # Gelsight devices
         self.dev1 = gsdevice.Camera("Gelsight Mini", 0)
@@ -92,7 +92,7 @@ class MultiAgentMpc():
         # _ = self.mpc_layer(_, _, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var)
 
         # Load weights
-        model_path = os.path.join(os.getcwd(), 'multi_agent_tactile_model.pth')
+        model_path = os.path.join(os.getcwd(), 'rgb_letac_model.pth')
         checkpoint = torch.load(model_path, map_location=torch.device(self.device), weights_only=True)
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
@@ -164,8 +164,8 @@ class MultiAgentMpc():
             image_1 = image_1.unsqueeze(0).to(self.device)
             image_2 = image_2.unsqueeze(0).to(self.device)
             #start = time.time()
-            output_1 = self.nn_encoder(image_1).to(self.device) 
-            output_2 = self.nn_encoder(image_2).to(self.device) 
+            output_1 = self.nn_encoder(image_1)#.to(self.device) 
+            output_2 = self.nn_encoder(image_2)#.to(self.device)
             #end = time.time()
             #print("cnn encoder inference time: ", end - start)
             # print("encodings 1: ", output_1)
@@ -221,7 +221,6 @@ class MultiAgentMpc():
                     vel_1_for_mpc *= -1
                 if self.prev_gripper_posi_2 > posi_2_mm_for_mpc: # gripper is closing, flip vel to negative as that's what the MPC layer expects
                     vel_2_for_mpc *= -1
-
 
                 # Get Gelsight images
                 image_1, image_2 = self._get_gelsight_images()
