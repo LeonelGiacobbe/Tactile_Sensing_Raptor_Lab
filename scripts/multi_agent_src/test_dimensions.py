@@ -30,7 +30,7 @@ sa_mpc_layer = SingleMPClayer().to(device)
 sa_mpc_layer.eval()
 
 # Test different batch sizes
-batch_sizes = [1]
+batch_sizes = [1, 2, 4, 8, 16, 32, 64, 128]
 samples = 10  # Number of runs per batch size
 
 print(f"{'Batch Size':<12} | {'MA Time (s)':<12} | {'SA Time (s)':<12} | {'MA/SA Ratio':<12}")
@@ -53,7 +53,6 @@ for batch_size in batch_sizes:
                                     other_gripper_p, other_gripper_v)
         torch.cuda.synchronize()  # Ensure CUDA ops are complete
         ma_end = time.time()
-        print(ma_end - ma_start)
         ma_total_time += (ma_end - ma_start)
         
         # Single-agent timing (using same inputs for fair comparison)

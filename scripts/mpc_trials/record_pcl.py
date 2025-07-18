@@ -4,17 +4,31 @@ import struct
 from rclpy.node import Node
 
 from sensor_msgs.msg import PointCloud2 as pc2
+from sensor_msgs.msg import CameraInfo
 
 
 class PointCloudSubscriber(Node):
 
     def __init__(self):
+        self.intrinsics_matrix = None
+
         self.pcl_subscriber = self.create_subscription(
             pc2,
             '/camera/depth/color/points',
             self.pcl_callback,
             0
         )
+
+        self.intrinsics_subscriber = self.create_subscription(
+            CameraInfo,
+            '/camera/depth/camera_info',
+            self.intrinsics_callback,
+            0
+        )
+
+    def intrinsics_callback(self, msg):
+        self.intrinsics_matrix = msg.k
+        self.get_logger().info(f"Received intrinsics matrix: ", msg.k)
 
     def pcl_callback(self, msg):
         # The saved npy should have a key "xyz", containing the Nx3 pcl data
@@ -55,8 +69,12 @@ class PointCloudSubscriber(Node):
 
             pcl_dict["xyz"] = xyz_array
             pcl_dict["xyz_color"] = colors_array
-
-            np.savez("pcl_recording.npz", **pcl_dict)
+            if self.intrinsics_matrix is not None:
+                pcl_dict["K"] = self.intrinsics_matrix
+                np.savez("pcl_recording.npz", **pcl_dict)
+                self.get_logger().info("Saved pcl recording")
+            else:
+                self.get_logger().info("Camera matrix has not been received yet. Waiting on CameraInfo publisher...")
         
 
 def main(args=None):

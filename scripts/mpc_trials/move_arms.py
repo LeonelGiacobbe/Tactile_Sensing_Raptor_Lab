@@ -2,6 +2,8 @@ import sys
 import os
 import time
 import threading
+import numpy as np
+from scipy.spatial.transform import Rotation as R
 
 from kortex_api.autogen.client_stubs.BaseClientRpc import BaseClient
 from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
@@ -73,7 +75,7 @@ def populateCartesianCoordinate(waypointInformation):
     waypoint.pose.theta_x = waypointInformation[4]
     waypoint.pose.theta_y = waypointInformation[5]
     waypoint.pose.theta_z = waypointInformation[6] 
-    waypoint.reference_frame = Base_pb2.CARTESIAN_REFERENCE_FRAME_BASE
+    waypoint.reference_frame = Base_pb2.CARTESIAN_REFERENCE_FRAME_TOOL
     
     return waypoint
 
@@ -83,32 +85,14 @@ def move(base, base_cyclic, waypoint):
     base_servo_mode.servoing_mode = Base_pb2.SINGLE_LEVEL_SERVOING
     base.SetServoingMode(base_servo_mode)
     product = base.GetProductConfiguration()
-    waypointsDefinition = tuple(tuple())
+    waypointsDefinition = waypoint
     if(   product.model == Base_pb2.ProductConfiguration__pb2.MODEL_ID_L53 
        or product.model == Base_pb2.ProductConfiguration__pb2.MODEL_ID_L31):
-        if(product.model == Base_pb2.ProductConfiguration__pb2.MODEL_ID_L31):
-            kTheta_x = 90.6
-            kTheta_y = -1.0
-            kTheta_z = 150.0
-            waypointsDefinition = ( (0.439,  0.194, 0.448, 0.0, kTheta_x, kTheta_y, kTheta_z),
-                                    (0.200,  0.150, 0.400, 0.0, kTheta_x, kTheta_y, kTheta_z),
-                                    (0.350,  0.050, 0.300, 0.0, kTheta_x, kTheta_y, kTheta_z))
-        else:
-            kTheta_x = 90.0
-            kTheta_y = 0.0
-            kTheta_z = 90.0
-            waypointsDefinition = ( (0.7,   0.0,  0.5,  0.0, kTheta_x, kTheta_y, kTheta_z),
-                                    (0.7,   0.0,  0.33, 0.1, kTheta_x, kTheta_y, kTheta_z),
-                                    (0.7,   0.48, 0.33, 0.1, kTheta_x, kTheta_y, kTheta_z),
-                                    (0.61,  0.22, 0.4,  0.1, kTheta_x, kTheta_y, kTheta_z),
-                                    (0.7,   0.48, 0.33, 0.1, kTheta_x, kTheta_y, kTheta_z),
-                                    (0.63, -0.22, 0.45, 0.1, kTheta_x, kTheta_y, kTheta_z),
-                                    (0.65,  0.05, 0.33, 0.0, kTheta_x, kTheta_y, kTheta_z))
+        pass
     else:
         print("Product is not compatible to run this example please contact support with KIN number bellow")
         print("Product KIN is : " + product.kin())
 
-    
     waypoints = Base_pb2.WaypointList()
     
     waypoints.duration = 0.0
@@ -164,29 +148,115 @@ def move(base, base_cyclic, waypoint):
         print("Error found in trajectory") 
         result.trajectory_error_report.PrintDebugString();  
 
+def get_target_state(filepath):
+    target_posi = None
+    target_rotation = None
+    try:
+        npz_keys = np.load(filepath, allow_pickle=True)
+        print("Loaded npz file at path: ", filepath)
 
+        print(f"NpzFile with keys: {list(npz_keys.keys())}")
+        
+        if "scores" in npz_keys.keys() and "pred_grasps_cam" in npz_keys.keys():
+            # Get the value associated with the 'scores' key
+            # This value is a list containing a dictionary
+            scores_data_list = npz_keys["scores"]
+            posi_pred_cam_list = npz_keys["pred_grasps_cam"]
+
+            # Check if it's a list and if it contains a dictionary as expected
+            if (isinstance(scores_data_list, np.ndarray) and scores_data_list.ndim == 0 and isinstance(scores_data_list.item(), dict)) and \
+            (isinstance(posi_pred_cam_list, np.ndarray) and posi_pred_cam_list.ndim == 0 and isinstance(posi_pred_cam_list.item(), dict)):
+                
+                # Extract the dictionary from the 0-d array wrapper
+                scores_dict = scores_data_list.item()
+                posi_pred_cam_dict = posi_pred_cam_list.item()
+
+                print("\nFinding max confidence value, its index, and the posi/rotation:")
+                for key, score_array_value in scores_dict.items():
+                    if isinstance(score_array_value, np.ndarray):
+                        # Ensure it's at least 1-D for sorting
+                        if score_array_value.ndim == 0:
+                            score_array_value = np.array([score_array_value.item()])
+                        current_max_confidence = np.max(score_array_value)
+                        current_max_index = np.argmax(score_array_value)
+
+                        print(f"For Key {key}:")
+                        print(f"  Max confidence: {current_max_confidence}")
+                        print(f"  Index of max confidence: {current_max_index}")
+
+                        if key in posi_pred_cam_dict:
+                            corresponding_grasp_array = posi_pred_cam_dict[key]
+                            if isinstance(corresponding_grasp_array, np.ndarray) and corresponding_grasp_array.ndim >= 1:
+                                grasp_info_at_max_confidence = corresponding_grasp_array[current_max_index]
+                                print("  Position/rotation matrix at max confidence index (using tool as reference frame):")
+                                print(grasp_info_at_max_confidence)
+
+                                print("  Rotation after converting matrix to angles:")
+                                rotation_obj = R.from_matrix(grasp_info_at_max_confidence[:3, :3])
+                                euler_zyx_rad = rotation_obj.as_euler('zyx')
+                                target_rotation = np.rad2deg(euler_zyx_rad)
+                                print(target_rotation)
+
+                                print("Position extracted from matrix:")
+                                target_posi = [grasp_info_at_max_confidence[0,2], grasp_info_at_max_confidence[1,2], grasp_info_at_max_confidence[2,2]]
+                                print(target_posi)
+
+                    else:
+                        print(f"Warning: Value for key {key} is not a NumPy array. Type: {type(score_array_value)}")
+
+            else:
+                print(f"The 'scores' key does not contain the expected list of dictionaries. Type: {type(scores_data_list)}, Dims: {getattr(scores_data_list, 'ndim', 'N/A')}")
+                print(f"Content of 'scores' key: {scores_data_list}")
+
+        else:
+            print("\n'scores' key not found in the .npz file.")
+
+        npz_keys.close()
+        res = []
+        res.extend(posi.item() for posi in target_posi)
+        res.append(0.)
+        res.extend(rot.item() for rot in target_rotation)
+        return res
+
+
+    except FileNotFoundError:
+        print("Error: The file was not found. Please check the path.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        
 def main():
-    
     # Import the utilities helper module
+    import argparse
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
     import utilities
 
     # Parse arguments
-    args = utilities.parseConnectionArguments()
-    
+    parser1 = argparse.ArgumentParser()
+    parser2 = argparse.ArgumentParser()
+    args1 = utilities.parseConnectionArguments(parser1)
+    args2 = utilities.parseConnectionArguments(parser2)    
     # Create connection to the device and get the router
-    with utilities.DeviceConnection.createTcpConnection(args) as router:
+    with utilities.DeviceConnection.createTcpConnection(args1) as router1, utilities.DeviceConnection.createTcpConnection(args2) as router2:
 
         # Create required services
-        base = BaseClient(router)
-        base_cyclic = BaseCyclicClient(router)
+        base1 = BaseClient(router1)
+        base_cyclic1 = BaseCyclicClient(router1)
+        base2 = BaseClient(router2)
+        base_cyclic2 = BaseCyclicClient(router2)
         
 
         # Example core
         success = True
-        # Pretty sure waypoint definition is: moveX, moveY, moveZ, 0.0, kTheta_x, kTheta_y, kTheta_z
-        success &= example_move_to_home_position(base)
-        success &= move(base, base_cyclic)
+        # Pretty sure waypoint definition is: poseX, poseY, poseZ, blendingRadius, kTheta_x, kTheta_y, kTheta_z
+        success &= example_move_to_home_position(base1)
+        success &= example_move_to_home_position(base2)
+        
+        arm_1_np_path = None
+        arm_2_np_path = None
+        arm_1_target = get_target_state(arm_1_np_path)
+        arm_2_target = get_target_state(arm_2_np_path)
+        success &= move(base1, base_cyclic1, arm_1_target)
+        success &= move(base2, base_cyclic2, arm_2_target)
        
         return 0 if success else 1
 
