@@ -2,8 +2,9 @@ import rclpy
 import numpy as np
 import struct
 from rclpy.node import Node
-
+import time
 from sensor_msgs.msg import PointCloud2 as pc2
+from sensor_msgs_py import point_cloud2
 from sensor_msgs.msg import CameraInfo
 
 
@@ -11,6 +12,7 @@ class PointCloudSubscriber(Node):
 
     def __init__(self):
         self.intrinsics_matrix = None
+        self.saved_file = False
 
         self.pcl_subscriber = self.create_subscription(
             pc2,
@@ -32,6 +34,7 @@ class PointCloudSubscriber(Node):
 
     def pcl_callback(self, msg):
         # The saved npy should have a key "xyz", containing the Nx3 pcl data
+        # A key called "K", containing the camera's intrinsics matrix
         # And maybe a key called "xyz_colors", containing the colors of the points
         pcl_dict = {}
         self.get_logger().debug(f"Received PointCloud message")
@@ -46,7 +49,7 @@ class PointCloudSubscriber(Node):
             self.get_logger().warn("Point cloud does not contain 'rgb' field.")
             return
         
-        points_data = pc2.read_points(msg, field_names=("x", "y", "z", color_field_name), skip_nans=True)
+        points_data = point_cloud2.read_points(msg, field_names=("x", "y", "z", color_field_name), skip_nans=True)
         xyz_coords = []
         rgb_colors = []
 
@@ -71,18 +74,22 @@ class PointCloudSubscriber(Node):
             pcl_dict["xyz_color"] = colors_array
             if self.intrinsics_matrix is not None:
                 pcl_dict["K"] = self.intrinsics_matrix
-                np.savez("pcl_recording.npz", **pcl_dict)
-                self.get_logger().info("Saved pcl recording")
+                if not self.saved_file:
+                    np.savez("pcl_recording.npz", **pcl_dict)
+                    self.saved_file = True
+                    self.get_logger().info("Saved pcl recording")
+                else:
+                    self.get_logger().info("NPZ file has already been saved. Safe to exit program")
             else:
                 self.get_logger().info("Camera matrix has not been received yet. Waiting on CameraInfo publisher...")
-        
 
 def main(args=None):
     rclpy.init(args=args)
 
     pcl_subscriber = PointCloudSubscriber()
-
-    rclpy.spin_once(pcl_subscriber)
+    # Sleep a few seconds to give pcl and intrinsics publisher time to initialize
+    time.sleep(3)
+    rclpy.spin(pcl_subscriber)
     pcl_subscriber.destroy_node()
 
     rclpy.shutdown()
