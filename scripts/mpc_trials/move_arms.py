@@ -109,7 +109,7 @@ def move(base, base_cyclic, waypoint):
     result = base.ValidateWaypointList(waypoints)
     if(len(result.trajectory_error_report.trajectory_error_elements) == 0):
         e = threading.Event()
-        notification_handle = base.OnNotificationActionTopic(   check_for_end_or_abort(e),
+        notification_handle = base.OnNotificationActionTopic(check_for_end_or_abort(e),
                                                                 Base_pb2.NotificationOptions())
 
         print("Moving cartesian trajectory...")
@@ -123,7 +123,7 @@ def move(base, base_cyclic, waypoint):
         if finished:
             print("Cartesian trajectory with no optimization completed ")
             e_opt = threading.Event()
-            notification_handle_opt = base.OnNotificationActionTopic(   check_for_end_or_abort(e_opt),
+            notification_handle_opt = base.OnNotificationActionTopic(check_for_end_or_abort(e_opt),
                                                                 Base_pb2.NotificationOptions())
 
             waypoints.use_optimal_blending = True

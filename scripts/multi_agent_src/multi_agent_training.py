@@ -8,23 +8,22 @@ from sklearn.model_selection import train_test_split
 import random
 from sklearn.linear_model import LinearRegression
 import torchvision.transforms as transforms
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 # EncoderCNN architecture
-CNN_hidden1, CNN_hidden2 = 128, 128 
-CNN_embed_dim = 20  
-res_size = 224       
-dropout_p = 0.15  
+CNN_hidden1, CNN_hidden2 = 128, 128
+CNN_embed_dim = 20
+res_size = 224
+dropout_p = 0.15
 
 # Training parameters
-epochs = 100
+epochs = 250
 batch_size = 256
 learning_rate = 1e-4
 eps = 1e-4
 nStep = 15
-del_t = 1/25
+del_t = 1/10
 
-data_path = "../data_collection/dataset"
+data_path = "./dataset"
 
 transform = transforms.Compose([transforms.Resize([res_size, res_size]),
                                 transforms.ToTensor(),
@@ -32,7 +31,7 @@ transform = transforms.Compose([transforms.Resize([res_size, res_size]),
 def read_empty_data(data_path):
     """
     For images when nothing is touching the sensor
-    
+
     """
     all_names = []
     trials = []
@@ -78,17 +77,16 @@ def read_empty_data(data_path):
             loc1 = img.find('gp_')
             loc2 = img.find('_fr')
             img[(loc1 + 3): loc2]
-            
+
             if img.startswith('1_'): # Own gripper image
                 rand_num = random.uniform(-0.5, 0.5)
                 # Seems like every one of these evals in total would amount to 0?
                 own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                own_output_p.append(28.5+rand_num)
-                own_selected_all_names.append(path_list[i]+img) # I don't think there's a need to differentiate between  
-                own_grip_posi_num.append(eval(own_grip_posi[i]))
-                own_grip_vel_num.append((28.5+rand_num-30)/3)
-                # Velocities of both grippers should be related since they're
-                # Acting on the same object, right? Maybe ask Dr. Sun?
+                target_pos = 35.0 + rand_num
+                own_output_p.append(target_pos)
+                own_selected_all_names.append(path_list[i]+img)
+                own_grip_posi_num.append(37.0)
+                own_grip_vel_num.append((-2.0 + rand_num) / 3.0)
                 own_index.append(j)
 
                 # Find matching frame to populate 'other' info
@@ -100,12 +98,13 @@ def read_empty_data(data_path):
                 other_img = filename_list[0]
                 # Seems like every one of these evals in total would amount to 0?
                 other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                other_output_p.append(28.5+rand_num)
+                other_target_pos = 35.0 + rand_num
+                other_output_p.append(other_target_pos)
                 other_selected_all_names.append(path_list[i]+other_img)
-                other_grip_posi_num.append(eval(other_grip_posi[i]))
-                other_grip_vel_num.append((28.5+rand_num-30)/3)
+                other_grip_posi_num.append(37.0)
+                other_grip_vel_num.append((-2.0 + rand_num) / 3.0)
                 other_index.append(j)
-    
+
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
 def read_data(data_path,label_path,up_limit = 50,offset=0):
@@ -150,26 +149,26 @@ def read_data(data_path,label_path,up_limit = 50,offset=0):
     other_index = []
     own_grip_vel_num = []
     other_grip_vel_num = []
-    
+
     for i in range(len(ys)):
         if trials[i] in label_dict.keys():
             # print("label_dict[trials[i]][0] : ", label_dict[trials[i]][0])
             # print("label_dict[trials[i]][0] type: ", type(label_dict[trials[i]][0]))
             if label_dict[trials[i]][0] < up_limit and label_dict[trials[i]][1] < up_limit:
                 for j in range(50): # because there's 50 images per subtrial (25 pairs)
-                    
+
                     # print("own_output_p: ", own_output_p)
                     # print("other_output_p: ",other_output_p)
                     img = all_names[i][j]
                     loc1 = img.find('gp_')
                     loc2 = img.find('_fr')
                     img[(loc1 + 3): loc2]
-                    
+
                     if img.startswith('1_'): # Own gripper image
                         # Populate 'own' info
                         own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
                         own_output_p.append(label_dict[trials[i]][0]+offset)
-                        
+
                         own_selected_all_names.append(path_list[i]+img)
                         own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
                         rand_vel = 2*(random.random()-0.5)
@@ -205,7 +204,7 @@ def read_data(data_path,label_path,up_limit = 50,offset=0):
                 loc1 = img.find('gp_')
                 loc2 = img.find('_fr')
                 img[(loc1 + 3): loc2]
-                
+
                 if img.startswith('1_'): # Own gripper image
                     own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
                     own_selected_all_names.append(path_list[i]+img)
@@ -221,14 +220,14 @@ def read_data(data_path,label_path,up_limit = 50,offset=0):
                     other_selected_all_names.append(path_list[i]+img)
                     other_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
                     other_index.append(j)
-                
-                
+
+
                 own_output_p.append(own_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
                 other_output_p.append(other_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
-    
+
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names, own_output_p,other_output_p, own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
-        
-def train(model, device, own_train_loader, other_train_loader, optimizer, epoch):
+
+def train(model, device, train_loader, optimizer, epoch):
     # set model as training mode
     cnn_encoder, MPC_layer= model
     cnn_encoder.train()
@@ -236,50 +235,62 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
     losses = []
     scores = []
 
-    N_count = 0 
+    N_count = 0
     epoch_count = 0
-    for (X_own, y_own), (X_other, y_other) in zip(own_train_loader, other_train_loader):
+    # Train loader contains (own, other info)
+    for (combined_X, combined_y) in train_loader:
+        # print("own info 0 len: ", len(own_info[0]))
+        # print("own info 1 len: ", len(own_info[1]))
+        # print("other info len: ", len(other_info))
+        (own_X_image, own_pv_pair) = combined_X[0]
+        (other_X_image, other_pv_pair) = combined_X[1]
         # distribute data to device
-        own_gripper_p = X_own[1][0].to(device)
-        own_gripper_v = X_own[1][1].to(device)
-        other_gripper_p = X_other[1][0].to(device)
-        other_gripper_v = X_other[1][1].to(device) 
-        # other_gripper_v = X[1][2].to(device)
-        X_own, y_own = X_own[0].to(device), y_own.to(device).view(-1, )
-        X_other, y_other = X_other[0].to(device), y_other.to(device).view(-1, )
+        own_gripper_p = own_pv_pair[0].to(device)
+        own_gripper_v = own_pv_pair[1].to(device)
+
+        other_gripper_p = other_pv_pair[0].to(device)
+        other_gripper_v = other_pv_pair[1].to(device)
+
+        X_own_image = own_X_image.to(device)
+        X_other_image = other_X_image.to(device)
+
+        y_own = combined_y[0].to(device).view(-1, )
+        y_other = combined_y[1].to(device).view(-1, )
+        # print("x own size: ", X_combined[0].size())
+        # raise KeyError
+        #X_combined[0] has size torch.Size([256, 3, 224, 224])
+        X_own, y_own = X_own_image.to(device), y_own.to(device).view(-1, )
+        X_other, y_other = X_other_image.to(device), y_other.to(device).view(-1, )
         N_count += X_own.size(0)
         optimizer.zero_grad()
         own_output = cnn_encoder(X_own)
-        other_output = cnn_encoder(X_other) 
-        
-        
-        output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v) 
-        
+        other_output = cnn_encoder(X_other)
+
+        output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
+
         y_own= y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1))
-        final_y_own = y_own[:,(output_1.size(1)-1)]*3 
+        final_y_own = y_own[:,(output_1.size(1)-1)]*3
         final_output_own = output_1[:,(output_1.size(1)-1)]*3
 
         y_other= y_other.unsqueeze(1).expand(X_other.size(0), output_2.size(1))
         final_y_other = y_other[:,(output_2.size(1)-1)]*3
         final_output_other = output_2[:,(output_2.size(1)-1)]*3
 
-        if ((epoch + 1) % 5 == 0):
-            print(f"Agent 1 loss per time step:")
-            for t in range(output_1.size(1)):
-                step_loss = F.mse_loss(output_1[:, t], y_own[:, t].float()).item()
-                print(f"  Step {t}: {step_loss:.6f}")
+        # if ((epoch + 1) % 5 == 0):
+        #     print(f"Agent 1 loss per time step:")
+        #     for t in range(output_1.size(1)):
+        #         step_loss = F.mse_loss(output_1[:, t], y_own[:, t].float()).item()
+        #         print(f"  Step {t}: {step_loss:.6f}")
 
-            print(f"Agent 2 loss per time step:")
-            for t in range(output_2.size(1)):
-                step_loss = F.mse_loss(output_2[:, t], y_other[:, t].float()).item()
-                print(f"  Step {t}: {step_loss:.6f}")
-        
+        #     print(f"Agent 2 loss per time step:")
+        #     for t in range(output_2.size(1)):
+        #         step_loss = F.mse_loss(output_2[:, t], y_other[:, t].float()).item()
+        #         print(f"  Step {t}: {step_loss:.6f}")
+
         loss = F.mse_loss(output_1,y_own.float()) + F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_own,final_output_own) + F.mse_loss(final_y_other,final_output_other)
         losses.append(loss.item())
         print("Agent 1 loss: ", F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(final_y_own,final_output_own).item())
         print("Agent 2 loss: ", F.mse_loss(output_2,y_other.float()).item() + F.mse_loss(final_y_other,final_output_other).item())
-        # print("Agent 1 only final loss: ", F.mse_loss(final_y_own,final_output_own).item())
-        # print("Agent 2 only final loss: ",  F.mse_loss(final_y_other,final_output_other).item())
         loss.backward()
 
         for name, param in MPC_layer.named_parameters():
@@ -287,7 +298,7 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
                 pass
             else:
                 print(f"{name} is not being learned")
-        
+
         optimizer.step()
         epoch_count += 1
 
@@ -295,11 +306,11 @@ def train(model, device, own_train_loader, other_train_loader, optimizer, epoch)
         # print("Agent new 1 loss: ", F.mse_loss(output_1,y_own.float()).item())
         # print("Agent nw 2 loss: ", F.mse_loss(output_2,y_other.float()).item())
         print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-            epoch + 1, N_count, len(own_train_loader.dataset), 100. * (epoch_count + 1) / len(own_train_loader), loss.item()))
+            epoch + 1, N_count, len(train_loader.dataset), 100. * (epoch_count + 1) / len(train_loader), loss.item()))
     # Return mean of losses in epoch (to match loss amount in validation)
     return np.mean(losses)
 
-def validation(model, device, own_test_loader, other_test_loader):
+def validation(model, device, test_loader):
     cnn_encoder, MPC_layer= model
     cnn_encoder.eval()
     MPC_layer.eval()
@@ -311,23 +322,33 @@ def validation(model, device, own_test_loader, other_test_loader):
     all_y_pred_own = []
     all_y_pred_other = []
     with torch.no_grad():
-        for (X_own, y_own), (X_other, y_other) in zip(own_test_loader, other_test_loader):
+        for (combined_X, combined_y) in test_loader:
+            # print("own info 0 len: ", len(own_info[0]))
+            # print("own info 1 len: ", len(own_info[1]))
+            # print("other info len: ", len(other_info))
+            (own_X_image, own_pv_pair) = combined_X[0]
+            (other_X_image, other_pv_pair) = combined_X[1]
             # distribute data to device
-            own_gripper_p = X_own[1][0].to(device)
-            own_gripper_v = X_own[1][1].to(device)
+            own_gripper_p = own_pv_pair[0].to(device)
+            own_gripper_v = own_pv_pair[1].to(device)
 
-            other_gripper_p = X_other[1][0].to(device)
-            other_gripper_v = X_other[1][1].to(device)
-            
-            X_own, y_own = X_own[0].to(device), y_own.to(device).view(-1, )
-            X_other, y_other = X_other[0].to(device), y_other.to(device).view(-1, )
+            other_gripper_p = other_pv_pair[0].to(device)
+            other_gripper_v = other_pv_pair[1].to(device)
 
+            X_own_image = own_X_image.to(device)
+            X_other_image = other_X_image.to(device)
+
+            y_own = combined_y[0].to(device).view(-1, )
+            y_other = combined_y[1].to(device).view(-1, )
+            # print("x own size: ", X_combined[0].size())
+            # raise KeyError
+            #X_combined[0] has size torch.Size([256, 3, 224, 224])
+            X_own, y_own = X_own_image.to(device), y_own.to(device).view(-1, )
+            X_other, y_other = X_other_image.to(device), y_other.to(device).view(-1, )
             #y_own and y_other are the p_slip of the trials
-            zero_image = torch.zeros_like(X_own)
-            own_output = cnn_encoder(zero_image)
-            other_output = cnn_encoder(zero_image) 
-            # print("own encodings: ", own_output)
-            # print("other encodings: ", other_output)
+
+            own_output = cnn_encoder(X_own)
+            other_output = cnn_encoder(X_other)
 
             # print("own_output size: ", own_output.size())
             # print("other_output size: ", other_output.size())
@@ -335,10 +356,9 @@ def validation(model, device, own_test_loader, other_test_loader):
             # print("own gripper v size: ", own_gripper_v.size())
             # print("other gripper pos size: ", other_gripper_p.size())
             # print("other gripper v size: ", other_gripper_v.size())
-            
+
             output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
 
-            
             y_own = y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1)) # size batchSize, nStep
             final_y_own = y_own[:,(output_1.size(1)-1)]*3
             final_output_own = output_1[:,(output_1.size(1)-1)]*3
@@ -346,16 +366,14 @@ def validation(model, device, own_test_loader, other_test_loader):
             y_other = y_other.unsqueeze(1).expand(X_other.size(0), output_2.size(1))
             final_y_other = y_other[:,(output_2.size(1)-1)]*3
             final_output_other = output_2[:,(output_2.size(1)-1)]*3
-                 
+
             loss = F.mse_loss(output_1,y_own.float()) + F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_own,final_output_own) + F.mse_loss(final_y_other,final_output_other)
             print("Agent 1 loss: ", F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(final_y_own,final_output_own).item())
             print("Agent 2 loss: ", F.mse_loss(output_2,y_other.float()).item() + F.mse_loss(final_y_other,final_output_other).item())
-            print("Agent 1 only final loss: ", F.mse_loss(final_y_own,final_output_own).item())
-            print("Agent 2 only final loss: ",  F.mse_loss(final_y_other,final_output_other).item())
             loss_list.append(loss.item())
-            test_loss += F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(output_2,y_other.float()).item()     
-            y_pred_own = output_1.max(1, keepdim=True)[1] 
-            y_pred_other = output_2.max(1, keepdim=True)[1] 
+            test_loss += F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(output_2,y_other.float()).item()
+            y_pred_own = output_1.max(1, keepdim=True)[1]
+            y_pred_other = output_2.max(1, keepdim=True)[1]
             all_y_own.extend(y_own)
             all_y_other.extend(y_other)
 
@@ -371,8 +389,8 @@ def validation(model, device, own_test_loader, other_test_loader):
     # print('\nTest set ({:d} samples): Average NEW loss: {:.4f}\n'.format(len(all_y_own), new_test_loss))
     return test_loss
 
-use_cuda = torch.cuda.is_available()                  
-device = torch.device("cuda" if use_cuda else "cpu")   
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda" if use_cuda else "cpu")
 
 # Data loading parameters
 params = {'batch_size': batch_size, 'shuffle': True, 'num_workers': 4, 'pin_memory': True} if use_cuda else {}
@@ -438,30 +456,39 @@ for i, val in enumerate(dataset_list):
 # raise KeyError
 own_pv_pair_list = zip(own_grip_posi_num_,own_grip_vel_num_)
 own_frame_pair_list = zip(own_selected_all_names_,own_index_)
-own_all_x_list = list(zip(own_frame_pair_list, own_pv_pair_list))        
-own_all_y_list = (own_output_p_) 
+own_all_x_list = list(zip(own_frame_pair_list, own_pv_pair_list))
+own_all_y_list = (own_output_p_)
 
 other_pv_pair_list = zip(other_grip_posi_num_, other_grip_vel_num_)
 other_frame_pair_list = zip(other_selected_all_names_,other_index_)
-other_all_x_list = list(zip(other_frame_pair_list, other_pv_pair_list))        
+other_all_x_list = list(zip(other_frame_pair_list, other_pv_pair_list))
 other_all_y_list = (other_output_p_)
 
+# Combine own/other info for appropriate splitting
+combined_all_x_list = []
+for (own_fp, own_pv), (other_fp, other_pv) in zip(own_all_x_list, other_all_x_list):
+    combined_all_x_list.append(((own_fp, own_pv), (other_fp, other_pv)))
+# Now, combined_all_x_list contains [own_frame_pair, own_posi_vel, other_frame_pair, other_posi_vel]
+
+combined_all_y_list = []
+for (own, other) in zip(own_all_y_list, other_all_y_list):
+    combined_all_y_list.append((own, other))
+# Now, combined_all_y_list contains [own_output_p, other_output_p]
 
 # train, test split
-own_train_list, own_test_list, own_train_label, own_test_label = train_test_split(own_all_x_list, own_all_y_list, test_size=0.2, random_state=42)
-other_train_list, other_test_list, other_train_label, other_test_label = train_test_split(other_all_x_list, other_all_y_list, test_size=0.2, random_state=42)
+train_list, test_list, train_label, test_label = train_test_split(combined_all_x_list, combined_all_y_list, test_size=0.2, random_state=42)
+# other_train_list, other_test_list, other_train_label, other_test_label = train_test_split(other_all_x_list, other_all_y_list, test_size=0.2, random_state=42)
 
-own_train_set, own_valid_set = Dataset_LeTac(own_train_list, own_train_label, np.arange(1, 25, 1).tolist(), transform=transform), \
-                       Dataset_LeTac(own_test_list, own_test_label, np.arange(1, 25, 1).tolist(), transform=transform)
-other_train_set, other_valid_set = Dataset_LeTac(other_train_list, other_train_label, np.arange(1, 25, 1).tolist(), transform=transform), \
-                       Dataset_LeTac(other_test_list, other_test_label, np.arange(1, 25, 1).tolist(), transform=transform)
+train_set, valid_set = Dataset_LeTac(train_list, train_label, np.arange(1, 50, 1).tolist(), transform=transform), \
+                       Dataset_LeTac(test_list, test_label, np.arange(1, 50, 1).tolist(), transform=transform)
+# other_train_set, other_valid_setrain_list = Dataset_LeTac(other_train_list, other_train_label, np.arange(1, 25, 1).tolist(), transform=transform), \
+#                        Dataset_LeTac(other_test_list, other_test_label, np.arange(1, 25, 1).tolist(), transform=transform)
 
 # Changed 10 to 50 in Dataset_LeTac, although that list is never used?
-
-own_train_loader = data.DataLoader(own_train_set, **params)
-own_valid_loader = data.DataLoader(own_valid_set, **params)
-other_train_loader = data.DataLoader(other_train_set, **params)
-other_valid_loader = data.DataLoader(other_valid_set, **params)
+train_loader = data.DataLoader(train_set, **params)
+valid_loader = data.DataLoader(valid_set, **params)
+# other_train_loader = data.DataLoader(other_train_set, **params)
+# other_valid_loader = data.DataLoader(other_valid_set, **params)
 
 # Create model
 cnn_encoder = ResCNNEncoder(hidden1=CNN_hidden1, hidden2=CNN_hidden2, dropP=dropout_p, outputDim=CNN_embed_dim).to(device)
@@ -472,18 +499,9 @@ letac_params = list(cnn_encoder.fc1.parameters()) + list(cnn_encoder.bn1.paramet
 
 optimizer = torch.optim.Adam(letac_params, lr=learning_rate, weight_decay=1e-4) # L2 regularizer of 1e-4
 
-scheduler = ReduceLROnPlateau(
-    optimizer,
-    mode='min',          # because you're minimizing loss
-    factor=0.1,          # reduce LR by 10x
-    patience=5,          # wait 5 epochs with no improvement
-    threshold=.5,      # minimal change to be considered an improvement
-    #verbose=True         # prints when LR is reduced
-)
-
 # Load checkpoint if exists
 start_epoch = 0
-checkpoint_path = 'multi_agent_tactile_model.pth'
+checkpoint_path = 'v7_checkpoint_epoch_25.pth'
 if os.path.exists(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     cnn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
@@ -497,14 +515,13 @@ else:
 # start training - modify range to start from start_epoch
 for epoch in range(start_epoch, epochs):
     with open("loss_log.csv", mode='a') as f:  # 'a' mode appends rather than overwrites
-        valid_loss = validation([cnn_encoder, MPC_layer], device, own_valid_loader, other_valid_loader)
-        scheduler.step(valid_loss)
-        training_loss = train([cnn_encoder, MPC_layer], device, own_train_loader, other_train_loader, optimizer, epoch)
+        valid_loss = validation([cnn_encoder, MPC_layer], device, valid_loader)
+        training_loss = train([cnn_encoder, MPC_layer], device, train_loader, optimizer, epoch)
         writer = csv.writer(f)
         writer.writerow([epoch+1, valid_loss, training_loss])
-        # Save checkpoint every 10 epochs
-        if (epoch + 1) % 10 == 0:
-            checkpoint_path = f'./40_soft_60_hard_v4_checkpoint_epoch_{epoch+1}.pth'
+        # Save checkpoint every 5 epochs
+        if (epoch + 1) % 5 == 0:
+            checkpoint_path = f'./v7_checkpoint_epoch_{epoch+1}.pth'
             torch.save({
                 'cnn_encoder_state_dict': cnn_encoder.state_dict(),
                 'mpc_layer_state_dict': MPC_layer.state_dict(),
