@@ -21,7 +21,7 @@ CNN_embed_dim = 20
 res_size = 224       
 eps = 1e-4
 nStep = 15
-del_t = 1/25
+del_t = 1/10
 dropout_p = 0.15
 
 # percentage to mm helper functions
@@ -58,11 +58,11 @@ class MultiAgentMpc():
         self.current_image_1 = None
         self.current_image_2 = None
 
-        self.frequency = 25
+        self.frequency = 10
 
         # Gelsight devices
-        self.dev1 = gsdevice.Camera("Gelsight Mini", 0)
-        self.dev2 = gsdevice.Camera("Gelsight Mini", 2)
+        self.dev1 = gsdevice.Camera("Gelsight Mini", 2)
+        self.dev2 = gsdevice.Camera("Gelsight Mini", 4)
         self.dev1.connect()
         self.dev2.connect()
         # Warm up camera:
@@ -92,7 +92,7 @@ class MultiAgentMpc():
         # _ = self.mpc_layer(_, _, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var)
 
         # Load weights
-        model_path = os.path.join(os.getcwd(), 'rgb_letac_model.pth')
+        model_path = os.path.join(os.getcwd(), "v1_checkpoint_epoch_15.pth")
         checkpoint = torch.load(model_path, map_location=torch.device(self.device), weights_only=True)
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
@@ -159,7 +159,7 @@ class MultiAgentMpc():
         """
             Run inference on cnn encoder, perform pass in MPC layer, return predictions
         """
-        with self.stream, torch.no_grad():
+        with torch.cuda.stream(self.stream), torch.no_grad():
             # Prepare for cnn inference
             image_1 = image_1.unsqueeze(0).to(self.device)
             image_2 = image_2.unsqueeze(0).to(self.device)
@@ -168,8 +168,8 @@ class MultiAgentMpc():
             output_2 = self.nn_encoder(image_2)#.to(self.device)
             #end = time.time()
             #print("cnn encoder inference time: ", end - start)
-            # print("encodings 1: ", output_1)
-            # print("encodings 2: ", output_2)
+            print("encodings 1 size: ", output_1.size())
+            print("encodings 2 size: ", output_2.size())
 
             # Prepare for mpc pass
             posi_1 = torch.tensor([posi_1]).to(self.device)
@@ -189,8 +189,8 @@ class MultiAgentMpc():
         and sends new commands.
         """
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
-        initial_target_g1_percentage = 70.0
-        initial_target_g2_percentage = 83.0
+        initial_target_g1_percentage = 59.0
+        initial_target_g2_percentage = 75.0
         self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
         print(f"Sent grippers to initial target positions: G1->{initial_target_g1_percentage}%, G2->{initial_target_g2_percentage}%")
         

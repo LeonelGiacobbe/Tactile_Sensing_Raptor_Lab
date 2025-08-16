@@ -16,14 +16,14 @@ res_size = 224
 dropout_p = 0.15
 
 # Training parameters
-epochs = 250
+epochs = 50
 batch_size = 256
 learning_rate = 1e-4
 eps = 1e-4
 nStep = 15
 del_t = 1/10
 
-data_path = "./dataset"
+data_path = "../data_collection/dataset"
 
 transform = transforms.Compose([transforms.Resize([res_size, res_size]),
                                 transforms.ToTensor(),
@@ -53,11 +53,15 @@ def read_empty_data(data_path):
         loc6 = f.find('_gpother')
         ys.append(f[(loc3 + 4): loc4])
         zs.append(f[(loc4 + 3): loc5])
-        own_grip_posi.append(f[(loc5 + 7): loc6])
-        other_grip_posi.append(f[(loc6+9):len(f)])
+        own_grip_posi.append(40.) # Should match val used for target posi and vel
+        other_grip_posi.append(40.) # Should match val used for target posi and vel
         path_list.append(data_path+'/'+f+'/')
         sub_fnames = os.listdir(data_path+'/'+f)
         all_names.append(sub_fnames)
+        # print("appended to ys: ", f[(loc3 + 4): loc4])
+        # print("appended to zs: ", f[(loc4 + 3): loc5])
+        # print("appended to own grip posi: ", own_grip_posi[-1])
+        # print("appended to other grip posi: ", other_grip_posi[-1])
     own_selected_all_names = []
     other_selected_all_names = []
     own_output_p = []
@@ -79,14 +83,15 @@ def read_empty_data(data_path):
             img[(loc1 + 3): loc2]
 
             if img.startswith('1_'): # Own gripper image
-                rand_num = random.uniform(-0.5, 0.5)
+                rand_num_1 = random.uniform(-0.5, 0.5)
+                rand_num_2 = random.uniform(-0.5, 0.5)
                 # Seems like every one of these evals in total would amount to 0?
                 own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                target_pos = 35.0 + rand_num
+                target_pos = 35.5 + rand_num_1
                 own_output_p.append(target_pos)
                 own_selected_all_names.append(path_list[i]+img)
-                own_grip_posi_num.append(37.0)
-                own_grip_vel_num.append((-2.0 + rand_num) / 3.0)
+                own_grip_posi_num.append(40.0)
+                own_grip_vel_num.append((target_pos - 40.0) / 3.0)
                 own_index.append(j)
 
                 # Find matching frame to populate 'other' info
@@ -96,14 +101,15 @@ def read_empty_data(data_path):
                 matching_img_path = glob.glob(os.path.join(path_list[i], f'2_*_frame{frame_no}.jpg'))
                 filename_list = [os.path.basename(path) for path in matching_img_path]
                 other_img = filename_list[0]
+                other_idx_in_list = all_names[i].index(other_img)
                 # Seems like every one of these evals in total would amount to 0?
                 other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                other_target_pos = 35.0 + rand_num
+                other_target_pos = 35.5 + rand_num_2
                 other_output_p.append(other_target_pos)
                 other_selected_all_names.append(path_list[i]+other_img)
-                other_grip_posi_num.append(37.0)
-                other_grip_vel_num.append((-2.0 + rand_num) / 3.0)
-                other_index.append(j)
+                other_grip_posi_num.append(40.0)
+                other_grip_vel_num.append((other_target_pos - 40.0) / 3.0)
+                other_index.append(other_idx_in_list)
 
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
@@ -128,10 +134,14 @@ def read_data(data_path,label_path,up_limit = 50,offset=0):
         loc4 = f.find('_z_')
         loc5 = f.find('_gpown_')
         loc6 = f.find('_gpother')
-        ys.append(f[(loc3 + 2): loc4])
+        ys.append(f[(loc3 + 3): loc4])
+        # print("appended to ys: ", f[(loc3 + 3): loc4])
+        # print("appended to zs: ", f[(loc4 + 3): loc5])
+        # print("appended to own grip posi: ", f[(loc5 + 7): loc6])
+        # print("appended to other grip posi: ", f[(loc6+9):len(f)])
         zs.append(f[(loc4 + 3): loc5])
-        own_grip_posi.append(f[(loc5 + 3): loc6])
-        other_grip_posi.append(f[(loc6+4):len(f)])
+        own_grip_posi.append(f[(loc5 + 7): loc6])
+        other_grip_posi.append(f[(loc6+9):len(f)])
         path_list.append(data_path+'/'+f+'/')
         sub_fnames = os.listdir(data_path+'/'+f) # Contains list of all images in trial
         all_names.append(sub_fnames)
@@ -171,11 +181,11 @@ def read_data(data_path,label_path,up_limit = 50,offset=0):
 
                         own_selected_all_names.append(path_list[i]+img)
                         own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
-                        rand_vel = 2*(random.random()-0.5)
-                        # Velocities of both grippers should be related since they're
-                        # Acting on the same object, right? Maybe ask Dr. Sun?
-                        own_grip_vel_num.append(rand_vel)
-                        other_grip_vel_num.append(rand_vel)
+                        rand_vel_1 = 2*(random.random()-0.5)
+                        rand_vel_2 = 2*(random.random()-0.5)
+
+                        own_grip_vel_num.append(rand_vel_1)
+                        other_grip_vel_num.append(rand_vel_2)
                         own_index.append(j)
 
                         # Find matching frame to populate 'other' info
@@ -185,13 +195,14 @@ def read_data(data_path,label_path,up_limit = 50,offset=0):
                         matching_img_path = glob.glob(os.path.join(path_list[i], f'2_*_frame{frame_no}.jpg'))
                         filename_list = [os.path.basename(path) for path in matching_img_path]
                         other_img = filename_list[0]
+                        other_idx_in_list = all_names[i].index(other_img)
                         other_loc1 = other_img.find('gp_')
                         other_loc2 = other_img.find('_fr')
                         other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
                         other_output_p.append(label_dict[trials[i]][1]+offset)
                         other_selected_all_names.append(path_list[i]+other_img)
                         other_grip_posi_num.append(eval(other_img[(other_loc1 + 3): other_loc2]))
-                        other_index.append(j)
+                        other_index.append(other_idx_in_list)
     own_linear_regressor = LinearRegression()
     own_linear_regressor.fit(np.array(own_total).reshape(-1, 1),np.array(own_output_p).reshape(-1, 1))
     # Same regressor but for 'other' gripper
@@ -209,11 +220,12 @@ def read_data(data_path,label_path,up_limit = 50,offset=0):
                     own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
                     own_selected_all_names.append(path_list[i]+img)
                     own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
-                    rand_vel = 2*(random.random()-0.5)
+                    rand_vel_1 = 2*(random.random()-0.5)
+                    rand_vel_2 = 2*(random.random()-0.5)
                     # Velocities of both grippers should be related since they're
                     # Acting on the same object, right? Maybe ask Dr. Sun?
-                    own_grip_vel_num.append(rand_vel)
-                    other_grip_vel_num.append(rand_vel)
+                    own_grip_vel_num.append(rand_vel_1)
+                    other_grip_vel_num.append(rand_vel_2)
                     own_index.append(j)
                 else:
                     other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
@@ -292,20 +304,13 @@ def train(model, device, train_loader, optimizer, epoch):
         print("Agent 1 loss: ", F.mse_loss(output_1,y_own.float()).item() + F.mse_loss(final_y_own,final_output_own).item())
         print("Agent 2 loss: ", F.mse_loss(output_2,y_other.float()).item() + F.mse_loss(final_y_other,final_output_other).item())
         loss.backward()
-
-        for name, param in MPC_layer.named_parameters():
-            if param.grad is not None:
-                pass
-            else:
-                print(f"{name} is not being learned")
-
         optimizer.step()
         epoch_count += 1
 
         # show information
         # print("Agent new 1 loss: ", F.mse_loss(output_1,y_own.float()).item())
         # print("Agent nw 2 loss: ", F.mse_loss(output_2,y_other.float()).item())
-        print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+        print("\033[92mTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\033[0m".format(
             epoch + 1, N_count, len(train_loader.dataset), 100. * (epoch_count + 1) / len(train_loader), loss.item()))
     # Return mean of losses in epoch (to match loss amount in validation)
     return np.mean(losses)
@@ -350,13 +355,6 @@ def validation(model, device, test_loader):
             own_output = cnn_encoder(X_own)
             other_output = cnn_encoder(X_other)
 
-            # print("own_output size: ", own_output.size())
-            # print("other_output size: ", other_output.size())
-            # print("own gripper pos size: ", own_gripper_p.size())
-            # print("own gripper v size: ", own_gripper_v.size())
-            # print("other gripper pos size: ", other_gripper_p.size())
-            # print("other gripper v size: ", other_gripper_v.size())
-
             output_1, output_2 = MPC_layer(own_output, other_output, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v)
 
             y_own = y_own.unsqueeze(1).expand(X_own.size(0), output_1.size(1)) # size batchSize, nStep
@@ -379,14 +377,13 @@ def validation(model, device, test_loader):
 
             all_y_pred_own.extend(y_pred_own)
             all_y_pred_other.extend(y_pred_other)
-    new_test_loss = np.mean(new_loss_list)
+    #new_test_loss = np.mean(new_loss_list)
     test_loss = np.mean(loss_list)
     all_y_own = torch.stack(all_y_own, dim=0)
     all_y_other = torch.stack(all_y_other, dim=0)
     all_y_pred_own = torch.stack(all_y_pred_own, dim=0)
     all_y_pred_other = torch.stack(all_y_pred_other, dim=0)
-    print('\nTest set ({:d} samples): Average loss: {:.4f}\n'.format(len(all_y_own), test_loss))
-    # print('\nTest set ({:d} samples): Average NEW loss: {:.4f}\n'.format(len(all_y_own), new_test_loss))
+    print("\033[92m\nTest set ({:d} samples): Average loss: {:.4f}\n\033[0m".format(len(all_y_own + all_y_other), test_loss))
     return test_loss
 
 use_cuda = torch.cuda.is_available()
@@ -501,7 +498,7 @@ optimizer = torch.optim.Adam(letac_params, lr=learning_rate, weight_decay=1e-4) 
 
 # Load checkpoint if exists
 start_epoch = 0
-checkpoint_path = 'v7_checkpoint_epoch_25.pth'
+checkpoint_path = 'v2_checkpoint_epoch_15.pth'
 if os.path.exists(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     cnn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
@@ -510,7 +507,7 @@ if os.path.exists(checkpoint_path):
     start_epoch = checkpoint['epoch']  # +1 because we want to start from the next epoch
     print(f"Loaded checkpoint from epoch {start_epoch}")
 else:
-    print("Warning, could not find checkpoint model")
+    print("\033[91mWarning! Could not find checkpoint for this model\033[0m")
 
 # start training - modify range to start from start_epoch
 for epoch in range(start_epoch, epochs):
@@ -521,7 +518,7 @@ for epoch in range(start_epoch, epochs):
         writer.writerow([epoch+1, valid_loss, training_loss])
         # Save checkpoint every 5 epochs
         if (epoch + 1) % 5 == 0:
-            checkpoint_path = f'./v7_checkpoint_epoch_{epoch+1}.pth'
+            checkpoint_path = f'./v2_checkpoint_epoch_{epoch+1}.pth'
             torch.save({
                 'cnn_encoder_state_dict': cnn_encoder.state_dict(),
                 'mpc_layer_state_dict': MPC_layer.state_dict(),

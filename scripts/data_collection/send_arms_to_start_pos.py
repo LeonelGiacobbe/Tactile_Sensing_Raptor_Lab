@@ -105,15 +105,15 @@ def main():
     args2 = utilities.parseConnectionArguments2(parser2)
 
     # Create connection to the device and get the router
-    with utilities.DeviceConnection.createTcpConnection(args1) as router1: #, utilities.DeviceConnection.createTcpConnection(args2) as router2:
+    with utilities.DeviceConnection.createTcpConnection(args1) as router1, utilities.DeviceConnection.createTcpConnection(args2) as router2:
         base1 = BaseClient(router1)
         base_cyclic1 = BaseCyclicClient(router1)
 
-        #base2 = BaseClient(router2)
-        #base_cyclic2 = BaseCyclicClient(router2)
+        base2 = BaseClient(router2)
+        base_cyclic2 = BaseCyclicClient(router2)
 
         success &= move_start_pos1(base1, base_cyclic1)
-        #success &= move_start_pos2(base2, base_cyclic2)
+        success &= move_start_pos2(base2, base_cyclic2)
 
 
 if __name__ == "__main__":

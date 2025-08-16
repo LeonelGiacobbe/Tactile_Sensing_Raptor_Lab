@@ -99,7 +99,7 @@ class ResCNNEncoder(nn.Module):
 
 # Differentiable MPC layer
 class MPClayer(nn.Module):
-    def __init__(self, nHidden = 25, eps = 1e-4, nStep = 20, del_t = 1/60):
+    def __init__(self, nHidden = 20, eps = 1e-4, nStep = 15, del_t = 1/10):
         super(MPClayer, self).__init__()
 
         self.Pq = 5
@@ -142,7 +142,6 @@ class MPClayer(nn.Module):
             # Or change to self.del_t**2, just as in Ap_right_temp
             [0]          # Does not directly affect velocity
         ])).float().cuda())
-        # Not sure if the decisions for Cp_temp above are right, but they're easily changeable
         self.Cp = torch.vstack((self.Cf_zero, Cp_temp))
 
 
@@ -165,7 +164,7 @@ class MPClayer(nn.Module):
         R0_stack = self.R0.unsqueeze(0).expand(2 * self.nStep, 1, 1) # Qa stack
         self.R_dia =  torch.block_diag(*R0_stack).cuda() #Qa diagonal
 
-        self.alpha = nn.Parameter(torch.tensor(0.1).cuda())
+        self.alpha = nn.Parameter(torch.tensor(0.5).cuda())
 
 
     def forward(self, x1, x2, own_gripper_p, own_gripper_v, other_gripper_p, other_gripper_v):
@@ -187,7 +186,7 @@ class MPClayer(nn.Module):
         Q_coupling = self.Lq_coupling.mm(self.Lq_coupling.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda()
         Q_coupling = torch.hstack((Q_coupling, self.Q0_right))
         # If Q_coupling is not scaled, then the off-diagonal coupling is too strong and the matrix is not SPD
-        Q_coupling = torch.vstack((Q_coupling,torch.hstack((self.Q0_down,self.Q0_right_down))))  * self.alpha
+        Q_coupling = torch.vstack((Q_coupling,torch.hstack((self.Q0_down,self.Q0_right_down)))) * self.alpha
 
         # Add coupling terms on off-diagonal sections, combine for bigger Q matrix
         Top_Q0 = torch.hstack((Q0, Q_coupling)) # Top right
@@ -280,7 +279,7 @@ class MPClayer(nn.Module):
         # Now combine state inputs
         # print("x1 size: ", x1.size())
         # print("x2 size: ", x2.size())
-        x_combined = torch.cat((x1, x2), dim=2) # Not sure about this part. dim=2 is the only one that causes no error, but might still be conceptually wrong
+        x_combined = torch.cat((x1, x2), dim=2)
 
         # Calculate other gripper's effect on hidden and own velocity
         # Initialize the batch effect tensor directly
@@ -332,47 +331,13 @@ class MPClayer(nn.Module):
         other_effect_expanded = other_effect_batch.repeat(1, self.nStep, 1)
         x_predict = torch.bmm(S_batch, u.reshape(nBatch, 2 * self.nStep, 1)) + torch.bmm(T_batch, x_combined.reshape(nBatch, nHiddenExpand, 1)) #+ other_effect_expanded
 
-        """
-        After all of the math, x_predict will have size of [nBatch, 1, self.nStep * nHiddenExpand]
-        this contains the predictions of both "own" (0-440) and "other" (441-880)
+        x_predict_reshaped = x_predict.view(nBatch, self.nStep, nHiddenExpand)
+        state_1 = x_predict_reshaped[:, :, :(self.nHidden + 2)]
+        state_2 = x_predict_reshaped[:, :, (self.nHidden + 2):]
 
-        We do all the math keeping both agent's information in mind, but after the math, we only care about
-        correctly outputting the sequences of the "own" gripper.
-
-        So we resize x_predict to only include the predictions for "own" and complete the mpc pass using
-        the same block of code as the single-agent version.
-
-        Right now, this approach (with resizing) has losses of ~28 at first.
-        Without resizing, the losses are ~6000!
-
-        """
-        x_predict_reshaped = x_predict.view(nBatch, self.nStep, nHiddenExpand, 1)
-        # Now split agents
-        x_predict_1 = x_predict_reshaped[:, :, :(self.nHidden+2), :]
-        x_predict_2 = x_predict_reshaped[:, :, (self.nHidden+2):, :]
-        # Reshape back to original form
-        x_predict_1 = x_predict_1.reshape(nBatch, self.nStep*(self.nHidden+2), 1)
-        x_predict_2 = x_predict_2.reshape(nBatch, self.nStep*(self.nHidden+2), 1)
-
-        embb_output_1 = Variable(torch.zeros(1,self.nHidden).cuda())
-        state_output_1 = Variable(torch.eye(1).cuda())
-        output_single_1 = torch.hstack((embb_output_1,state_output_1))
-        output_single_1 = torch.hstack((output_single_1,torch.zeros(1,1).cuda()))
-        output_stack_1 = output_single_1.unsqueeze(0).expand(self.nStep, 1, self.nHidden+2)
-        output_dia_1 =  torch.block_diag(*output_stack_1).cuda()
-        output_batch_1 = output_dia_1.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(self.nHidden+2))
-        posi_predict_1 = torch.bmm(output_batch_1,x_predict_1).resize(nBatch,self.nStep)
-
-        embb_output_2 = Variable(torch.zeros(1,self.nHidden).cuda())
-        state_output_2 = Variable(torch.eye(1).cuda())
-        output_single_2 = torch.hstack((embb_output_2,state_output_2))
-        output_single_2 = torch.hstack((output_single_2,torch.zeros(1,1).cuda()))
-        output_stack_2 = output_single_2.unsqueeze(0).expand(self.nStep, 1, self.nHidden+2)
-        output_dia_2 =  torch.block_diag(*output_stack_2).cuda()
-        output_batch_2 = output_dia_2.unsqueeze(0).expand(nBatch, 1*self.nStep, self.nStep*(self.nHidden+2))
-        posi_predict_2 = torch.bmm(output_batch_2,x_predict_2).resize(nBatch,self.nStep)
+        posi_predict_1 = state_1[:, :, self.nHidden]
+        posi_predict_2 = state_2[:, :, self.nHidden]
 
         return posi_predict_1, posi_predict_2
-
 
 
