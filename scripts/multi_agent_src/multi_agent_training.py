@@ -53,8 +53,8 @@ def read_empty_data(data_path):
         loc6 = f.find('_gpother')
         ys.append(f[(loc3 + 4): loc4])
         zs.append(f[(loc4 + 3): loc5])
-        own_grip_posi.append(40.) # Should match val used for target posi and vel
-        other_grip_posi.append(40.) # Should match val used for target posi and vel
+        own_grip_posi.append(50.) # Should match val used for target posi and vel
+        other_grip_posi.append(50.) # Should match val used for target posi and vel
         path_list.append(data_path+'/'+f+'/')
         sub_fnames = os.listdir(data_path+'/'+f)
         all_names.append(sub_fnames)
@@ -76,168 +76,160 @@ def read_empty_data(data_path):
     other_grip_vel_num = []
     # Both ys and zs will be zeros. Not touching it just in case but I do not see the purpose
     for i in range(len(ys)):
-        for j in range(50): # because there's 50 images per subtrial (25 pairs)
-            img = all_names[i][j]
+        own_images = [img for img in all_names[i] if img.startswith('1_')]
+        for j in range(len(own_images)): # Now, iterate through those files     
+            img = own_images[j]
             loc1 = img.find('gp_')
             loc2 = img.find('_fr')
             img[(loc1 + 3): loc2]
 
-            if img.startswith('1_'): # Own gripper image
-                rand_num_1 = random.uniform(-0.5, 0.5)
-                rand_num_2 = random.uniform(-0.5, 0.5)
-                # Seems like every one of these evals in total would amount to 0?
-                own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                target_pos = 35.5 + rand_num_1
-                own_output_p.append(target_pos)
-                own_selected_all_names.append(path_list[i]+img)
-                own_grip_posi_num.append(40.0)
-                own_grip_vel_num.append((target_pos - 40.0) / 3.0)
-                own_index.append(j)
+            rand_num_1 = random.uniform(-0.5, 0.5)
+            rand_num_2 = random.uniform(-0.5, 0.5)
+            # Seems like every one of these evals in total would amount to 0?
+            own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
+            target_pos = 48.5 + rand_num_1
+            own_output_p.append(target_pos)
+            own_selected_all_names.append(path_list[i]+img)
+            own_grip_posi_num.append(50.0)
+            own_grip_vel_num.append((target_pos - 50.0) / 3.0)
+            own_index.append(j)
 
-                # Find matching frame to populate 'other' info
-                fr_sloc = img.find('frame')
-                fr_eloc = img.find('.jpg')
-                frame_no = img[(fr_sloc + 5): fr_eloc]
-                matching_img_path = glob.glob(os.path.join(path_list[i], f'2_*_frame{frame_no}.jpg'))
-                filename_list = [os.path.basename(path) for path in matching_img_path]
-                other_img = filename_list[0]
-                other_idx_in_list = all_names[i].index(other_img)
-                # Seems like every one of these evals in total would amount to 0?
-                other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                other_target_pos = 35.5 + rand_num_2
-                other_output_p.append(other_target_pos)
-                other_selected_all_names.append(path_list[i]+other_img)
-                other_grip_posi_num.append(40.0)
-                other_grip_vel_num.append((other_target_pos - 40.0) / 3.0)
-                other_index.append(other_idx_in_list)
+            # Find matching frame to populate 'other' info
+            fr_sloc = img.find('frame')
+            fr_eloc = img.find('.jpg')
+            frame_no = img[(fr_sloc + 5): fr_eloc]
+            matching_img_path = glob.glob(os.path.join(path_list[i], f'2_*_frame{frame_no}.jpg'))
+            filename_list = [os.path.basename(path) for path in matching_img_path]
+            other_img = filename_list[0]
+            other_idx_in_list = all_names[i].index(other_img)
+            # Seems like every one of these evals in total would amount to 0?
+            other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
+            other_target_pos = 48.5 + rand_num_2
+            other_output_p.append(other_target_pos)
+            other_selected_all_names.append(path_list[i]+other_img)
+            other_grip_posi_num.append(50.0)
+            other_grip_vel_num.append((other_target_pos - 50.0) / 3.0)
+            other_index.append(other_idx_in_list)
 
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
 
-def read_data(data_path,label_path,up_limit = 50,offset=0):
-    # up_limit acts as a filter for trials where final gripper opening
-    # was greater than up_limit. Those trials are ignored
-    all_names = []
-    trials = []
-    ys = []
-    zs = []
+def read_data(data_path, label_path, up_limit=50, offset=0):
+    # Load filenames
     fnames = os.listdir(data_path)
-    all_names = []
-    own_grip_posi = []
-    other_grip_posi = []
-    path_list = []
+    label_dict = np.load(label_path, allow_pickle=True).item()
 
+    own_index, other_index = [], []
+    own_total, other_total = [], []
+    own_selected_all_names, other_selected_all_names = [], []
+    own_output_p, other_output_p = [], []
+    own_grip_posi_num, other_grip_posi_num = [], []
+    own_grip_vel_num, other_grip_vel_num = [], []
+
+    # Preparse trial info
+    trials_info = []
     for f in fnames:
-        loc1 = f.find('tr_')
-        loc2 = f.find('_dp')
-        trials.append(f[(loc1 + 3): loc2])
-        loc3 = f.find('y_')
-        loc4 = f.find('_z_')
-        loc5 = f.find('_gpown_')
-        loc6 = f.find('_gpother')
-        ys.append(f[(loc3 + 3): loc4])
-        # print("appended to ys: ", f[(loc3 + 3): loc4])
-        # print("appended to zs: ", f[(loc4 + 3): loc5])
-        # print("appended to own grip posi: ", f[(loc5 + 7): loc6])
-        # print("appended to other grip posi: ", f[(loc6+9):len(f)])
-        zs.append(f[(loc4 + 3): loc5])
-        own_grip_posi.append(f[(loc5 + 7): loc6])
-        other_grip_posi.append(f[(loc6+9):len(f)])
-        path_list.append(data_path+'/'+f+'/')
-        sub_fnames = os.listdir(data_path+'/'+f) # Contains list of all images in trial
-        all_names.append(sub_fnames)
-    label_dict = np.load(label_path,allow_pickle=True)
-    label_dict = label_dict[()]
-    own_selected_all_names = []
-    other_selected_all_names = []
-    own_output_p = []
-    other_output_p = []
-    own_grip_posi_num = []
-    other_grip_posi_num = []
-    own_total = []
-    other_total = []
-    own_index = []
-    other_index = []
-    own_grip_vel_num = []
-    other_grip_vel_num = []
+        trial_id = f[f.find('tr_')+3 : f.find('_dp')]
+        y_val = float(f[f.find('y_')+3 : f.find('_z_')])
+        z_val = float(f[f.find('_z_')+3 : f.find('_gpown_')])
+        own_gp = float(f[f.find('_gpown_')+7 : f.find('_gpother')])
+        other_gp = float(f[f.find('_gpother')+9 :])
+        trial_path = os.path.join(data_path, f)
+        images = os.listdir(trial_path)
+        trials_info.append({
+            'trial': trial_id,
+            'y': y_val,
+            'z': z_val,
+            'own_gp': own_gp,
+            'other_gp': other_gp,
+            'path': trial_path,
+            'images': images
+        })
 
-    for i in range(len(ys)):
-        if trials[i] in label_dict.keys():
-            # print("label_dict[trials[i]][0] : ", label_dict[trials[i]][0])
-            # print("label_dict[trials[i]][0] type: ", type(label_dict[trials[i]][0]))
-            if label_dict[trials[i]][0] < up_limit and label_dict[trials[i]][1] < up_limit:
-                for j in range(50): # because there's 50 images per subtrial (25 pairs)
+    # Process trials with labels
+    own_total_vals, other_total_vals = [], []
+    own_output_vals, other_output_vals = [], []
 
-                    # print("own_output_p: ", own_output_p)
-                    # print("other_output_p: ",other_output_p)
-                    img = all_names[i][j]
-                    loc1 = img.find('gp_')
-                    loc2 = img.find('_fr')
-                    img[(loc1 + 3): loc2]
+    for trial in trials_info:
+        tr_id = trial['trial']
+        y, z = trial['y'], trial['z']
+        total_distance = np.sqrt(y**2 + z**2)
+        images = trial['images']
 
-                    if img.startswith('1_'): # Own gripper image
-                        # Populate 'own' info
-                        own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                        own_output_p.append(label_dict[trials[i]][0]+offset)
+        if tr_id in label_dict:
+            label_own, label_other = label_dict[tr_id]
+            if label_own < up_limit and label_other < up_limit:
+                # Separate own/other images once
+                own_images = [img for img in images if img.startswith('1_')]
+                img_map = {img[img.find('frame')+5:img.find('.jpg')]: img for img in images}
 
-                        own_selected_all_names.append(path_list[i]+img)
-                        own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
-                        rand_vel_1 = 2*(random.random()-0.5)
-                        rand_vel_2 = 2*(random.random()-0.5)
+                for j, own_img in enumerate(own_images):
+                    frame_no = own_img[own_img.find('frame')+5:own_img.find('.jpg')]
+                    other_img = img_map.get(frame_no)
+                    if other_img is None:
+                        continue  # skip if matching other frame not found
 
-                        own_grip_vel_num.append(rand_vel_1)
-                        other_grip_vel_num.append(rand_vel_2)
-                        own_index.append(j)
+                    # Own
+                    own_gp_val = float(own_img[own_img.find('gp_')+3 : own_img.find('_fr')])
+                    own_total.append(total_distance)
+                    own_output_p.append(label_own + offset)
+                    own_selected_all_names.append(os.path.join(trial['path'], own_img))
+                    own_grip_posi_num.append(own_gp_val)
+                    own_grip_vel_num.append(2*(random.random()-0.5))
+                    other_grip_vel_num.append(2*(random.random()-0.5))
+                    own_index.append(j)
 
-                        # Find matching frame to populate 'other' info
-                        fr_sloc = img.find('frame')
-                        fr_eloc = img.find('.jpg')
-                        frame_no = img[(fr_sloc + 5): fr_eloc]
-                        matching_img_path = glob.glob(os.path.join(path_list[i], f'2_*_frame{frame_no}.jpg'))
-                        filename_list = [os.path.basename(path) for path in matching_img_path]
-                        other_img = filename_list[0]
-                        other_idx_in_list = all_names[i].index(other_img)
-                        other_loc1 = other_img.find('gp_')
-                        other_loc2 = other_img.find('_fr')
-                        other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                        other_output_p.append(label_dict[trials[i]][1]+offset)
-                        other_selected_all_names.append(path_list[i]+other_img)
-                        other_grip_posi_num.append(eval(other_img[(other_loc1 + 3): other_loc2]))
-                        other_index.append(other_idx_in_list)
-    own_linear_regressor = LinearRegression()
-    own_linear_regressor.fit(np.array(own_total).reshape(-1, 1),np.array(own_output_p).reshape(-1, 1))
-    # Same regressor but for 'other' gripper
-    other_linear_regressor = LinearRegression()
-    other_linear_regressor.fit(np.array(other_total).reshape(-1, 1),np.array(other_output_p).reshape(-1, 1))
-    for i in range(len(ys)):
-        if not(trials[i] in label_dict.keys()):
-            for j in range(50): # because there's 50 images per subtrial (25 pairs)
-                img = all_names[i][j]
-                loc1 = img.find('gp_')
-                loc2 = img.find('_fr')
-                img[(loc1 + 3): loc2]
+                    # Other
+                    other_gp_val = float(other_img[other_img.find('gp_')+3 : other_img.find('_fr')])
+                    other_total.append(total_distance)
+                    other_output_p.append(label_other + offset)
+                    other_selected_all_names.append(os.path.join(trial['path'], other_img))
+                    other_grip_posi_num.append(other_gp_val)
+                    other_index.append(images.index(other_img))
 
-                if img.startswith('1_'): # Own gripper image
-                    own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                    own_selected_all_names.append(path_list[i]+img)
-                    own_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
-                    rand_vel_1 = 2*(random.random()-0.5)
-                    rand_vel_2 = 2*(random.random()-0.5)
-                    # Velocities of both grippers should be related since they're
-                    # Acting on the same object, right? Maybe ask Dr. Sun?
+                    # Save for regression
+                    own_total_vals.append(total_distance)
+                    other_total_vals.append(total_distance)
+                    own_output_vals.append(label_own + offset)
+                    other_output_vals.append(label_other + offset)
+        else:
+            # Trials without labels
+            for j, img in enumerate(images):
+                gp_val = float(img[img.find('gp_')+3 : img.find('_fr')])
+                total_distance = np.sqrt(y**2 + z**2)
+                rand_vel_1, rand_vel_2 = 2*(random.random()-0.5), 2*(random.random()-0.5)
+
+                if img.startswith('1_'):
+                    own_total.append(total_distance)
+                    own_selected_all_names.append(os.path.join(trial['path'], img))
+                    own_grip_posi_num.append(gp_val)
                     own_grip_vel_num.append(rand_vel_1)
                     other_grip_vel_num.append(rand_vel_2)
                     own_index.append(j)
+                    own_output_p.append(0)  # placeholder, will update
                 else:
-                    other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-                    other_selected_all_names.append(path_list[i]+img)
-                    other_grip_posi_num.append(eval(img[(loc1 + 3): loc2]))
+                    other_total.append(total_distance)
+                    other_selected_all_names.append(os.path.join(trial['path'], img))
+                    other_grip_posi_num.append(gp_val)
                     other_index.append(j)
+                    other_output_p.append(0)  # placeholder, will update
 
+    # Fit linear regressors
+    if own_total_vals:
+        own_linear_regressor = LinearRegression().fit(np.array(own_total_vals).reshape(-1, 1), np.array(own_output_vals).reshape(-1, 1))
+        other_linear_regressor = LinearRegression().fit(np.array(other_total_vals).reshape(-1, 1), np.array(other_output_vals).reshape(-1, 1))
+        # Update placeholders for trials without labels
+        for i in range(len(own_output_p)):
+            if own_output_p[i] == 0:
+                own_output_p[i] = own_linear_regressor.predict(np.array([[own_total[i]]]))[0,0]
+        for i in range(len(other_output_p)):
+            if other_output_p[i] == 0:
+                other_output_p[i] = other_linear_regressor.predict(np.array([[other_total[i]]]))[0,0]
 
-                own_output_p.append(own_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
-                other_output_p.append(other_linear_regressor.predict((np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i]))).reshape(-1, 1))[0,0])
-
-    return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names, own_output_p,other_output_p, own_grip_posi_num, other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
+    return (own_index, other_index, own_total, other_total,
+            own_selected_all_names, other_selected_all_names,
+            own_output_p, other_output_p,
+            own_grip_posi_num, other_grip_posi_num,
+            own_grip_vel_num, other_grip_vel_num)
 
 def train(model, device, train_loader, optimizer, epoch):
     # set model as training mode
@@ -526,4 +518,3 @@ for epoch in range(start_epoch, epochs):
                 'epoch': epoch,
             }, checkpoint_path)
             print(f"Checkpoint saved at epoch {epoch+1}")
-
