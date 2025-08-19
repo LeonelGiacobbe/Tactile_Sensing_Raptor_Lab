@@ -16,9 +16,9 @@ res_size = 224
 dropout_p = 0.15
 
 # Training parameters
-epochs = 50
+epochs = 200
 batch_size = 256
-learning_rate = 1e-4
+learning_rate = 1e-5
 eps = 1e-4
 nStep = 15
 del_t = 1/10
@@ -490,7 +490,7 @@ optimizer = torch.optim.Adam(letac_params, lr=learning_rate, weight_decay=1e-4) 
 
 # Load checkpoint if exists
 start_epoch = 0
-checkpoint_path = 'v2_checkpoint_epoch_15.pth'
+checkpoint_path = 'v3_checkpoint_epoch_15.pth'
 if os.path.exists(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     cnn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
@@ -508,9 +508,9 @@ for epoch in range(start_epoch, epochs):
         training_loss = train([cnn_encoder, MPC_layer], device, train_loader, optimizer, epoch)
         writer = csv.writer(f)
         writer.writerow([epoch+1, valid_loss, training_loss])
-        # Save checkpoint every 5 epochs
-        if (epoch + 1) % 5 == 0:
-            checkpoint_path = f'./v2_checkpoint_epoch_{epoch+1}.pth'
+        # Save checkpoint every 20 epochs
+        if (epoch + 1) % 20 == 0:
+            checkpoint_path = f'./v3_checkpoint_epoch_{epoch+1}.pth'
             torch.save({
                 'cnn_encoder_state_dict': cnn_encoder.state_dict(),
                 'mpc_layer_state_dict': MPC_layer.state_dict(),

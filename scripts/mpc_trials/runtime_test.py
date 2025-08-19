@@ -31,7 +31,7 @@ nn_encoder = ResCNNEncoder(hidden1=CNN_hidden1, hidden2=CNN_hidden2, dropP=dropo
 mpc_layer = MPClayer(nHidden = CNN_embed_dim, eps = eps, nStep = nStep, del_t = del_t).to(device)
 
 # Load weights
-model_path = os.path.join("/home/leo/Documents/Tactile_Sensing_Raptor_Lab/scripts/multi_agent_src/v2_checkpoint_epoch_20.pth")
+model_path = os.path.join("/home/leo/Documents/Tactile_Sensing_Raptor_Lab/scripts/multi_agent_src/v3_checkpoint_epoch_200.pth")
 checkpoint = torch.load(model_path, map_location=device)
 nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
 mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
@@ -40,20 +40,21 @@ mpc_layer.eval()
 print("Loaded model weights.")
 
 # Load images
-image_path_1 = "testing_images/sensor_1_wood.jpg"
-image_path_2 = "testing_images/sensor_2_wood.jpg"
+# 24.69, 24.61
+image_path_1 = "image_1.jpg"
+image_path_2 = "image_2.jpg"
 
-pil_image_1 = Image.open(image_path_1).convert("RGB")
-pil_image_2 = Image.open(image_path_2).convert("RGB")
+pil_image_1 = Image.open(image_path_1)#.convert("RGB")
+pil_image_2 = Image.open(image_path_2)#.convert("RGB")
 
 image_1 = transform(pil_image_1).unsqueeze(0).to(device)
 image_2 = transform(pil_image_2).unsqueeze(0).to(device)
 
 # Dummy gripper state
-posi_1 = torch.tensor([25.0]).to(device)
-vel_1 = torch.tensor([0.6]).to(device)
-posi_2 = torch.tensor([25.0]).to(device)
-vel_2 = torch.tensor([0.6]).to(device)
+posi_1 = torch.tensor([23.0131]).to(device)
+vel_1 = torch.tensor([2.6]).to(device)
+posi_2 = torch.tensor([23.3333]).to(device)
+vel_2 = torch.tensor([2.6]).to(device)
 
 # Run inference
 with torch.no_grad():

@@ -61,8 +61,8 @@ class MultiAgentMpc():
         self.frequency = 10
 
         # Gelsight devices
-        self.dev1 = gsdevice.Camera("Gelsight Mini", 2)
-        self.dev2 = gsdevice.Camera("Gelsight Mini", 4)
+        self.dev1 = gsdevice.Camera("Gelsight Mini", 0)
+        self.dev2 = gsdevice.Camera("Gelsight Mini", 2)
         self.dev1.connect()
         self.dev2.connect()
         # Warm up camera:
@@ -92,7 +92,7 @@ class MultiAgentMpc():
         # _ = self.mpc_layer(_, _, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var)
 
         # Load weights
-        model_path = os.path.join(os.getcwd(), "v1_checkpoint_epoch_15.pth")
+        model_path = os.path.join(os.getcwd(), "v3_checkpoint_epoch_200.pth")
         checkpoint = torch.load(model_path, map_location=torch.device(self.device), weights_only=True)
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
@@ -111,6 +111,7 @@ class MultiAgentMpc():
         """
         cv_image_1 = self.dev1.get_raw_image()
         cv_image_2 = self.dev2.get_raw_image()
+        
         if cv_image_1 is None and cv_image_2 is None:
             raise ValueError("Both images weren't obtained")
         if cv_image_1 is None:
@@ -120,9 +121,14 @@ class MultiAgentMpc():
 
         pil_image_1 = Image.fromarray(cv_image_1).convert("RGB")
         pil_image_2 = Image.fromarray(cv_image_2).convert("RGB")
+        pil_image_1.save("image_1.jpg")
+        pil_image_2.save("image_2.jpg")
 
-        self.current_image_1 = self.transform(pil_image_1).to(self.device)
-        self.current_image_2 = self.transform(pil_image_2).to(self.device)
+        pil_image_1 = Image.open("image_1.jpg")#.convert("RGB")
+        pil_image_2 = Image.open("image_2.jpg")#.convert("RGB")
+        # raise KeyError
+        self.current_image_1 = self.transform(pil_image_1).unsqueeze(0).to(self.device)
+        self.current_image_2 = self.transform(pil_image_2).unsqueeze(0).to(self.device)
 
         return self.current_image_1, self.current_image_2
     
@@ -161,15 +167,11 @@ class MultiAgentMpc():
         """
         with torch.cuda.stream(self.stream), torch.no_grad():
             # Prepare for cnn inference
-            image_1 = image_1.unsqueeze(0).to(self.device)
-            image_2 = image_2.unsqueeze(0).to(self.device)
             #start = time.time()
             output_1 = self.nn_encoder(image_1)#.to(self.device) 
             output_2 = self.nn_encoder(image_2)#.to(self.device)
             #end = time.time()
             #print("cnn encoder inference time: ", end - start)
-            print("encodings 1 size: ", output_1.size())
-            print("encodings 2 size: ", output_2.size())
 
             # Prepare for mpc pass
             posi_1 = torch.tensor([posi_1]).to(self.device)
