@@ -79,6 +79,13 @@ class MultiAgentMpc():
         print(f"Using {self.device} in controller class")
         self.nn_encoder = ResCNNEncoder(hidden1=CNN_hidden1, hidden2=CNN_hidden2, dropP=dropout_p, outputDim=CNN_embed_dim).to(self.device)
         self.mpc_layer = MPClayer(nHidden = CNN_embed_dim, eps = eps, nStep = nStep, del_t = del_t).to(self.device)
+
+        # self.mpc_layer = torch.compile(
+        #     mpc_layer, 
+        #     mode="default",
+        #     fullgraph = True,
+        #     dynamic = True
+        # )
         if self.device.type == 'cuda':
             self.stream = torch.cuda.Stream()
             torch.cuda.synchronize()
@@ -92,7 +99,7 @@ class MultiAgentMpc():
         # _ = self.mpc_layer(_, _, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var)
 
         # Load weights
-        model_path = os.path.join(os.getcwd(), "v3_checkpoint_epoch_200.pth")
+        model_path = os.path.join("/home/leo/Documents/Tactile_Sensing_Raptor_Lab/scripts/multi_agent_src/v5_checkpoint_epoch_120.pth")
         checkpoint = torch.load(model_path, map_location=torch.device(self.device), weights_only=True)
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])
@@ -193,8 +200,8 @@ class MultiAgentMpc():
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
         initial_target_g1_percentage = 59.0
         initial_target_g2_percentage = 75.0
-        self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
-        print(f"Sent grippers to initial target positions: G1->{initial_target_g1_percentage}%, G2->{initial_target_g2_percentage}%")
+        # self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
+        # print(f"Sent grippers to initial target positions: G1->{initial_target_g1_percentage}%, G2->{initial_target_g2_percentage}%")
         
         # Wait until grippers are approximately at initial position before starting MPC loop
         # This is a blocking wait but only happens once at the beginning.
@@ -263,6 +270,7 @@ class MultiAgentMpc():
                 time_elapsed = loop_end_time - loop_start_time
                 time_to_sleep = loop_dt - time_elapsed
                 if time_to_sleep > 0:
+                    print(f"MPC loop time elapsed: {time_elapsed}")
                     time.sleep(time_to_sleep)
                 else:
                     print(f"Warning: MPC loop is running slower than desired frequency! {time_elapsed:.4f}s vs {loop_dt:.4f}s")           
@@ -291,15 +299,16 @@ def main():
         import argparse
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
         import utilities
+        print("Imported utilities")
 
         # Parse arguments
         parser_1 = argparse.ArgumentParser()
         parser_2 = argparse.ArgumentParser()
-        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.0)
-        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.0)
+        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.)
+        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.)
         args1 = utilities.parseConnectionArguments1(parser_1)
         args2 = utilities.parseConnectionArguments2(parser_2)
-
+        print("parsed arguments")
         with utilities.DeviceConnection.createTcpConnection(args1) as router_1, utilities.DeviceConnection.createTcpConnection(args2) as router_2:
             with utilities.DeviceConnection.createUdpConnection(args1) as router_real_time_1, utilities.DeviceConnection.createUdpConnection(args2) as router_real_time_2:
                 print("Established connections to both arms")

@@ -13,10 +13,10 @@ import torchvision.transforms as transforms
 CNN_hidden1, CNN_hidden2 = 128, 128
 CNN_embed_dim = 20
 res_size = 224
-dropout_p = 0.15
+dropout_p = 0.3
 
 # Training parameters
-epochs = 200
+epochs = 400
 batch_size = 256
 learning_rate = 1e-5
 eps = 1e-4
@@ -87,11 +87,11 @@ def read_empty_data(data_path):
             rand_num_2 = random.uniform(-0.5, 0.5)
             # Seems like every one of these evals in total would amount to 0?
             own_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-            target_pos = 48.5 + rand_num_1
+            target_pos = 58.5 + rand_num_1
             own_output_p.append(target_pos)
             own_selected_all_names.append(path_list[i]+img)
-            own_grip_posi_num.append(50.0)
-            own_grip_vel_num.append((target_pos - 50.0) / 3.0)
+            own_grip_posi_num.append(60.0)
+            own_grip_vel_num.append((target_pos - 60.0) / 3.0)
             own_index.append(j)
 
             # Find matching frame to populate 'other' info
@@ -104,11 +104,11 @@ def read_empty_data(data_path):
             other_idx_in_list = all_names[i].index(other_img)
             # Seems like every one of these evals in total would amount to 0?
             other_total.append(np.sqrt(eval(ys[i])*eval(ys[i])+eval(zs[i])*eval(zs[i])))
-            other_target_pos = 48.5 + rand_num_2
+            other_target_pos = 58.5 + rand_num_2
             other_output_p.append(other_target_pos)
             other_selected_all_names.append(path_list[i]+other_img)
-            other_grip_posi_num.append(50.0)
-            other_grip_vel_num.append((other_target_pos - 50.0) / 3.0)
+            other_grip_posi_num.append(60.0)
+            other_grip_vel_num.append((other_target_pos - 60.0) / 3.0)
             other_index.append(other_idx_in_list)
 
     return own_index,other_index,own_total,other_total,own_selected_all_names,other_selected_all_names,own_output_p,other_output_p,own_grip_posi_num,other_grip_posi_num, own_grip_vel_num, other_grip_vel_num
@@ -243,9 +243,7 @@ def train(model, device, train_loader, optimizer, epoch):
     epoch_count = 0
     # Train loader contains (own, other info)
     for (combined_X, combined_y) in train_loader:
-        # print("own info 0 len: ", len(own_info[0]))
-        # print("own info 1 len: ", len(own_info[1]))
-        # print("other info len: ", len(other_info))
+        
         (own_X_image, own_pv_pair) = combined_X[0]
         (other_X_image, other_pv_pair) = combined_X[1]
         # distribute data to device
@@ -281,15 +279,7 @@ def train(model, device, train_loader, optimizer, epoch):
         final_output_other = output_2[:,(output_2.size(1)-1)]*3
 
         # if ((epoch + 1) % 5 == 0):
-        #     print(f"Agent 1 loss per time step:")
-        #     for t in range(output_1.size(1)):
-        #         step_loss = F.mse_loss(output_1[:, t], y_own[:, t].float()).item()
-        #         print(f"  Step {t}: {step_loss:.6f}")
-
-        #     print(f"Agent 2 loss per time step:")
-        #     for t in range(output_2.size(1)):
-        #         step_loss = F.mse_loss(output_2[:, t], y_other[:, t].float()).item()
-        #         print(f"  Step {t}: {step_loss:.6f}")
+        
 
         loss = F.mse_loss(output_1,y_own.float()) + F.mse_loss(output_2,y_other.float()) + F.mse_loss(final_y_own,final_output_own) + F.mse_loss(final_y_other,final_output_other)
         losses.append(loss.item())
@@ -490,7 +480,7 @@ optimizer = torch.optim.Adam(letac_params, lr=learning_rate, weight_decay=1e-4) 
 
 # Load checkpoint if exists
 start_epoch = 0
-checkpoint_path = 'v3_checkpoint_epoch_15.pth'
+checkpoint_path = 'v5_checkpoint_epoch_200.pth'
 if os.path.exists(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     cnn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
@@ -510,7 +500,7 @@ for epoch in range(start_epoch, epochs):
         writer.writerow([epoch+1, valid_loss, training_loss])
         # Save checkpoint every 20 epochs
         if (epoch + 1) % 20 == 0:
-            checkpoint_path = f'./v3_checkpoint_epoch_{epoch+1}.pth'
+            checkpoint_path = f'./v5_checkpoint_epoch_{epoch+1}.pth'
             torch.save({
                 'cnn_encoder_state_dict': cnn_encoder.state_dict(),
                 'mpc_layer_state_dict': MPC_layer.state_dict(),

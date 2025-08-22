@@ -103,8 +103,8 @@ class MPClayer(nn.Module):
         super(MPClayer, self).__init__()
 
         self.Pq = 5
-        self.Qv = 200 # Increase for quicker convergence
-        self.Qa = 1 # Increase for quicker convergence
+        self.Qv = 200 
+        self.Qa = 50 
         self.nHidden = nHidden
         self.eps = eps
         self.nStep = nStep

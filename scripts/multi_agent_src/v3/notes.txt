@@ -1,0 +1,2 @@
+Set opening of empty images to 50, target to 48.5
+Train on 400 epochs with learning rate of 1e-5

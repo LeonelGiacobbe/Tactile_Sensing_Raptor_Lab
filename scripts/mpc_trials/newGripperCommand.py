@@ -110,7 +110,7 @@ class GripperCommand:
                 # print("position error: ", position_error)
                 
                 # Apply proportional control
-                if abs(position_error) < 0.05: # Tolerance for stopping
+                if abs(position_error) < 0.03: # Tolerance for stopping
                     self.motorcmd.velocity = 0
                     self.motorcmd.position = self._target_position_percentage # Ensure it settles at target
                 else:
