@@ -1,4 +1,4 @@
-import threading, queue
+import csv
 import torch
 from torchvision import transforms
 from PIL import Image
@@ -57,6 +57,9 @@ class MultiAgentMpc():
         self.gripper_posi_2_mm = 0.0
         self.current_image_1 = None
         self.current_image_2 = None
+
+        self.man_posi_1 = 0.0
+        self.man_posi_2 = 0.0
 
         self.frequency = 10
 
@@ -198,11 +201,17 @@ class MultiAgentMpc():
         and sends new commands.
         """
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
-        initial_target_g1_percentage = 59.0
-        initial_target_g2_percentage = 75.0
-        # self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
-        # print(f"Sent grippers to initial target positions: G1->{initial_target_g1_percentage}%, G2->{initial_target_g2_percentage}%")
-        
+        initial_target_g1_percentage = opening_to_85_percentage(50.0)
+        initial_target_g2_percentage = opening_to_140_percentage(50.0)
+
+        # Send new commands to grippers (non-blocking)
+        self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
+        print(f"Sent grippers to initial target positions: G1->{initial_target_g1_percentage}%, G2->{initial_target_g2_percentage}%")
+        # time.sleep(5)
+        # self.gripper_1.Cleanup()
+        # self.gripper_2.Cleanup()
+        # raise KeyError
+
         # Wait until grippers are approximately at initial position before starting MPC loop
         # This is a blocking wait but only happens once at the beginning.
         # print("Waiting for grippers to reach initial positions...")
@@ -213,6 +222,8 @@ class MultiAgentMpc():
 
         loop_dt = 1.0 / self.frequency # Calculate desired loop delay
         try:
+            graph_timer = time.time()
+            csv_write_time = time.time()
             while True:
                 loop_start_time = time.time()
 
@@ -231,10 +242,13 @@ class MultiAgentMpc():
                 if self.prev_gripper_posi_2 > posi_2_mm_for_mpc: # gripper is closing, flip vel to negative as that's what the MPC layer expects
                     vel_2_for_mpc *= -1
 
+                if (self.man_posi_1 == 0 and self.man_posi_2 == 0):
+                    self.man_posi_1 = posi_1_mm_for_mpc
+                    self.man_posi_2 = posi_2_mm_for_mpc
                 # Get Gelsight images
                 image_1, image_2 = self._get_gelsight_images()
                 
-                print(f"Obtained current state: G1 P: {posi_1_mm_for_mpc:.2f}mm, V: {vel_1_for_mpc:.2f}mm/s | G2 P: {posi_2_mm_for_mpc:.2f}mm, V: {vel_2_for_mpc:.2f}mm/s")
+                print(f"Obtained current state: G1 P: {self.man_posi_1:.2f}mm, V: {vel_1_for_mpc:.2f}mm/s | G2 P: {self.man_posi_2:.2f}mm, V: {vel_2_for_mpc:.2f}mm/s")
                 # print("Image 1 shape:", image_1.shape)
                 # print("Image 2 shape:", image_2.shape)
 
@@ -242,18 +256,21 @@ class MultiAgentMpc():
                 if image_1 is not None and image_2 is not None:
                     pos_sequences_1_mm, pos_sequences_2_mm = self._run_inference(
                         image_1, image_2,
-                        posi_1_mm_for_mpc, vel_1_for_mpc,
-                        posi_2_mm_for_mpc, vel_2_for_mpc
+                        self.man_posi_1, vel_1_for_mpc,
+                        self.man_posi_2, vel_2_for_mpc
                     )
                 else:
                     raise ValueError ("empty gelsight images in run loop")
                 #print("Successful inference.")
-                print("Target pos sequence 1 (mm): ", pos_sequences_1_mm)
-                print("Target pos sequence 2 (mm): ", pos_sequences_2_mm)
+                # print("Target pos sequence 1 (mm): ", pos_sequences_1_mm)
+                # print("Target pos sequence 2 (mm): ", pos_sequences_2_mm)
 
                 # Extract first predicted target and convert to percentage (what GripperCommand expects)
                 target_pos_1_mm = pos_sequences_1_mm[:, 0].item()
                 target_pos_2_mm = pos_sequences_2_mm[:, 0].item()
+
+                self.man_posi_1 = target_pos_1_mm
+                self.man_posi_2 = target_pos_2_mm
 
                 target_pos_1_percentage = opening_to_85_percentage(target_pos_1_mm)
                 target_pos_2_percentage = opening_to_140_percentage(target_pos_2_mm)
@@ -264,13 +281,19 @@ class MultiAgentMpc():
                 # Set images to None again to force update of gelsights
                 self.current_image_1 = None
                 self.current_image_2 = None
+                with open("position_log.csv", mode='a') as f:
+                    writer = csv.writer(f)
+                    if time.time() - csv_write_time > 0.33:
+                        elapsed_time = time.time() - graph_timer
+                        writer.writerow([self.man_posi_1, self.man_posi_2, elapsed_time])
+                        csv_write_time = time.time()
                 
                 # Enforce MPC loop frequency
                 loop_end_time = time.time()
                 time_elapsed = loop_end_time - loop_start_time
                 time_to_sleep = loop_dt - time_elapsed
                 if time_to_sleep > 0:
-                    print(f"MPC loop time elapsed: {time_elapsed}")
+                    #print(f"MPC loop time elapsed: {time_elapsed}")
                     time.sleep(time_to_sleep)
                 else:
                     print(f"Warning: MPC loop is running slower than desired frequency! {time_elapsed:.4f}s vs {loop_dt:.4f}s")           
@@ -294,6 +317,10 @@ class MultiAgentMpc():
 
 
 def main():
+        try:
+            os.remove("position_log.csv")
+        except:
+            pass
         print("Init main function")
     # Initialize arm connection
         import argparse
@@ -304,8 +331,8 @@ def main():
         # Parse arguments
         parser_1 = argparse.ArgumentParser()
         parser_2 = argparse.ArgumentParser()
-        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.)
-        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=3.)
+        parser_1.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=1.5)
+        parser_2.add_argument("--proportional_gain", type=float, help="proportional gain used in control loop", default=1.5)
         args1 = utilities.parseConnectionArguments1(parser_1)
         args2 = utilities.parseConnectionArguments2(parser_2)
         print("parsed arguments")

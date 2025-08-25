@@ -13,8 +13,11 @@ class GripperCommand:
     MAX_SPEED_85_MM_PER_SEC = 150.0 
     MAX_SPEED_140_MM_PER_SEC = 250.0 
 
-    def __init__(self, router, router_real_time, proportional_gain=2.0, gripper_type="85", gripper_index=0):
+    def __init__(self, router, router_real_time, proportional_gain=2.0, integral_gain=0.5, gripper_type="85", gripper_index=0):
         self.proportional_gain = proportional_gain
+        self.integral_gain = integral_gain
+        self.integral_error = 0.0
+        self.integral_windup_limit = 10.0 # To prevent integral wind-up
         self.gripper_type = gripper_type
         self.gripper_index = gripper_index # To differentiate between multiple grippers if on same base
         # I don't think its possible to have more than one gripper commanded by one arm? Just following the kinova api for consistency
@@ -91,6 +94,7 @@ class GripperCommand:
         Main loop for gripper control thread
         It continuously sends commands and gets feedback.
         """
+        last_time = time.time()
         while not self._stop_event.is_set():
             try:
                 # Check for new target position from MPC (non-blocking)
@@ -105,19 +109,47 @@ class GripperCommand:
                 current_position_percentage = base_feedback.interconnect.gripper_feedback.motor[self.gripper_index].position
                 current_velocity_percentage = base_feedback.interconnect.gripper_feedback.motor[self.gripper_index].velocity
 
+                # Time bookkeeping
+                now = time.time()
+                dt = now - last_time if now > last_time else 1e-3
+                last_time = now
+
                 # Calculate velocity command based on error to the internal target
                 position_error = self._target_position_percentage - current_position_percentage
-                # print("position error: ", position_error)
                 
-                # Apply proportional control
-                if abs(position_error) < 0.015: # Tolerance for stopping
-                    self.motorcmd.velocity = 0
-                    self.motorcmd.position = self._target_position_percentage # Ensure it settles at target
+                # Update integral error
+                self.integral_error += position_error * dt
+                # Anti-windup for integral term
+                if self.integral_error > self.integral_windup_limit:
+                    self.integral_error = self.integral_windup_limit
+                elif self.integral_error < -self.integral_windup_limit:
+                    self.integral_error = -self.integral_windup_limit
+
+                # Anti-windup clamp
+                if self.integral_error > self.integral_windup_limit:
+                    self.integral_error = self.integral_windup_limit
+                elif self.integral_error < -self.integral_windup_limit:
+                    self.integral_error = -self.integral_windup_limit
+
+                # Compute PI output (signed)
+                p_term = self.proportional_gain * position_error
+                i_term = self.integral_gain * self.integral_error
+                velocity_cmd = p_term + i_term
+
+                # Stop if really at target
+                if abs(position_error) < 0.03:   # tolerance
+                    self.motorcmd.velocity = 0.0
+                    self.motorcmd.position = self._target_position_percentage
+                    # <<< NOTE: do NOT reset integral here >>>
                 else:
-                    self.motorcmd.velocity = self.proportional_gain * abs(position_error) 
-                    if self.motorcmd.velocity > 100.0:
-                        self.motorcmd.velocity = 100.0
-                    self.motorcmd.position = self._target_position_percentage # Continuously command target
+                    # Bound velocity command to API range
+                    if velocity_cmd > 100.0:
+                        velocity_cmd = 100.0
+                    elif velocity_cmd < -100.0:
+                        velocity_cmd = -100.0
+
+                    self.motorcmd.velocity = abs(velocity_cmd)  # Kinova API expects magnitude
+                    self.motorcmd.position = self._target_position_percentage
 
                 # Prepare and send feedback to MPC (non-blocking)
                 current_velocity_mm_s = (current_velocity_percentage / 100.0) * self.MAX_VEL_MM

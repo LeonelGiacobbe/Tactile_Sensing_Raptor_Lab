@@ -12,7 +12,7 @@ from qpth.qp import QPFunction
 # Helper function to stack zeros
 def zeors_hstack_help(vec, n, size_row, size_col):
     combo = vec
-    single = Variable(torch.zeros(size_row,size_col).cuda())
+    single = torch.zeros(size_row,size_col).cuda()
     for i in range(n-1):
         combo = torch.hstack((combo,single))
     return combo
@@ -103,29 +103,33 @@ class MPClayer(nn.Module):
         super(MPClayer, self).__init__()
 
         self.Pq = 5
-        self.Qv = 200 
-        self.Qa = 50 
+        self.Qv = 250 # Increase for quicker convergence
+        self.Qa = 50 # Increase for quicker convergence
         self.nHidden = nHidden
         self.eps = eps
         self.nStep = nStep
         self.del_t = del_t
 
         # A matrix
-        self.A_eye = Variable(torch.eye(self.nHidden).cuda()) # Identity matrix
-        self.Af_zero = Variable(torch.zeros(self.nHidden,1).cuda())
+        self.A_eye = torch.eye(self.nHidden).cuda() # Identity matrix
+        self.Af_zero = torch.zeros(self.nHidden,1).cuda()
         self.Af= Parameter(torch.rand(self.nHidden,1).cuda()) # Learned parameter
-        Ap_right_temp = Variable(torch.from_numpy(np.array([ # Referred to as Ag in the paper
+        Ap_right_temp = torch.from_numpy(np.array([ # Referred to as Ag in the paper
         [1,     self.del_t],
         [0,     1]
-        ])).float().cuda())
-        self.Ap_right = torch.hstack((Variable(0*torch.ones(2, self.nHidden).cuda()),Ap_right_temp)) # (0 ^ 2xM, page 4 of paper) and Ag in the paper
+        ])).float().cuda()
+        self.Ap_right = torch.hstack((
+            torch.zeros(2, self.nHidden, device="cuda"),
+            Ap_right_temp
+        ))
+        # (0 ^ 2xM, page 4 of paper) and Ag in the paper
 
         # B matrix (own control input)
-        Bg = Variable(torch.from_numpy(np.array([ # Also called Bg in the paper
+        Bg = torch.from_numpy(np.array([ # Also called Bg in the paper
         [0.5*self.del_t*self.del_t],
         [self.del_t]
-        ])).float().cuda())
-        self.B_zero = Variable(torch.zeros(self.nHidden, 1).cuda())
+        ])).float().cuda()
+        self.B_zero = torch.zeros(self.nHidden, 1).cuda()
         self.B0 = torch.vstack((self.B_zero,Bg))
 
         # Need to expand B0 for coupling of agents
@@ -133,32 +137,32 @@ class MPClayer(nn.Module):
 
         # These are the matrices related to the "other" agent
         # Define Cf_zero here, same shape as Af_zero above.
-        self.Cf_zero = Variable(torch.zeros(self.nHidden,1).cuda())
+        self.Cf_zero = torch.zeros(self.nHidden,1).cuda()
         # Define Cf here, the learned parameter for the other agent
         self.Cf = Parameter(torch.rand(self.nHidden, 1).cuda()) # Learned parameter
         # The other agent's velocity affects the hidden state (through Cf) and the velocity (through Cp)
-        Cp_temp = Variable(torch.from_numpy(np.array([
+        Cp_temp = torch.from_numpy(np.array([
             [0.5 * self.del_t],  # Other agent's velocity affects position with dampening
             # Or change to self.del_t**2, just as in Ap_right_temp
             [0]          # Does not directly affect velocity
-        ])).float().cuda())
+        ])).float().cuda()
         self.Cp = torch.vstack((self.Cf_zero, Cp_temp))
 
 
         # Weights
         self.Lq = Parameter(torch.tril(torch.rand(self.nHidden, self.nHidden).cuda()))
         self.Lq_coupling = Parameter(torch.tril(torch.rand(self.nHidden, self.nHidden).cuda()))
-        self.R0 = self.Qa*Variable(torch.eye(1).cuda())
-        self.Q0_right_down = Variable(torch.from_numpy(np.array([
+        self.R0 = self.Qa*torch.eye(1).cuda()
+        self.Q0_right_down = torch.from_numpy(np.array([
         [0,     0],
         [0,     self.Qv]
-        ])).float().cuda())
-        self.Q0_down = Variable(torch.zeros(2,self.nHidden).cuda())
-        self.Q0_right = Variable(torch.zeros(self.nHidden,2).cuda())
+        ])).float().cuda()
+        self.Q0_down = torch.zeros(2,self.nHidden).cuda()
+        self.Q0_right = torch.zeros(self.nHidden,2).cuda()
 
         # No constraints during training
-        self.G = Variable(torch.zeros(2 * self.nStep,2 * self.nStep).cuda())
-        self.h = Variable(torch.zeros(2 * self.nStep,1).cuda())
+        self.G = torch.zeros(2 * self.nStep,2 * self.nStep).cuda()
+        self.h = torch.zeros(2 * self.nStep,1).cuda()
 
         # Stacked R
         R0_stack = self.R0.unsqueeze(0).expand(2 * self.nStep, 1, 1) # Qa stack
@@ -177,13 +181,13 @@ class MPClayer(nn.Module):
         nHiddenExpand = 2 * (self.nHidden + 2)
 
         # Single Q in cost function
-        Q0 = self.Lq.mm(self.Lq.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda()
+        Q0 = self.Lq.mm(self.Lq.t()) + self.eps*torch.eye(self.nHidden).cuda()
         Q0 = torch.hstack((Q0,self.Q0_right))
         Q0 = torch.vstack((Q0,torch.hstack((self.Q0_down,self.Q0_right_down))))
         # Q0 is equivalent to Qf in the paper
         # According to the paper, Q0 must be positive semi-definite
 
-        Q_coupling = self.Lq_coupling.mm(self.Lq_coupling.t()) + self.eps*Variable(torch.eye(self.nHidden)).cuda()
+        Q_coupling = self.Lq_coupling.mm(self.Lq_coupling.t()) + self.eps*torch.eye(self.nHidden).cuda()
         Q_coupling = torch.hstack((Q_coupling, self.Q0_right))
         # If Q_coupling is not scaled, then the off-diagonal coupling is too strong and the matrix is not SPD
         Q_coupling = torch.vstack((Q_coupling,torch.hstack((self.Q0_down,self.Q0_right_down)))) * self.alpha
@@ -254,7 +258,7 @@ class MPClayer(nn.Module):
         S_ = torch.mm(AN_,B_dia)
 
 
-        Q_final = 2*(self.R_dia+(torch.mm(S_.t(),Q_dia)).mm(S_))+ self.eps*Variable(torch.eye(2 * self.nStep)).cuda() # f_k^T @ Qf @ f_k
+        Q_final = 2*(self.R_dia+(torch.mm(S_.t(),Q_dia)).mm(S_))+ self.eps*torch.eye(2 * self.nStep).cuda() # f_k^T @ Qf @ f_k
         Q_batch = Q_final.unsqueeze(0).expand(nBatch, 2 * self.nStep, 2 * self.nStep)
         p_final = 2*torch.mm(T_.t(),torch.mm(Q_dia,S_)) # f_n^T @ Q_f @
         p_batch = p_final.unsqueeze(0).expand(nBatch, nHiddenExpand, 2 * self.nStep)
@@ -313,7 +317,7 @@ class MPClayer(nn.Module):
 
         p_x0_batch = torch.bmm(x_combined, p_batch) # In og paper, the bmm is x and p_batch
 
-        e = Variable(torch.Tensor())
+        e = torch.Tensor()
         G = self.G.unsqueeze(0).expand(nBatch, 2 * self.nStep, 2 * self.nStep)
         h = self.h.unsqueeze(0).expand(nBatch, 2 * self.nStep, 1)
 
