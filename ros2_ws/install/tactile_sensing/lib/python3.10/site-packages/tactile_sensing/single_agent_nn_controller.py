@@ -219,7 +219,7 @@ class ModelBasedMPCNode(Node):
         try:
             # self.get_logger().info(f"Received image in gelsight topic 1")
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')  
-            pil_image = Image.fromarray(cv_image)#.convert('RGB')        
+            pil_image = Image.fromarray(cv_image).convert('RGB')        
             # Convert to tensor and process single image
             tensor = self.transform(pil_image).to(self.device)
             
