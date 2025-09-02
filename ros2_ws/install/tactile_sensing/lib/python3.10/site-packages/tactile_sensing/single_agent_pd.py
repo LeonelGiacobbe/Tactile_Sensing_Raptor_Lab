@@ -17,14 +17,14 @@ from rclpy.wait_for_message import wait_for_message
 from concurrent.futures import ThreadPoolExecutor
 import threading
 
-CONVERSION_RATE = 0.005714
+CONVERSION_RATE = 0.00941176 # Kinova unit to mm
 
 def gripper_posi_to_mm(gripper_posi):
     opening = 0.8 - gripper_posi
     return opening / CONVERSION_RATE
 
 def mm_to_gripper_posi(millimeters):
-    opening = 140 - millimeters
+    opening = 85 - millimeters
     return opening * CONVERSION_RATE
 
 class ModelBasedPDNode(Node):
@@ -40,7 +40,6 @@ class ModelBasedPDNode(Node):
 
         # Action client for gripper control
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
-        self._action_client.wait_for_server()  # Wait once here
 
         gs_qos_profile = QoSProfile(depth=5, reliability=ReliabilityPolicy.RELIABLE, durability=DurabilityPolicy.VOLATILE)
 
@@ -51,11 +50,11 @@ class ModelBasedPDNode(Node):
         posi_qos_profile = QoSProfile(depth=1000, reliability=ReliabilityPolicy.BEST_EFFORT, durability=DurabilityPolicy.VOLATILE)
         self.create_subscription(JointState, '/joint_states', self.joint_state_cb, posi_qos_profile)
 
-        self.frequency = 8  # Hz
+        self.frequency = 60  # Hz
         self.q_d = 2
-        self.c_ref = 1000
+        self.c_ref = 3000
         self.k_p = 1 / 40000
-        self.k_d = 1 / 6000
+        self.k_d = 1 / 360000
 
         self.gripper_cmd = GripperCommand.Goal()
 
@@ -66,46 +65,49 @@ class ModelBasedPDNode(Node):
         self.gripper_ini_flag_ = True
         if 'robotiq_85_left_knuckle_joint' in msg.name:
             index = msg.name.index('robotiq_85_left_knuckle_joint')
+            # self.get_logger().info("Joint state cb")
             self.gripper_posi_ = msg.position[index]
 
     def contact_area_cb(self, msg):
         self.contact_area_ = msg.data
-        self.get_logger().info(f"Received contact area value: {self.contact_area_}")
+        #self.get_logger().info(f"Received contact area value: {self.contact_area_}")
         self.contact_area_ini_flag = True
 
     def run(self):
         if not self.gripper_ini_flag_:
             self.get_logger().info("Waiting for gripper initialization...")
             return
-
         # Compute new position
         new_gripper_posi = gripper_posi_to_mm(self.gripper_posi_) + \
                            (self.contact_area_ - (self.c_ref + (self.q_d * self.dis_sum_))) * self.k_p + \
                            (self.contact_area_ - self.last_contact_area_) * self.k_d
-
+        self.get_logger().info(f"Current gripper posi: {gripper_posi_to_mm(self.gripper_posi_)}")
+        self.get_logger().info(f"New gripper posi: {new_gripper_posi}")
         # Convert and clamp position
-        pos = max(0.0, min(0.8, mm_to_gripper_posi(new_gripper_posi)))
-        self.gripper_cmd.command.position = pos
+        #pos = max(0.0, min(0.8, mm_to_gripper_posi(new_gripper_posi)))
+        self.gripper_cmd.command.position = mm_to_gripper_posi(new_gripper_posi)
+        self.gripper_cmd.command.max_effort = 100.0
         self._send_goal(self.gripper_cmd)
 
         self.last_contact_area_ = self.contact_area_
-        self.get_logger().info(f"Target gripper posi: {pos:.4f}")
+        #self.get_logger().info(f"Target gripper posi: {pos:.4f}")
 
     def _send_goal(self, goal):
+        self._action_client.wait_for_server()
         send_goal_future = self._action_client.send_goal_async(goal)
         send_goal_future.add_done_callback(self._goal_response_callback)
 
     def _goal_response_callback(self, future):
         goal_handle = future.result()
         if goal_handle.accepted:
-            self.get_logger().info('Goal accepted :)')
+            # self.get_logger().info('Goal accepted :)')
             goal_handle.get_result_async().add_done_callback(self._get_result_callback)
         else:
             self.get_logger().info('Goal rejected :(')
 
     def _get_result_callback(self, future):
         result = future.result().result
-        self.get_logger().info(f'Result: {result}')
+        # self.get_logger().info(f'Result: {result}')
 
 def main(args=None):
     rclpy.init(args=args)
