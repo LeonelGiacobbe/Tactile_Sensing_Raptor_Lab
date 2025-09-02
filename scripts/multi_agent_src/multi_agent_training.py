@@ -290,8 +290,6 @@ def train(model, device, train_loader, optimizer, epoch):
         epoch_count += 1
 
         # show information
-        # print("Agent new 1 loss: ", F.mse_loss(output_1,y_own.float()).item())
-        # print("Agent nw 2 loss: ", F.mse_loss(output_2,y_other.float()).item())
         print("\033[92mTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\033[0m".format(
             epoch + 1, N_count, len(train_loader.dataset), 100. * (epoch_count + 1) / len(train_loader), loss.item()))
     # Return mean of losses in epoch (to match loss amount in validation)
