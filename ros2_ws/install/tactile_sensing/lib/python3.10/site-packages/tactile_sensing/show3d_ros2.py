@@ -45,7 +45,7 @@ class PCDPublisher(Node):
         # the device ID can change after chaning the usb ports.
         # on linux run, v4l2-ctl --list-devices, in the terminal to get the device ID for camera
         self.dev = gsdevice.Camera("GelSight Mini")
-        net_file_path = '../nnmini.pt'
+        net_file_path = '/home/leo/Documents/Tactile_Sensing_Raptor_Lab/ros2_ws/src/tactile_sensing/nnmini.pt'
 
         self.dev.connect()
 

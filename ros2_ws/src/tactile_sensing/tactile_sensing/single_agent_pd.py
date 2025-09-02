@@ -27,120 +27,81 @@ def mm_to_gripper_posi(millimeters):
     opening = 140 - millimeters
     return opening * CONVERSION_RATE
 
-class modelBasedPDNode(Node):
+class ModelBasedPDNode(Node):
     def __init__(self):
         super().__init__('model_based_pd_node')
-        
+
         self.gripper_posi_ = 0.0
         self.gripper_ini_flag_ = False
         self.contact_area_ini_flag = False
         self.dis_sum_ = 0
         self.contact_area_ = 0
-        self.processing_executor = ThreadPoolExecutor(max_workers=1)
-        self.contact_area_lock = threading.Lock()
+        self.last_contact_area_ = 0
 
-        # Replace publisher with ActionClient
+        # Action client for gripper control
         self._action_client = ActionClient(self, GripperCommand, '/robotiq_gripper_controller/gripper_cmd')
-        self.contact_group = ReentrantCallbackGroup()
-        gs_qos_profile = QoSProfile(
-            depth=5,  # Last 5 messages kept
-            reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.VOLATILE,
-            history=HistoryPolicy.KEEP_LAST
-        )
+        self._action_client.wait_for_server()  # Wait once here
 
-        # Receives white pixel count from tactile sensor
-        self.contact_area_sub = self.create_subscription(
-            UInt16, 
-            '/gs_contact_area', 
-            self.contact_area_cb, gs_qos_profile, 
-            callback_group=self.contact_group
-        )
-        
-        # Subscribe to the JointState topic to get gripper position
-        posi_qos_profile = QoSProfile(
-            depth=1000,
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            durability=DurabilityPolicy.VOLATILE  # Change to TRANSIENT_LOCAL
-        )
-        self.joint_state_sub = self.create_subscription(
-            JointState,
-            '/joint_states',
-            self.joint_state_cb,
-            posi_qos_profile,
-        )
+        gs_qos_profile = QoSProfile(depth=5, reliability=ReliabilityPolicy.RELIABLE, durability=DurabilityPolicy.VOLATILE)
 
-        if sys.stdin.isatty():
-            self.old_attr = termios.tcgetattr(sys.stdin)
-            tty.setcbreak(sys.stdin.fileno())
-        else:
-            self.old_attr = None
+        # Subscribe to contact area
+        self.create_subscription(UInt16, '/gs_contact_area', self.contact_area_cb, gs_qos_profile)
 
-        self.frequency = 60
-        self.init_posi_mm = 70
+        # Subscribe to gripper joint state
+        posi_qos_profile = QoSProfile(depth=1000, reliability=ReliabilityPolicy.BEST_EFFORT, durability=DurabilityPolicy.VOLATILE)
+        self.create_subscription(JointState, '/joint_states', self.joint_state_cb, posi_qos_profile)
+
+        self.frequency = 8  # Hz
         self.q_d = 2
         self.c_ref = 1000
-        self.k_p = 1/40000
-        self.k_d = 1/6000
+        self.k_p = 1 / 40000
+        self.k_d = 1 / 6000
 
-        self.del_t = 1/self.frequency
-        self.gripper_cmd = GripperCommand()
+        self.gripper_cmd = GripperCommand.Goal()
 
-        # Timer to call the run method periodically
-        self.timer = self.create_timer(1.0 / self.frequency, self.run)
-# Receives position of gripper: 0.0 -> completely open. 0.8 -> completely closed
-    def joint_state_cb(self, msg: JointState): 
-        # Flag to allow run method to go out of inf loop
+        # Timer for periodic control
+        self.create_timer(1.0 / self.frequency, self.run)
+
+    def joint_state_cb(self, msg: JointState):
         self.gripper_ini_flag_ = True
-        
-        self.get_logger().info(f"Received JointState message with joints: {msg.name}")
         if 'robotiq_85_left_knuckle_joint' in msg.name:
             index = msg.name.index('robotiq_85_left_knuckle_joint')
-            gripper_position = msg.position[index]
-            self.gripper_posi_ = gripper_position
-            self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
-        else:
-            self.get_logger().warn("Gripper joint not found in JointState message")
+            self.gripper_posi_ = msg.position[index]
 
-    # Not currently used (original author said it can be set to zero?) but here just in case
-    def dis_sum_cb(self, msg):
-        self.dis_sum_ = msg.data
-        
-    # Offloaded calculation to show3d publisher
     def contact_area_cb(self, msg):
         self.contact_area_ = msg.data
-        self.get_logger().info(f"Received contact area msg with value {msg.data}")
+        self.get_logger().info(f"Received contact area value: {self.contact_area_}")
         self.contact_area_ini_flag = True
 
     def run(self):
-        try:
-            while not self.gripper_ini_flag_:
-                print("waiting for initializing the gripper")
-        
-            last_contact_area_ = 0
-            while rclpy.ok():
-                new_gripper_posi = gripper_posi_to_mm(self.gripper_posi_) + (self.contact_area_ - (self.c_ref+(self.q_d*self.dis_sum_)))*self.k_p + (self.contact_area_ - last_contact_area_)*self.k_d
-                self.gripper_cmd.command.position = mm_to_gripper_posi(new_gripper_posi)
-                last_contact_area_ = self.contact_area_
-                self._send_goal(self.gripper_cmd)
-                self.rate.sleep()
-            print("RCLPY not OK. Exiting... ")
-        except KeyboardInterrupt:
-            print("Interrupted by keyboard")
+        if not self.gripper_ini_flag_:
+            self.get_logger().info("Waiting for gripper initialization...")
+            return
+
+        # Compute new position
+        new_gripper_posi = gripper_posi_to_mm(self.gripper_posi_) + \
+                           (self.contact_area_ - (self.c_ref + (self.q_d * self.dis_sum_))) * self.k_p + \
+                           (self.contact_area_ - self.last_contact_area_) * self.k_d
+
+        # Convert and clamp position
+        pos = max(0.0, min(0.8, mm_to_gripper_posi(new_gripper_posi)))
+        self.gripper_cmd.command.position = pos
+        self._send_goal(self.gripper_cmd)
+
+        self.last_contact_area_ = self.contact_area_
+        self.get_logger().info(f"Target gripper posi: {pos:.4f}")
 
     def _send_goal(self, goal):
-        self._action_client.wait_for_server()
-        self._send_goal_future = self._action_client.send_goal_async(goal)
-        self._send_goal_future.add_done_callback(self._goal_response_callback)
+        send_goal_future = self._action_client.send_goal_async(goal)
+        send_goal_future.add_done_callback(self._goal_response_callback)
 
     def _goal_response_callback(self, future):
         goal_handle = future.result()
-        if not goal_handle.accepted:
+        if goal_handle.accepted:
+            self.get_logger().info('Goal accepted :)')
+            goal_handle.get_result_async().add_done_callback(self._get_result_callback)
+        else:
             self.get_logger().info('Goal rejected :(')
-            return
-        self.get_logger().info('Goal accepted :)')
-        self._get_result_future = goal_handle.get_result_async()
-        self._get_result_future.add_done_callback(self._get_result_callback)
 
     def _get_result_callback(self, future):
         result = future.result().result
@@ -148,10 +109,10 @@ class modelBasedPDNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = modelBasedPDNode()
-    executor = MultiThreadedExecutor(num_threads=10)
-    executor.add_node(node)
-    executor.spin()
+    node = ModelBasedPDNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
