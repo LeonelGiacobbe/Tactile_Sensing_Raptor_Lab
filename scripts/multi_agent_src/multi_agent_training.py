@@ -13,10 +13,10 @@ import torchvision.transforms as transforms
 CNN_hidden1, CNN_hidden2 = 128, 128
 CNN_embed_dim = 20
 res_size = 224
-dropout_p = 0.3
+dropout_p = 0.5
 
 # Training parameters
-epochs = 400
+epochs = 200
 batch_size = 256
 learning_rate = 1e-5
 eps = 1e-4

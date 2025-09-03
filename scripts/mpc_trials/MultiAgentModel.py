@@ -102,7 +102,7 @@ class MultiAgentMpc():
         # _ = self.mpc_layer(_, _, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var, dummy_mpc_var)
 
         # Load weights
-        model_path = os.path.join("/home/leo/Documents/Tactile_Sensing_Raptor_Lab/scripts/multi_agent_src/v5_checkpoint_epoch_120.pth")
+        model_path = os.path.join(os.getcwd(), "multi_agent_model.pth")
         checkpoint = torch.load(model_path, map_location=torch.device(self.device), weights_only=True)
         self.nn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])
         self.mpc_layer.load_state_dict(checkpoint['mpc_layer_state_dict'])

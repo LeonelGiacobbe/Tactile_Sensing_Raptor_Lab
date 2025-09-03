@@ -14,6 +14,11 @@ def generate_launch_description():
         default_value='192.168.1.10',
         description='Robot IP address'
     )
+    gripper_type = DeclareLaunchArgument(
+        'gripper_type',
+        default_value='robotiq_2f_85',
+        description='Robot gripper type'
+    )
 
     kinova_sim_bringup = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -24,7 +29,8 @@ def generate_launch_description():
             )
         ]),
         launch_arguments={
-            'robot_ip': LaunchConfiguration('robot_ip')
+            'robot_ip': LaunchConfiguration('robot_ip'),
+            'gripper': LaunchConfiguration('gripper_type')
         }.items()
     )
 
@@ -44,6 +50,7 @@ def generate_launch_description():
     
     return LaunchDescription([
         robot_ip,   
+        gripper_type,
         kinova_sim_bringup,
         depth_publisher_node,
         mpc_controller_node

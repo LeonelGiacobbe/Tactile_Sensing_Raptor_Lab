@@ -17,14 +17,14 @@ from rclpy.wait_for_message import wait_for_message
 from concurrent.futures import ThreadPoolExecutor
 import threading
 
-CONVERSION_RATE = 0.005714
+CONVERSION_RATE = 0.00941176 # Kinova unit to mm
 
 def gripper_posi_to_mm(gripper_posi):
     opening = 0.8 - gripper_posi
     return opening / CONVERSION_RATE
 
 def mm_to_gripper_posi(millimeters):
-    opening = 140 - millimeters
+    opening = 85 - millimeters
     return opening * CONVERSION_RATE
 
 def vstack_help(vec, n):
@@ -148,23 +148,26 @@ class ModelBasedMPCNode(Node):
             self.old_attr = None
 
         # Parameters initialization
-        self.frequency = 2
+        self.frequency = 15
         self.init_posi = 0.0
-        self.lower_pos_lim = 0.0 # for wsg grippers, original values
-        self.upper_pos_lim = 110 # for wsg grippers, original values
         self.new_min = 0.0
         self.new_max = 0.7 # robotiq gripper can do up to 0.8 but that causes mounts to collide
         self.N = 10  # horizon steps. Higher = more stable but more computation
         self.q_c = 36 # weight for contact tracking error. Higher = more aggressive maintenance
         self.q_v = 1 # velocity weight. Higher = smoother but slower movement
         self.q_d = 2 # displacement sum weight
-        self.q_a = 2 # acceleration control weight. Higher = smoother but less responsive
+        self.q_a = 1 # acceleration control weight. Higher = smoother but less responsive
         self.p = 5 # termainal cost weight
         self.c_ref = 3500 # amount of white pixels to ideally reach
-        self.k_c = 50000 # stiffness coefficient. Higher = faster response to contact changes
-        self.acc_max = 300 # max allowed acc
-        self.vel_max = 500 # max allowed vel
+        self.k_c = 36000 # stiffness coefficient. Higher = faster response to contact changes
+        self.acc_max = 100 # max allowed acc
+        self.vel_max = 10 # max allowed vel
         self.dim = 4 # state vector dimension
+
+        self.x_state = np.array([0., 0., 0., 0.])
+
+        self.gripper_cmd = GripperCommand.Goal()
+        self.gripper_cmd.command.max_effort = 100.0
 
         self.del_t = 1 / self.frequency
         self.gripper_cmd = GripperCommand.Goal()
@@ -242,6 +245,8 @@ class ModelBasedMPCNode(Node):
         self.max_con_b_ = vstack_help(self.max_con_b, self.N)
         self.min_con_b_ = vstack_help(self.min_con_b, self.N)
 
+        
+
         # vel select matrix
         self.C_con = sparse.csc_matrix([
             [0, 0, 0, 1]
@@ -268,12 +273,12 @@ class ModelBasedMPCNode(Node):
         # Flag to allow run method to go out of inf loop
         self.gripper_ini_flag_ = True
         
-        self.get_logger().info(f"Received JointState message with joints: {msg.name}")
+        #self.get_logger().info(f"Received JointState message with joints: {msg.name}")
         if 'robotiq_85_left_knuckle_joint' in msg.name:
             index = msg.name.index('robotiq_85_left_knuckle_joint')
             gripper_position = msg.position[index]
             self.gripper_posi_ = gripper_position
-            self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
+            #self.get_logger().info(f"Current gripper position: {gripper_position:.4f}")
         else:
             self.get_logger().warn("Gripper joint not found in JointState message")
 
@@ -284,7 +289,7 @@ class ModelBasedMPCNode(Node):
     # Offloaded calculation to show3d publisher
     def contact_area_cb(self, msg):
         self.contact_area_ = msg.data
-        self.get_logger().info(f"Received contact area msg with value {msg.data}")
+        #self.get_logger().info(f"Received contact area msg with value {msg.data}")
         self.contact_area_ini_flag = True
     
     def run(self):
@@ -293,49 +298,42 @@ class ModelBasedMPCNode(Node):
             wait_for_message(JointState, self, '/joint_states', time_to_wait=10.0)
             wait_for_message(UInt16, self, '/gs_contact_area', time_to_wait=10.0)
 
-            # Initial state
-            x_state = np.array([0., 0., 0., 0.])
 
-            while rclpy.ok():
-                if x_state[2] == 0.:
-                    # state initialization
-                    print("Gripper velocity: ", x_state[3])
-                    with self.contact_area_lock:
-                        x_state = np.array([self.contact_area_, 0, gripper_posi_to_mm(self.gripper_posi_), x_state[3]]) # change -self.dis_sum_ to 0
-                else:
-                    # tactile state update
-                    # contact area, dis sum, p, v
-                    print("Gripper velocity: ", x_state[3])
-                    with self.contact_area_lock:
-                        x_state = np.array([self.contact_area_, 0, gripper_posi_to_mm(x_state[2]), x_state[3]]) # change -self.dis_sum_ to 0
+            self.get_logger().info(f"Gripper position: {gripper_posi_to_mm(self.gripper_posi_)}")
+            if self.x_state[2] == 0.:
+                # state initialization
+                with self.contact_area_lock:
+                    self.x_state = np.array([self.contact_area_, 0, gripper_posi_to_mm(self.gripper_posi_), self.x_state[3]]) # change -self.dis_sum_ to 0
+            else:
+                # tactile state update
+                # contact area, dis sum, p, v
+                with self.contact_area_lock:
+                    self.x_state = np.array([self.contact_area_, 0, self.x_state[2], self.x_state[3]]) # change -self.dis_sum_ to 0
 
-                # constraints update
-                max_con_b_update = b_CT_x0(self.max_con_b_, self.C_con_T_, x_state.reshape(self.dim, 1))
-                min_con_b_update = b_CT_x0(self.min_con_b_, self.C_con_T_, x_state.reshape(self.dim, 1))
-                u_ = np.vstack([self.u_max, max_con_b_update])
-                l_ = np.vstack([self.u_max * -1, min_con_b_update])
+            self.get_logger().info(f"x_state: {self.x_state}")
+            # constraints update
+            max_con_b_update = b_CT_x0(self.max_con_b_, self.C_con_T_, self.x_state.reshape(self.dim, 1))
+            min_con_b_update = b_CT_x0(self.min_con_b_, self.C_con_T_, self.x_state.reshape(self.dim, 1))
+            u_ = np.vstack([self.u_max, max_con_b_update])
+            l_ = np.vstack([self.u_max * -1, min_con_b_update])
 
-                # QP update
-                q_ = 2 * (x_state.reshape(1, self.dim) * (self.T_.T) * (self.L_.T) - self.r_.T) * self.Q_ * self.L_ * self.S_
-                self.prob.update(q=q_.T, l=l_, u=u_)
-                res = self.prob.solve()
-                ctrl = res.x[0:1].copy()
+            # QP update
+            q_ = 2 * (self.x_state.reshape(1, self.dim) * (self.T_.T) * (self.L_.T) - self.r_.T) * self.Q_ * self.L_ * self.S_
+            self.prob.update(q=q_.T, l=l_, u=u_)
+            res = self.prob.solve()
+            ctrl = res.x[0:1].copy()
 
-                self.gripper_cmd = GripperCommand.Goal()
-                self.gripper_cmd.command.max_effort = 100.0
-
-                if ctrl[0] is not None:
-                    # p, v update
-                    x_state = self.Ad.dot(x_state) + self.Bd.dot(ctrl)
-                    print(f"x_state: {x_state}")
-                    print("Current tactile value: ", self.contact_area_)
-                    self.gripper_cmd.command.position = self.gripper_posi_ + mm_to_gripper_posi(x_state[2])
-                    self._action_client.send_goal_async(self.gripper_cmd)
-                
-                # Send goal to the action server
-                self._send_goal(self.gripper_cmd)
-                self.rate.sleep()
-            print("RCLPY not OK. Exiting... ")
+            if ctrl[0] is not None:
+                # p, v update
+                self.x_state = self.Ad.dot(self.x_state) + self.Bd.dot(ctrl)
+                print(f"x_state: {self.x_state}")
+                print("Current tactile value: ", self.contact_area_)
+                self.gripper_cmd.command.position = float(mm_to_gripper_posi(self.x_state[2]))
+                self.get_logger().info(f"Target position: {self.gripper_cmd.command.position}")
+                #self._action_client.send_goal_async(self.gripper_cmd)
+            
+            # Send goal to the action server
+            self._send_goal(self.gripper_cmd)
 
         except KeyboardInterrupt:
             self.get_logger().info('Interrupted!')

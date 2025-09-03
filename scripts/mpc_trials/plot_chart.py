@@ -6,7 +6,7 @@ gripper_1_pos = []
 gripper_2_pos = []
 timestamps = []
 
-with open('./results/draft_stopper_45mm_position_log.csv', 'r') as f:
+with open('./results/pool_noodle_36mm_position_log.csv', 'r') as f:
     reader = csv.reader(f)
     for row in reader:
         gripper_1_pos.append(float(row[0]))
@@ -35,8 +35,8 @@ plt.xticks(np.arange(x_min, x_max + 0.1, 10), fontsize=25)  # tick interval only
 
 plt.xlabel('Time (s)', fontsize=25)
 plt.ylabel('Gripper opening in mm', fontsize=25)
-plt.title('Gripper position tracking', fontsize=25)
+plt.title('Pool noodle gripper opening graph', fontsize=25)
 plt.grid()
-plt.legend()
-plt.savefig("position_plot.png")
+plt.legend(fontsize=25)
+plt.savefig("./results/pool_noodle_36mm_position_plot.pdf")
 
