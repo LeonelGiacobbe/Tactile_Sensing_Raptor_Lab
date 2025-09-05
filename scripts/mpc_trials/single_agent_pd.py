@@ -64,11 +64,11 @@ class SingleAgentPd():
         and sends new commands.
         """
         q_d = 2
-        c_ref = 38000
+        c_ref = 26500
         k_p= 1/40000
         k_d = 1/6000
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
-        initial_target_g1_percentage = opening_to_85_percentage(26.0)
+        initial_target_g1_percentage = opening_to_85_percentage(65.0)
 
         # Send new commands to grippers (non-blocking)
         self._send_gripper_commands(initial_target_g1_percentage)
@@ -102,6 +102,7 @@ class SingleAgentPd():
 
                 target_posi = man_posi + (self.contact_area - (c_ref+(q_d*0)))*k_p + (self.contact_area - last_contact_area)*k_d
                 print(f"Current gripper posi: {man_posi}, target posi: {target_posi}")
+                
                 last_contact_area = self.contact_area
                 man_posi = target_posi
 

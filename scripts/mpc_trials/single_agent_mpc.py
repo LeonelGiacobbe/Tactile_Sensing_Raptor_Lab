@@ -106,7 +106,7 @@ class SingleAgentMpc():
         q_d = 2
         q_a = 2
         p=5
-        c_ref = 36000
+        c_ref = 20000
         k_c= 36000
         acc_max = 30
         vel_max = 10
@@ -116,7 +116,7 @@ class SingleAgentMpc():
 
 
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
-        initial_target_g1_percentage = opening_to_85_percentage(66.0)
+        initial_target_g1_percentage = opening_to_85_percentage(50.0)
 
         # Send new commands to grippers (non-blocking)
         self._send_gripper_commands(initial_target_g1_percentage)

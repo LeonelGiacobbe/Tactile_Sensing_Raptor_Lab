@@ -323,12 +323,12 @@ class Reconstruction3D:
         # cv2.imshow('dm',dm)
 
         ''' remove initial zero depth '''
-        if self.dm_zero_counter < 50:
+        if self.dm_zero_counter < 100:
             self.dm_zero += dm
             print ('zeroing depth. do not touch the gel!')
-            if self.dm_zero_counter == 49:
+            if self.dm_zero_counter == 99:
                 self.dm_zero /= self.dm_zero_counter
-        if self.dm_zero_counter == 50:
+        if self.dm_zero_counter == 99:
             print ('Ok to touch me now!')
         self.dm_zero_counter += 1
         dm = dm - self.dm_zero
