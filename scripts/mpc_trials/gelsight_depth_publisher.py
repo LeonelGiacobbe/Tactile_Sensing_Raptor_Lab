@@ -11,7 +11,7 @@ class GelsightDepth:
     """
 
     def __init__(self, save_video=False, find_roi=False, use_gpu=False, mask_markers=False, device_name="GelSight Mini",
-                 mmpp=0.0634, net_file_path='nnmini.pt'):
+                 mmpp=0.0634, net_file_path='nnmini.pt', dev_id=0):
         """
         Initializes the GelSightReconstructor.
         Args:
@@ -29,7 +29,8 @@ class GelsightDepth:
         self.MASK_MARKERS_FLAG = mask_markers
         self.path = '.'
         self.mmpp = mmpp
-        self.dev = gsdevice.Camera("Gelsight Mini", 0)
+        self.dev_id = dev_id
+        self.dev = gsdevice.Camera("Gelsight Mini", self.dev_id)
         self.net_file_path = net_file_path
         self.out = None
         self.nn = None

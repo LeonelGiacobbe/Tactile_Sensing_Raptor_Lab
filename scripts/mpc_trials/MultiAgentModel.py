@@ -61,7 +61,7 @@ class MultiAgentMpc():
         self.man_posi_1 = 0.0
         self.man_posi_2 = 0.0
 
-        self.frequency = 10
+        self.frequency = 12
 
         # Gelsight devices
         self.dev1 = gsdevice.Camera("Gelsight Mini", 0)
@@ -281,12 +281,17 @@ class MultiAgentMpc():
                 # Set images to None again to force update of gelsights
                 self.current_image_1 = None
                 self.current_image_2 = None
-                with open("position_log.csv", mode='a') as f:
+                with open("water_bottle_60mm_multiagent_position_log.csv", mode='a') as f:
                     writer = csv.writer(f)
                     if time.time() - csv_write_time > 0.33:
                         elapsed_time = time.time() - graph_timer
                         writer.writerow([self.man_posi_1, self.man_posi_2, elapsed_time])
                         csv_write_time = time.time()
+                        if elapsed_time > 52.0: # Enforce time limit for data recording
+                            print("Reached maximum runtime for trial")
+                            self.gripper_1.Cleanup()
+                            self.gripper_2.Cleanup()
+                            sys.exit(0) # exit succesfully
                 
                 # Enforce MPC loop frequency
                 loop_end_time = time.time()
@@ -318,7 +323,7 @@ class MultiAgentMpc():
 
 def main():
         try:
-            os.remove("position_log.csv")
+            os.remove("water_bottle_60mm_multiagent_position_log.csv")
         except:
             pass
         print("Init main function")
