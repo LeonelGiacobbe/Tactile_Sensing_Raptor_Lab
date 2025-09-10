@@ -87,13 +87,13 @@ class DoubleSingleAgentPd():
         and sends new commands.
         """
         q_d = 2
-        c_ref_1 = 25000 # Might have to use two different c_ref values
-        c_ref_2 = 27550 # Might have to use two different c_ref values
+        c_ref_1 = 34000 # Might have to use two different c_ref values
+        c_ref_2 = 25550 # Might have to use two different c_ref values
         k_p= 1/40000
         k_d = 1/6000
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
-        initial_target_g1_percentage = opening_to_85_percentage(75.0)
-        initial_target_g2_percentage = opening_to_140_percentage(75.0)
+        initial_target_g1_percentage = opening_to_85_percentage(60.0)
+        initial_target_g2_percentage = opening_to_140_percentage(60.0)
 
         # Send new commands to grippers (non-blocking)
         self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
@@ -103,7 +103,7 @@ class DoubleSingleAgentPd():
 
         loop_dt = 1.0 / self.freq # Calculate desired loop delay
         try:
-            graph_timer = time.time()
+            
             csv_write_time = time.time()
 
             # while not self.gripper_ini_flag:
@@ -113,6 +113,14 @@ class DoubleSingleAgentPd():
             man_posi_1 = 0
             last_contact_area_2 = 0
             man_posi_2 = 0
+
+            self.contact_area_1 = self.gelsight_depth_1.get_count()
+            self.contact_area_2 = self.gelsight_depth_2.get_count()
+            while self.contact_area_1 > 40000 or self.contact_area_2 > 40000:
+                self.contact_area_1 = self.gelsight_depth_1.get_count()
+                self.contact_area_2 = self.gelsight_depth_2.get_count()
+            
+            graph_timer = time.time()
             while True:
                 
                 loop_start_time = time.time()
@@ -124,8 +132,6 @@ class DoubleSingleAgentPd():
                 self._update_grippers_state()
                 self.contact_area_1 = self.gelsight_depth_1.get_count()
                 self.contact_area_2 = self.gelsight_depth_2.get_count()
-                if self.contact_area_1 > 40000 or self.contact_area_2 > 40000:
-                    continue
                 if man_posi_1 == 0:
                     man_posi_1 = self.gripper_posi_1_mm
                 if man_posi_2 == 0:
@@ -148,13 +154,13 @@ class DoubleSingleAgentPd():
                 # Send new commands to grippers (non-blocking)
                 self._send_gripper_commands(target_pos_percentage_1, target_pos_percentage_2)
                 
-                with open("water_bottle_65mm_double_pd_position_log.csv", mode='a') as f:
+                with open("pepperoni_36mm_double_pd_position_log.csv", mode='a') as f:
                     writer = csv.writer(f)
                     if time.time() - csv_write_time > 0.33:
                         elapsed_time = time.time() - graph_timer
                         writer.writerow([target_posi_1, target_posi_2, elapsed_time])
                         csv_write_time = time.time()
-                        if elapsed_time > 52.0: # Enforce time limit for data recording
+                        if elapsed_time > 51.0: # Enforce time limit for data recording
                             print("Reached maximum runtime for trial")
                             self.gripper_1.Cleanup()
                             self.gripper_2.Cleanup()
@@ -190,7 +196,7 @@ class DoubleSingleAgentPd():
 
 def main():
         try:
-            os.remove("water_bottle_65mm_double_pd_position_log.csv")
+            os.remove("pepperoni_36mm_double_pd_position_log.csv")
         except:
             pass
         print("Init main function")

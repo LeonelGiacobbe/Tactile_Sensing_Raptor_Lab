@@ -6,12 +6,12 @@ gripper_1_pos = []
 gripper_2_pos = []
 timestamps = []
 
-with open('./results/double_mpc_singleagent/plushie_40mm_double_mpc_position_log.csv', 'r') as f:
+with open('corn_50mm_double_mpc_position_log.csv', 'r') as f:
     reader = csv.reader(f)
     for row in reader:
         gripper_1_pos.append(float(row[0]))
         gripper_2_pos.append(float(row[1]))
-        timestamps.append(float(row[2])-5.5)
+        timestamps.append(float(row[2]))
 
 plt.figure(figsize=(15,9))
 
@@ -37,5 +37,5 @@ plt.xlabel('Time (s)', fontsize=35)
 plt.ylabel('Gripper opening in mm', fontsize=35)
 plt.grid()
 plt.legend(fontsize=25)
-plt.savefig("./results/double_mpc_singleagent/plushie_40mm_double_mpc_position_plot.pdf", bbox_inches="tight")
+plt.savefig("corn_50mm_double_mpc_position_plot.pdf", bbox_inches="tight")
 

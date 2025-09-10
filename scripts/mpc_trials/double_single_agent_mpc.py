@@ -132,7 +132,7 @@ class SingleAgentMpc():
         q_d = 2
         q_a = 2
         p=5
-        c_ref = 29000
+        c_ref = 31000
         k_c= 36000
         acc_max = 30
         vel_max = 10
@@ -153,7 +153,7 @@ class SingleAgentMpc():
 
         loop_dt = 1.0 / self.freq # Calculate desired loop delay
         try:
-            graph_timer = time.time()
+            
             csv_write_time = time.time()
 
             # while not self.gripper_ini_flag:
@@ -270,6 +270,14 @@ class SingleAgentMpc():
             last_contact_area_2 = 0
             man_posi_2 = 0
 
+            self.contact_area_1 = self.gelsight_depth_1.get_count()
+            self.contact_area_2 = self.gelsight_depth_2.get_count()
+            while self.contact_area_1 > 44000 or self.contact_area_2 > 44000:
+                self.contact_area_1 = self.gelsight_depth_1.get_count()
+                self.contact_area_2 = self.gelsight_depth_2.get_count()
+
+            graph_timer = time.time()
+
             while True:
                 loop_start_time = time.time()
                 # Get latest state from grippers (non-blocking)
@@ -333,13 +341,13 @@ class SingleAgentMpc():
                 # Send new commands to grippers (non-blocking)
                 self._send_gripper_commands(target_pos_percentage_1, target_pos_percentage_2)
                 
-                with open("water_bottle_65mm_double_mpc_position_log.csv", mode='a') as f:
+                with open("corn_50mm_double_mpc_position_log.csv", mode='a') as f:
                     writer = csv.writer(f)
                     if time.time() - csv_write_time > 0.33:
                         elapsed_time = time.time() - graph_timer
                         writer.writerow([self.gripper_posi_1_mm, self.gripper_posi_2_mm, elapsed_time])
                         csv_write_time = time.time()
-                        if elapsed_time > 52.0: # Enforce time limit for data recording
+                        if elapsed_time > 51.0: # Enforce time limit for data recording
                             print("Reached maximum runtime for trial")
                             self.gripper_1.Cleanup()
                             self.gripper_2.Cleanup()
@@ -375,7 +383,7 @@ class SingleAgentMpc():
 
 def main():
         try:
-            os.remove("water_bottle_65mm_double_mpc_position_log.csv")
+            os.remove("corn_50mm_double_mpc_position_log.csv")
         except:
             pass
         print("Init main function")
