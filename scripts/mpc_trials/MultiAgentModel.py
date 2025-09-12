@@ -201,8 +201,8 @@ class MultiAgentMpc():
         and sends new commands.
         """
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
-        initial_target_g1_percentage = opening_to_85_percentage(60.0)
-        initial_target_g2_percentage = opening_to_140_percentage(60.0)
+        initial_target_g1_percentage = opening_to_85_percentage(80.0)
+        initial_target_g2_percentage = opening_to_140_percentage(80.0)
 
         # Send new commands to grippers (non-blocking)
         self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
@@ -281,7 +281,7 @@ class MultiAgentMpc():
                 # Set images to None again to force update of gelsights
                 self.current_image_1 = None
                 self.current_image_2 = None
-                with open("pepperoni_36mm_multiagent_position_log.csv", mode='a') as f:
+                with open("headphone_case_40mm_multiagent_position_log.csv", mode='a') as f:
                     writer = csv.writer(f)
                     if time.time() - csv_write_time > 0.33:
                         elapsed_time = time.time() - graph_timer
@@ -323,7 +323,7 @@ class MultiAgentMpc():
 
 def main():
         try:
-            os.remove("pepperoni_36mm_multiagent_position_log.csv")
+            os.remove("headphone_case_40mm_multiagent_position_log.csv")
         except:
             pass
         print("Init main function")

@@ -87,19 +87,12 @@ class DoubleSingleAgentPd():
         and sends new commands.
         """
         q_d = 2
-        c_ref_1 = 34000 # Might have to use two different c_ref values
-        c_ref_2 = 25550 # Might have to use two different c_ref values
+        c_ref_1 = 27500 # Might have to use two different c_ref values
+        c_ref_2 = 27550 # Might have to use two different c_ref values
         k_p= 1/40000
-        k_d = 1/6000
+        k_d = 1/18000
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
-        initial_target_g1_percentage = opening_to_85_percentage(60.0)
-        initial_target_g2_percentage = opening_to_140_percentage(60.0)
-
-        # Send new commands to grippers (non-blocking)
-        self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
-        print(f"Sent grippers to initial target positions: G1->{initial_target_g1_percentage} mm, G2->{initial_target_g2_percentage} mm")
-        print("Grippers at initial positions. Starting PD loop.")
-        time.sleep(5)
+        
 
         loop_dt = 1.0 / self.freq # Calculate desired loop delay
         try:
@@ -119,6 +112,15 @@ class DoubleSingleAgentPd():
             while self.contact_area_1 > 40000 or self.contact_area_2 > 40000:
                 self.contact_area_1 = self.gelsight_depth_1.get_count()
                 self.contact_area_2 = self.gelsight_depth_2.get_count()
+
+            initial_target_g1_percentage = opening_to_85_percentage(80.0)
+            initial_target_g2_percentage = opening_to_140_percentage(80.0)
+
+            # Send new commands to grippers (non-blocking)
+            self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
+            print(f"Sent grippers to initial target positions: G1->{initial_target_g1_percentage} mm, G2->{initial_target_g2_percentage} mm")
+            print("Grippers at initial positions. Starting PD loop.")
+            time.sleep(2)
             
             graph_timer = time.time()
             while True:
@@ -154,7 +156,7 @@ class DoubleSingleAgentPd():
                 # Send new commands to grippers (non-blocking)
                 self._send_gripper_commands(target_pos_percentage_1, target_pos_percentage_2)
                 
-                with open("pepperoni_36mm_double_pd_position_log.csv", mode='a') as f:
+                with open("headphone_case_40mm_double_pd_position_log.csv", mode='a') as f:
                     writer = csv.writer(f)
                     if time.time() - csv_write_time > 0.33:
                         elapsed_time = time.time() - graph_timer
@@ -196,7 +198,7 @@ class DoubleSingleAgentPd():
 
 def main():
         try:
-            os.remove("pepperoni_36mm_double_pd_position_log.csv")
+            os.remove("headphone_case_40mm_double_pd_position_log.csv")
         except:
             pass
         print("Init main function")

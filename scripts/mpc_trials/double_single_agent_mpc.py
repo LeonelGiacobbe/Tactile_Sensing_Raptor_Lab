@@ -132,7 +132,7 @@ class SingleAgentMpc():
         q_d = 2
         q_a = 2
         p=5
-        c_ref = 31000
+        c_ref = 23000
         k_c= 36000
         acc_max = 30
         vel_max = 10
@@ -141,15 +141,7 @@ class SingleAgentMpc():
         del_t=1/self.freq
 
 
-        # Initial move to start positions (still using set_target_position_percentage for non-blocking)
-        initial_target_g1_percentage = opening_to_85_percentage(75.0)
-        initial_target_g2_percentage = opening_to_140_percentage(75.0)
-
-        # Send new commands to grippers (non-blocking)
-        self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
-        print(f"Sent grippers to initial target positions: G1->{initial_target_g1_percentage} mm, G2->{initial_target_g2_percentage} mm")
-        print("Gripper at initial positions. Starting MPC loop.")
-        time.sleep(2)
+        
 
         loop_dt = 1.0 / self.freq # Calculate desired loop delay
         try:
@@ -276,16 +268,26 @@ class SingleAgentMpc():
                 self.contact_area_1 = self.gelsight_depth_1.get_count()
                 self.contact_area_2 = self.gelsight_depth_2.get_count()
 
+            # Initial move to start positions (still using set_target_position_percentage for non-blocking)
+            initial_target_g1_percentage = opening_to_85_percentage(80.0)
+            initial_target_g2_percentage = opening_to_140_percentage(80.0)
+
+            # Send new commands to grippers (non-blocking)
+            self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
+            print(f"Sent grippers to initial target positions: G1->{initial_target_g1_percentage} mm, G2->{initial_target_g2_percentage} mm")
+            print("Gripper at initial positions. Starting MPC loop.")
+            time.sleep(2)
+
             graph_timer = time.time()
 
             while True:
                 loop_start_time = time.time()
                 # Get latest state from grippers (non-blocking)
                 self._update_grippers_state()
-                self.contact_area_1 = self.gelsight_depth_1.get_count()
-                self.contact_area_2 = self.gelsight_depth_2.get_count()
-                if self.contact_area_1 > 44000 or self.contact_area_2 > 44000:
-                    continue
+                # self.contact_area_1 = self.gelsight_depth_1.get_count()
+                # self.contact_area_2 = self.gelsight_depth_2.get_count()
+                # if self.contact_area_1 > 44000 or self.contact_area_2 > 44000:
+                #     continue
 
                 if x_state_1[2] == 0:
                     man_posi_1 = self.gripper_posi_1_mm
@@ -341,7 +343,7 @@ class SingleAgentMpc():
                 # Send new commands to grippers (non-blocking)
                 self._send_gripper_commands(target_pos_percentage_1, target_pos_percentage_2)
                 
-                with open("corn_50mm_double_mpc_position_log.csv", mode='a') as f:
+                with open("headphone_case_40mm_double_mpc_position_log.csv", mode='a') as f:
                     writer = csv.writer(f)
                     if time.time() - csv_write_time > 0.33:
                         elapsed_time = time.time() - graph_timer
@@ -383,7 +385,7 @@ class SingleAgentMpc():
 
 def main():
         try:
-            os.remove("corn_50mm_double_mpc_position_log.csv")
+            os.remove("headphone_case_40mm_double_mpc_position_log.csv")
         except:
             pass
         print("Init main function")
