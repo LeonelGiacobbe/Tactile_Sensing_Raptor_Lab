@@ -201,8 +201,8 @@ class MultiAgentMpc():
         and sends new commands.
         """
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
-        initial_target_g1_percentage = opening_to_85_percentage(80.0)
-        initial_target_g2_percentage = opening_to_140_percentage(80.0)
+        initial_target_g1_percentage = opening_to_85_percentage(55.0)
+        initial_target_g2_percentage = opening_to_140_percentage(55.0)
 
         # Send new commands to grippers (non-blocking)
         self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)

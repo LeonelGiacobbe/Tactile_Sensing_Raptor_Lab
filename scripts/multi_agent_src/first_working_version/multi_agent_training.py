@@ -23,7 +23,7 @@ eps = 1e-4
 nStep = 15
 del_t = 1/10
 
-data_path = "../data_collection/dataset"
+data_path = "../../data_collection/dataset"
 
 transform = transforms.Compose([transforms.Resize([res_size, res_size]),
                                 transforms.ToTensor(),
@@ -478,7 +478,7 @@ optimizer = torch.optim.Adam(letac_params, lr=learning_rate, weight_decay=1e-4) 
 
 # Load checkpoint if exists
 start_epoch = 0
-checkpoint_path = 'v5_checkpoint_epoch_200.pth'
+checkpoint_path = 'v5_checkpoint_epoch_160.pth'
 if os.path.exists(checkpoint_path):
     checkpoint = torch.load(checkpoint_path)
     cnn_encoder.load_state_dict(checkpoint['cnn_encoder_state_dict'])

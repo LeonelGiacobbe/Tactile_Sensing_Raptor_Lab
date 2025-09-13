@@ -1,17 +1,12 @@
-import threading, queue
 import torch
-from torchvision import transforms
-from multi_agent_functions import ResCNNEncoder, MPClayer
-# import os, time, sys
-# import gsdevice, cv2
-# import torchvision.transforms as transforms
-# from PIL import Image
 
-# from kortex_api.autogen.client_stubs.BaseClientRpc import BaseClient
-# from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
-# from kortex_api.autogen.messages import Base_pb2
-# from kortex_api.autogen.messages import BaseCyclic_pb2
+# Path to your .pth file
+model_path = 'multi_agent_model.pth'
 
-# from newGripperCommand import GripperCommand
+# Load the file
+checkpoint = torch.load(model_path)
 
-print("hello")
+# Access the epoch count
+epoch_count = checkpoint['epoch']
+
+print(f"The model was saved after epoch: {epoch_count}")

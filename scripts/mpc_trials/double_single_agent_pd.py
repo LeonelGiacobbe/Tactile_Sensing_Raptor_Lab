@@ -87,10 +87,10 @@ class DoubleSingleAgentPd():
         and sends new commands.
         """
         q_d = 2
-        c_ref_1 = 27500 # Might have to use two different c_ref values
-        c_ref_2 = 27550 # Might have to use two different c_ref values
-        k_p= 1/40000
-        k_d = 1/18000
+        c_ref_1 = 50500 # Might have to use two different c_ref values
+        c_ref_2 = 50550 # Might have to use two different c_ref values
+        k_p= 1/80000
+        k_d = 1/360000
         # Initial move to start positions (still using set_target_position_percentage for non-blocking)
         
 
@@ -113,8 +113,8 @@ class DoubleSingleAgentPd():
                 self.contact_area_1 = self.gelsight_depth_1.get_count()
                 self.contact_area_2 = self.gelsight_depth_2.get_count()
 
-            initial_target_g1_percentage = opening_to_85_percentage(80.0)
-            initial_target_g2_percentage = opening_to_140_percentage(80.0)
+            initial_target_g1_percentage = opening_to_85_percentage(60.0)
+            initial_target_g2_percentage = opening_to_140_percentage(60.0)
 
             # Send new commands to grippers (non-blocking)
             self._send_gripper_commands(initial_target_g1_percentage, initial_target_g2_percentage)
