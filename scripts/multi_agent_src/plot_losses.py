@@ -8,21 +8,24 @@ train_losses = []
 min_val_loss = [100, -1]
 min_train_loss = [100, -1]
 
-with open('./loss_log.csv', 'r') as f:
+with open('./first_working_version/loss_log.csv', 'r') as f:
     reader = csv.reader(f)
 
     for row in reader:
-        epoch_num.append(int(row[0]))
-        val_losses.append(float(row[1]))
-        train_losses.append(float(row[2]))
+        if int(row[0]) < 201:
+            epoch_num.append(int(row[0]))
+            val_losses.append(float(row[1]))
+            train_losses.append(float(row[2]))
 
-        if (float(row[1]) < min_val_loss[0]):
-            min_val_loss[0] = float(row[1])
-            min_val_loss[1] = int(row[0])
+            if (float(row[1]) < min_val_loss[0]):
+                min_val_loss[0] = float(row[1])
+                min_val_loss[1] = int(row[0])
 
-        if (float(row[2]) < min_train_loss[0]):
-            min_train_loss[0] = float(row[2])
-            min_train_loss[1] = int(row[0])
+            if (float(row[2]) < min_train_loss[0]):
+                min_train_loss[0] = float(row[2])
+                min_train_loss[1] = int(row[0])
+        else:
+            break
 
 print(f"Minimum training loss found was {min_train_loss[0]} at epoch {min_train_loss[1]}")
 print(f"Minimum validation loss found was {min_val_loss[0]} at epoch {min_val_loss[1]}")
@@ -38,4 +41,4 @@ plt.xlabel('Epoch #', fontsize=35)
 plt.ylabel('Loss', fontsize=35)
 plt.grid()
 plt.legend(fontsize = 25)
-plt.savefig("losses_plot.pdf", bbox_inches="tight")
+plt.savefig("./first_working_version/losses_plot.pdf", bbox_inches="tight")

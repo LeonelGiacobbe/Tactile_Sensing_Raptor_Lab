@@ -6,7 +6,7 @@ gripper_1_pos = []
 gripper_2_pos = []
 timestamps = []
 
-with open('pepperoni_36mm_multiagent_position_log.csv', 'r') as f:
+with open('./results/multiagent/coffee_beans_40mm_multiagent_position_log.csv', 'r') as f:
     reader = csv.reader(f)
     for row in reader:
         gripper_1_pos.append(float(row[0]))
@@ -37,5 +37,5 @@ plt.xlabel('Time (s)', fontsize=35)
 plt.ylabel('Gripper opening in mm', fontsize=35)
 plt.grid()
 plt.legend(fontsize=25)
-plt.savefig("pepperoni_36mm_multiagent_position_plot.pdf", bbox_inches="tight")
+plt.savefig("new_coffee_40mm_multiagent_position_plot.pdf", bbox_inches="tight")
 
